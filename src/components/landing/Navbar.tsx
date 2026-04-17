@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { ShoppingCartSimple, List } from "@phosphor-icons/react";
-import ThemeToggle from "@/components/ThemeToggle";
+import ThemeToggle from "@/components/landing/ThemeToggle";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 

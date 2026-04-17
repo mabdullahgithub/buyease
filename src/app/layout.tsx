@@ -38,7 +38,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
+    <html
+      lang="en"
+      suppressHydrationWarning
+      className={`${geistSans.variable} ${geistMono.variable}`}
+    >
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var key='buyease-theme';var stored=localStorage.getItem(key);var theme=(stored==='light'||stored==='dark')?stored:'light';document.documentElement.classList.toggle('dark',theme==='dark');}catch(e){}})();`,
+          }}
+        />
+      </head>
       <body>{children}</body>
     </html>
   );
