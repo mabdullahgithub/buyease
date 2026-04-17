@@ -64,11 +64,11 @@
 }
 
 :root {
-    --background: oklch(1 0 0);
+    --background: #fffaf5;
     --foreground: oklch(0.145 0 0);
-    --card: oklch(1 0 0);
+    --card: #fffaf5;
     --card-foreground: oklch(0.145 0 0);
-    --popover: oklch(1 0 0);
+    --popover: #fffaf5;
     --popover-foreground: oklch(0.145 0 0);
     /* Primary = teal-600 */
     --primary: oklch(0.600 0.118 181.7);

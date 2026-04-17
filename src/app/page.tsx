@@ -200,7 +200,7 @@ export default function Home() {
       <FaqSection />
 
       {/* ==================== CTA ==================== */}
-      <section className="py-24 bg-muted/50" id="cta">
+      <section className="py-24" id="cta">
         <div className="max-w-[1160px] mx-auto px-6">
           <Card className="glass-surface-strong shadow-md reveal">
             <CardContent className="py-16 px-8 text-center flex flex-col items-center">

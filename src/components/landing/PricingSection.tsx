@@ -49,7 +49,7 @@ const plans: Plan[] = [
   {
     name: "Premium",
     monthly: "$6.99",
-    annual: "$5.99",
+    annual: "$5.17",
     period: "/month",
     desc: "Growing stores that need more power.",
     features: [
@@ -77,7 +77,7 @@ const plans: Plan[] = [
   {
     name: "Enterprise",
     monthly: "$18.99",
-    annual: "$18.49",
+    annual: "$14.05",
     period: "/month",
     desc: "Scaling brands maximizing every visit.",
     features: [
@@ -106,7 +106,7 @@ const plans: Plan[] = [
   {
     name: "Unlimited",
     monthly: "$43.99",
-    annual: "$40.99",
+    annual: "$32.55",
     period: "/month",
     desc: "For brands that demand the absolute best.",
     features: [
@@ -153,7 +153,7 @@ export default function PricingSection() {
   const [isAnnual, setIsAnnual] = useState(false);
 
   return (
-    <section className="py-24 bg-muted/50" id="pricing">
+    <section className="py-24" id="pricing">
       <div className="max-w-[1160px] mx-auto px-6">
         <div className="text-center mb-8 reveal">
           <p className="text-xs font-bold tracking-widest uppercase text-teal-600 mb-3">
@@ -224,7 +224,7 @@ export default function PricingSection() {
                 {plan.name}
               </p>
 
-              <div className="flex items-baseline gap-0.5 mb-0.5">
+              <div className="flex items-baseline gap-2 mb-0.5">
                 <span
                   className={`text-3xl font-black tracking-tight ${
                     plan.featured ? "text-white" : "text-foreground"
@@ -236,6 +236,15 @@ export default function PricingSection() {
                       ? plan.annual
                       : plan.monthly}
                 </span>
+                {isAnnual && plan.monthly !== "Free" && (
+                  <span
+                    className={`text-sm font-semibold line-through ${
+                      plan.featured ? "text-white/60" : "text-muted-foreground/60"
+                    }`}
+                  >
+                    {plan.monthly}
+                  </span>
+                )}
               </div>
 
               <p

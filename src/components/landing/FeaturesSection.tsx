@@ -117,7 +117,7 @@ export default function FeaturesSection() {
     : FEATURE_ITEMS.slice(0, INITIAL_VISIBLE_COUNT);
 
   return (
-    <section className="py-24 bg-muted/50" id="features">
+    <section className="py-24" id="features">
       <div className="max-w-[1160px] mx-auto px-6">
         <div className="text-center mb-14 reveal">
           <p className="text-xs font-bold tracking-widest uppercase text-teal-600 mb-3">

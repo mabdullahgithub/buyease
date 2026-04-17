@@ -1,4 +1,4 @@
-import { ShoppingCartSimple } from "@phosphor-icons/react/dist/ssr";
+import { ShoppingCartSimple, TwitterLogo, LinkedinLogo, GithubLogo } from "@phosphor-icons/react/dist/ssr";
 import { Separator } from "@/components/ui/separator";
 
 export default function SiteFooter() {
@@ -53,9 +53,18 @@ export default function SiteFooter() {
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
           <p className="text-xs text-muted-foreground">&copy; 2026 BuyEase. All rights reserved.</p>
           <div className="flex gap-2">
-            {["Twitter", "LinkedIn", "GitHub"].map((social) => (
-              <a key={social} href="#" className="w-8 h-8 rounded-full bg-muted border border-border flex items-center justify-center text-muted-foreground hover:border-teal-500 hover:text-teal-600 transition-all text-xs font-bold" aria-label={social}>
-                {social[0]}
+            {[
+              { label: "Twitter", icon: <TwitterLogo weight="fill" /> },
+              { label: "LinkedIn", icon: <LinkedinLogo weight="fill" /> },
+              { label: "GitHub", icon: <GithubLogo weight="fill" /> },
+            ].map((social) => (
+              <a 
+                key={social.label} 
+                href="#" 
+                className="w-8 h-8 rounded-full bg-muted border border-border flex items-center justify-center text-muted-foreground hover:border-teal-500 hover:text-teal-600 transition-all text-base" 
+                aria-label={social.label}
+              >
+                {social.icon}
               </a>
             ))}
           </div>
