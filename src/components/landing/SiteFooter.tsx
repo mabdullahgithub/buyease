@@ -37,7 +37,7 @@ export default function SiteFooter() {
           {[
             { title: "Product", links: [{ label: "Features", href: "#features" }, { label: "Pricing", href: "#pricing" }, { label: "How It Works", href: "#how-it-works" }, { label: "Changelog", href: "#" }] },
             { title: "Company", links: [{ label: "About", href: "#" }, { label: "Blog", href: "#" }, { label: "Careers", href: "#" }, { label: "Contact", href: "#" }] },
-            { title: "Legal", links: [{ label: "Privacy Policy", href: "/privacy-policy" }, { label: "Terms of Service", href: "/terms-of-service" }, { label: "Cookie Policy", href: "/cookie-policy" }] },
+            { title: "Legal", links: [{ label: "Privacy Policy", href: "/privacy-policy" }, { label: "Terms of Service", href: "/terms-of-service" }, { label: "Cookie Policy", href: "/cookie-policy" }, { label: "Data Processing", href: "/dpa" }] },
           ].map((col) => (
             <div key={col.title}>
               <h4 className="text-xs font-bold uppercase tracking-widest mb-4">{col.title}</h4>
