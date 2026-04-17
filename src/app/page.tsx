@@ -27,7 +27,7 @@ export default function Home() {
       <ScrollReveal />
 
       {/* ==================== HERO ==================== */}
-      <section className="relative pt-36 pb-20 overflow-hidden" id="hero">
+      <section className="relative pt-36 pb-12 lg:pb-16 overflow-hidden" id="hero">
         <div className="absolute inset-0 pointer-events-none dark:hidden">
           <div className="absolute -top-32 -right-16 w-[400px] h-[400px] rounded-full bg-teal-100 blur-[80px] opacity-50" />
           <div className="absolute -bottom-16 -left-10 w-[280px] h-[280px] rounded-full bg-orange-100 blur-[80px] opacity-50" />
@@ -91,13 +91,13 @@ export default function Home() {
         </div>
 
         {/* Small Dotted Text Marquee */}
-        <div className="absolute bottom-0 left-0 w-full overflow-hidden pointer-events-none opacity-[0.06] dark:opacity-[0.08] select-none flex text-foreground z-0 pb-6 mb-2 mask-radial-faded">
+        <div className="absolute bottom-0 left-0 w-full overflow-hidden pointer-events-none opacity-[0.06] dark:opacity-[0.08] select-none flex items-center justify-center text-foreground z-0 pb-1 mask-radial-faded">
           {/* A single wrapper moving from 0 to -50% */}
           <div className="flex w-[200%] animate-marquee gap-8">
             {[...Array(30)].map((_, i) => (
               <span
                 key={i}
-                className="text-4xl md:text-[3.5rem] font-black leading-none whitespace-nowrap tracking-tighter"
+                className="text-4xl md:text-[3rem] font-black leading-none whitespace-nowrap tracking-tighter"
                 style={{
                   backgroundImage: "radial-gradient(circle, currentColor 1.5px, transparent 1.5px)",
                   backgroundSize: "5px 5px",

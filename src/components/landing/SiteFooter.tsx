@@ -7,10 +7,10 @@ export default function SiteFooter() {
       {/* Background Dotted Text */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center pointer-events-none z-0 opacity-[0.08] dark:opacity-[0.05] select-none text-foreground">
         <div
-          className="text-[8rem] md:text-[14rem] lg:text-[20rem] font-black leading-none whitespace-nowrap tracking-tighter"
+          className="text-6xl md:text-8xl lg:text-9xl font-black leading-none whitespace-nowrap tracking-tighter"
           style={{
             backgroundImage: "radial-gradient(circle, currentColor 2px, transparent 2px)",
-            backgroundSize: "8px 8px",
+            backgroundSize: "6px 6px",
             backgroundPosition: "0 0",
             WebkitBackgroundClip: "text",
             WebkitTextFillColor: "transparent",
