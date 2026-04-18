@@ -256,12 +256,38 @@
   to { transform: scaleY(1); }
 }
 
+/* Testimonial vertical scroll animations */
+@keyframes testimonial-scroll-up {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-50%); }
+}
+
+@keyframes testimonial-scroll-down {
+  0% { transform: translateY(-50%); }
+  100% { transform: translateY(0); }
+}
+
+.testimonial-scroll-up {
+  animation: testimonial-scroll-up 35s linear infinite;
+}
+
+.testimonial-scroll-down {
+  animation: testimonial-scroll-down 35s linear infinite;
+}
+
+.group:hover .testimonial-scroll-up,
+.group:hover .testimonial-scroll-down {
+  animation-play-state: paused;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .hero-enter,
   .reveal,
   .reveal.visible,
   .hero-dashboard-motion,
-  .feature-icon-loop {
+  .feature-icon-loop,
+  .testimonial-scroll-up,
+  .testimonial-scroll-down {
     animation: none !important;
     transform: none !important;
     opacity: 1 !important;

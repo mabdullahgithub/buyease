@@ -2,7 +2,7 @@ import WaitlistForm from "@/components/landing/WaitlistForm";
 import PricingSection from "@/components/landing/PricingSection";
 import FaqSection from "@/components/landing/FaqSection";
 import FeaturesSection from "@/components/landing/FeaturesSection";
-import TestimonialsSection from "@/components/landing/TestimonialsSection";
+import PricingShowcase from "@/components/landing/PricingShowcase";
 import HeroDashboard from "@/components/landing/HeroDashboard";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -150,7 +150,7 @@ export default function Home() {
       {/* ==================== PRICING ==================== */}
       <PricingSection />
 
-      <TestimonialsSection />
+      <PricingShowcase />
 
       {/* ==================== FAQ ==================== */}
       <FaqSection />
