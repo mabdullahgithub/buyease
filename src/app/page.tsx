@@ -11,14 +11,14 @@ import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import {
-  Lightning,
+  Zap,
   Package,
   Link,
   Star,
-  TrendUp,
-  CurrencyDollar,
-  Pulse,
-} from "@phosphor-icons/react/dist/ssr";
+  TrendingUp,
+  DollarSign,
+  Activity,
+} from "lucide-react";
 
 export default function Home() {
   return (
@@ -174,7 +174,7 @@ export default function Home() {
                 <CardContent className="p-7">
                   <div className="flex gap-0.5 mb-3 text-orange-500">
                     {[...Array(5)].map((_, j) => (
-                      <Star key={j} className="w-4 h-4" weight="fill" />
+                      <Star key={j} className="size-4 fill-current" />
                     ))}
                   </div>
                   <p className="text-sm text-muted-foreground leading-relaxed mb-5">{t.text}</p>

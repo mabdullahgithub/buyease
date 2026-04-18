@@ -3,16 +3,16 @@
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import {
-  Lightning,
+  Zap,
   Package,
-  TrendUp,
-  CurrencyDollar,
+  TrendingUp,
+  DollarSign,
   ArrowLeft,
-  CaretRight,
-  ChartLineUp,
+  ChevronRight,
+  LineChart,
   ShoppingCart,
   Users
-} from "@phosphor-icons/react";
+} from "lucide-react";
 
 export default function HeroDashboard() {
   const [activeView, setActiveView] = useState<"overview" | "orders" | "offers">("overview");
@@ -25,7 +25,7 @@ export default function HeroDashboard() {
             onClick={() => setActiveView("overview")}
             className="absolute left-3 w-6 h-6 flex items-center justify-center rounded-md bg-background border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-colors opacity-100 animate-in fade-in"
           >
-            <ArrowLeft weight="bold" className="w-3.5 h-3.5" />
+            <ArrowLeft strokeWidth="3" className="w-3.5 h-3.5" />
           </button>
         )}
         <div className={`flex items-center gap-2 transition-transform duration-300 ${activeView !== "overview" ? "translate-x-8" : ""}`}>
@@ -46,9 +46,9 @@ export default function HeroDashboard() {
           {/* Top Stats */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
             {[
-              { icon: CurrencyDollar, label: "Revenue", value: "$48.2k", change: "+23.1%", color: "teal", action: "overview" },
-              { icon: TrendUp, label: "Upsell Rev", value: "$8.4k", change: "+34.7%", color: "orange", action: "offers" },
-              { icon: Lightning, label: "Conversion", value: "4.8%", change: "+1.2%", color: "teal", action: "overview" },
+              { icon: DollarSign, label: "Revenue", value: "$48.2k", change: "+23.1%", color: "teal", action: "overview" },
+              { icon: TrendingUp, label: "Upsell Rev", value: "$8.4k", change: "+34.7%", color: "orange", action: "offers" },
+              { icon: Zap, label: "Conversion", value: "4.8%", change: "+1.2%", color: "teal", action: "overview" },
               { icon: Package, label: "AOV", value: "$64.50", change: "+5.4%", color: "orange", action: "orders" },
             ].map((stat) => (
               <div 
@@ -96,7 +96,7 @@ export default function HeroDashboard() {
             >
               <div className="flex items-center justify-between mb-2.5">
                 <p className="text-[9px] font-bold">Top Offers</p>
-                <CaretRight weight="bold" className="w-3 h-3 text-muted-foreground" />
+                <ChevronRight strokeWidth="3" className="w-3 h-3 text-muted-foreground" />
               </div>
               <div className="space-y-2">
                 {[
@@ -236,7 +236,7 @@ export default function HeroDashboard() {
         }`}>
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-xs font-bold flex items-center gap-1.5">
-              <ChartLineUp className="w-4 h-4 text-orange-500" />
+              <LineChart className="w-4 h-4 text-orange-500" />
               Upsell Funnels Performance
             </h3>
             <span className="bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300 px-2 py-0.5 rounded text-[8px] font-bold">+$8.4k Total Rev</span>
@@ -257,7 +257,7 @@ export default function HeroDashboard() {
                   </div>
                   <div className="flex items-center gap-3 text-[8px] text-muted-foreground ml-3">
                     <span className="flex items-center gap-1"><Users className="w-2.5 h-2.5"/> {offer.views} views</span>
-                    <span className="flex items-center gap-1"><Lightning className="w-2.5 h-2.5"/> {offer.conv} conversion</span>
+                    <span className="flex items-center gap-1"><Zap className="w-2.5 h-2.5"/> {offer.conv} conversion</span>
                   </div>
                 </div>
                 <div className="text-right">

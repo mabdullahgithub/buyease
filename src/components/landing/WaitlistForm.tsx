@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Check } from "@phosphor-icons/react";
+import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -20,7 +20,7 @@ export default function WaitlistForm({ id }: { id: string }) {
         id={id}
         className="glass-surface flex items-center gap-2 px-4 py-2 rounded-md border border-teal-200/60 text-teal-700 dark:text-teal-300 font-semibold text-xs shadow-none"
       >
-        <Check className="w-4 h-4" weight="bold" />
+        <Check className="w-4 h-4" strokeWidth="3" />
         You&apos;re on the list! We&apos;ll be in touch soon.
       </div>
     );

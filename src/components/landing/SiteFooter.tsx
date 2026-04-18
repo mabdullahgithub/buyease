@@ -1,5 +1,6 @@
-import { ShoppingCartSimple, TwitterLogo, LinkedinLogo, GithubLogo } from "@phosphor-icons/react/dist/ssr";
+import { ShoppingCart } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { TwitterIcon, LinkedinIcon, GithubIcon } from "@/components/ui/social-icons";
 
 export default function SiteFooter() {
   return (
@@ -26,7 +27,7 @@ export default function SiteFooter() {
           <div className="max-w-[260px]">
             <div className="flex items-center gap-2.5 text-lg font-extrabold mb-3">
               <span className="w-7 h-7 rounded-md bg-teal-600 flex items-center justify-center text-white">
-                <ShoppingCartSimple className="w-3.5 h-3.5" weight="duotone" />
+                <ShoppingCart className="size-3.5" />
               </span>
               BuyEase
             </div>
@@ -54,9 +55,9 @@ export default function SiteFooter() {
           <p className="text-xs text-muted-foreground">&copy; 2026 BuyEase. All rights reserved.</p>
           <div className="flex gap-2">
             {[
-              { label: "Twitter", icon: <TwitterLogo weight="fill" /> },
-              { label: "LinkedIn", icon: <LinkedinLogo weight="fill" /> },
-              { label: "GitHub", icon: <GithubLogo weight="fill" /> },
+              { label: "Twitter", icon: <TwitterIcon className="size-4" /> },
+              { label: "LinkedIn", icon: <LinkedinIcon className="size-4" /> },
+              { label: "GitHub", icon: <GithubIcon className="size-4" /> },
             ].map((social) => (
               <a 
                 key={social.label} 

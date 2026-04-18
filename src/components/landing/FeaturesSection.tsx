@@ -2,18 +2,18 @@
 
 import { useState } from "react";
 import {
-  ArrowsLeftRight,
-  StackPlus,
-  ChatText,
-  CursorClick,
-  FileArrowDown,
+  ArrowLeftRight,
+  Layers,
+  MessageSquare,
+  MousePointerClick,
+  FileDown,
   MapPin,
-  MapTrifold,
+  Map,
   Ticket,
-  ChartLineUp,
+  TrendingUp,
   Truck,
-  ShieldSlash,
-} from "@phosphor-icons/react";
+  ShieldOff,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -22,7 +22,6 @@ type FeatureItem = {
   description: string;
   icon: React.ComponentType<{
     className?: string;
-    weight?: "regular" | "duotone" | "bold" | "fill" | "light" | "thin";
     style?: React.CSSProperties;
   }>;
   tone: "teal" | "orange";
@@ -33,35 +32,35 @@ const FEATURE_ITEMS: FeatureItem[] = [
     title: "Upsells & Downsells",
     description:
       "Leverage 1-click upsells and downsells to boost conversions and average order value from cart to post-purchase by attracting customers with add-ons, and more.",
-    icon: ArrowsLeftRight,
+    icon: ArrowLeftRight,
     tone: "teal",
   },
   {
     title: "In-Form Quantity Offers",
     description:
       "Drive sales with in-form quantity offers, encouraging bulk purchases and providing discounts directly in the order form, fostering repeat purchases and additional revenue.",
-    icon: StackPlus,
+    icon: Layers,
     tone: "orange",
   },
   {
     title: "SMS Automation",
     description:
       "Deliver personalized messages for order confirmations, recover abandoned orders, send shipping updates, reduce Return to Origin instances, and verify customer phone numbers with SMS OTP for COD orders.",
-    icon: ChatText,
+    icon: MessageSquare,
     tone: "teal",
   },
   {
     title: "Event Tracking",
     description:
       "Configure your analytics tracking pixels to track your form purchases and events on Facebook, TikTok, Snapchat, Pinterest, Google Analytics, and more.",
-    icon: CursorClick,
+    icon: MousePointerClick,
     tone: "orange",
   },
   {
     title: "Google Sheets",
     description:
       "Import your COD form orders automatically into Google Sheets for easy management and analysis.",
-    icon: FileArrowDown,
+    icon: FileDown,
     tone: "teal",
   },
   {
@@ -75,7 +74,7 @@ const FEATURE_ITEMS: FeatureItem[] = [
     title: "Postal Code Limitation",
     description:
       "Exclude/allow a list of specific postal codes from making orders on the form, to control delivery areas.",
-    icon: MapTrifold,
+    icon: Map,
     tone: "teal",
   },
   {
@@ -89,7 +88,7 @@ const FEATURE_ITEMS: FeatureItem[] = [
     title: "Data Analytics",
     description:
       "Provide insights into user behavior, engagement, and performance through tracking and analysis of various metrics, helping you optimize their app's functionality and user experience to drive growth.",
-    icon: ChartLineUp,
+    icon: TrendingUp,
     tone: "teal",
   },
   {
@@ -103,7 +102,7 @@ const FEATURE_ITEMS: FeatureItem[] = [
     title: "IP Blocking",
     description:
       "Block specific users from making orders on the form by entering their IP addresses.",
-    icon: ShieldSlash,
+    icon: ShieldOff,
     tone: "teal",
   },
 ];
@@ -152,7 +151,6 @@ export default function FeaturesSection() {
                     >
                       <Icon
                         className="w-5 h-5 feature-icon-loop"
-                        weight="duotone"
                         style={{ animationDelay: `${(i % 6) * 120}ms` } as React.CSSProperties}
                       />
                     </div>

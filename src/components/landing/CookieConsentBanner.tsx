@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ShieldCheck } from "@phosphor-icons/react";
+import { ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const COOKIE_NAME = "buyease_required_cookies";

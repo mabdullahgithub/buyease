@@ -4,7 +4,7 @@ import { useState } from "react";
 import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { Check } from "@phosphor-icons/react";
+import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Plan {
@@ -275,7 +275,7 @@ export default function PricingSection() {
                       className={`w-3.5 h-3.5 mt-0.5 flex-shrink-0 ${
                         plan.featured ? "text-orange-500" : "text-teal-500"
                       }`}
-                      weight="bold"
+                      strokeWidth="3"
                     />
                     {f}
                   </div>

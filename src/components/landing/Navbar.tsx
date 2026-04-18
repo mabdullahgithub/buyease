@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ShoppingCartSimple, List } from "@phosphor-icons/react";
+import { ShoppingCart, Menu } from "lucide-react";
 import ThemeToggle from "@/components/landing/ThemeToggle";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -31,7 +31,7 @@ export default function Navbar() {
           id="navbar-logo"
         >
           <span className="w-8 h-8 rounded-md bg-teal-600 flex items-center justify-center text-white">
-            <ShoppingCartSimple className="w-4 h-4" weight="duotone" />
+            <ShoppingCart className="size-4" />
           </span>
           BuyEase
         </a>
@@ -65,7 +65,7 @@ export default function Navbar() {
         <div className="md:hidden flex items-center gap-1.5">
           <ThemeToggle />
           <Button type="button" size="icon-xs" variant="outline" aria-label="Open menu" id="mobile-menu-btn">
-            <List className="size-3.5" />
+            <Menu className="size-3.5" />
           </Button>
         </div>
       </div>

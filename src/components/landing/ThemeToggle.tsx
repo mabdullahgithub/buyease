@@ -1,45 +1,38 @@
-"use client";
+"use client"
 
-import { useEffect, useState } from "react";
-import { Moon, Sun } from "@phosphor-icons/react";
-import { Button } from "@/components/ui/button";
+import * as React from "react"
+import { Moon, Sun } from "lucide-react"
+import { useTheme } from "next-themes"
 
-type Theme = "light" | "dark";
-
-const THEME_KEY = "buyease-theme";
-
-function applyTheme(theme: Theme) {
-  document.documentElement.classList.toggle("dark", theme === "dark");
-}
+import { buttonVariants } from "@/components/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 export default function ThemeToggle() {
-  const [theme, setTheme] = useState<Theme>(() => {
-    if (typeof window === "undefined") return "light";
-    const stored = localStorage.getItem(THEME_KEY);
-    return stored === "dark" || stored === "light" ? stored : "light";
-  });
-
-  useEffect(() => {
-    applyTheme(theme);
-    localStorage.setItem(THEME_KEY, theme);
-  }, [theme]);
-
-  const toggleTheme = () => {
-    const nextTheme: Theme = theme === "dark" ? "light" : "dark";
-    setTheme(nextTheme);
-  };
+  const { setTheme } = useTheme()
 
   return (
-    <Button
-      type="button"
-      size="icon-xs"
-      variant="ghost"
-      aria-label="Toggle theme"
-      onClick={toggleTheme}
-      className="text-muted-foreground hover:text-foreground"
-    >
-      <Sun className="size-3.5 hidden dark:block" />
-      <Moon className="size-3.5 block dark:hidden" />
-    </Button>
-  );
+    <DropdownMenu>
+      <DropdownMenuTrigger className={buttonVariants({ variant: "outline", size: "icon" })}>
+        <Sun className="h-[1.2rem] w-[1.2rem] scale-100 rotate-0 transition-all dark:scale-0 dark:-rotate-90" />
+        <Moon className="absolute h-[1.2rem] w-[1.2rem] scale-0 rotate-90 transition-all dark:scale-100 dark:rotate-0" />
+        <span className="sr-only">Toggle theme</span>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onClick={() => setTheme("light")}>
+          Light
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => setTheme("dark")}>
+          Dark
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => setTheme("system")}>
+          System
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
 }

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { CaretLeft } from "@phosphor-icons/react/dist/ssr";
+import { ChevronLeft } from "lucide-react";
 import Navbar from "@/components/landing/Navbar";
 import SiteFooter from "@/components/landing/SiteFooter";
 import { buttonVariants } from "@/components/ui/button";
@@ -44,7 +44,7 @@ export default function PrivacyPolicyPage() {
               "inline-flex items-center gap-1.5 shadow-sm"
             )}
           >
-            <CaretLeft className="size-3.5" />
+            <ChevronLeft className="size-3.5" />
             Back to Home
           </Link>
         </div>

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { CaretLeft } from "@phosphor-icons/react/dist/ssr";
+import { ChevronLeft } from "lucide-react";
 import Navbar from "@/components/landing/Navbar";
 import SiteFooter from "@/components/landing/SiteFooter";
 import { buttonVariants } from "@/components/ui/button";
@@ -43,7 +43,7 @@ export default function DpaPage() {
               "mb-10 text-muted-foreground hover:text-foreground -ml-4"
             )}
           >
-            <CaretLeft weight="bold" className="mr-1 h-3.5 w-3.5" />
+            <ChevronLeft strokeWidth="3" className="mr-1 h-3.5 w-3.5" />
             Back to Home
           </Link>
 
