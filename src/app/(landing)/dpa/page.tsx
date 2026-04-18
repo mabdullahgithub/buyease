@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
-import Navbar from "@/components/landing/Navbar";
-import SiteFooter from "@/components/landing/SiteFooter";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -31,7 +29,6 @@ function Section({ title, children }: SectionProps) {
 export default function DpaPage() {
   return (
     <div className="min-h-screen flex flex-col bg-background selection:bg-teal-100 selection:text-teal-900 dark:selection:bg-teal-900/30 dark:selection:text-teal-100">
-      <Navbar />
 
       <main className="flex-1 w-full pt-32 pb-24 px-6 relative">
         <div className="max-w-[760px] mx-auto">
@@ -144,7 +141,6 @@ export default function DpaPage() {
         </div>
       </main>
 
-      <SiteFooter />
     </div>
   );
 }

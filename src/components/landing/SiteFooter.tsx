@@ -7,12 +7,14 @@ export default function SiteFooter() {
   return (
     <footer className="relative pt-14 pb-7 border-t border-border overflow-hidden" id="footer">
       {/* Background Dotted Text */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center pointer-events-none z-0 opacity-[0.08] dark:opacity-[0.05] select-none text-foreground">
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center pointer-events-none z-0 opacity-[0.12] dark:opacity-[0.05] select-none text-foreground">
         <div
-          className="text-6xl md:text-8xl lg:text-9xl font-black leading-none whitespace-nowrap tracking-tighter"
+          className="text-6xl md:text-8xl lg:text-9xl leading-none whitespace-nowrap tracking-tighter"
           style={{
-            backgroundImage: "radial-gradient(circle, currentColor 2px, transparent 2px)",
-            backgroundSize: "6px 6px",
+            fontFamily: "'Arial Black', Impact, sans-serif",
+            fontWeight: 900,
+            backgroundImage: "radial-gradient(circle, currentColor 1.5px, transparent 1.5px)",
+            backgroundSize: "4px 4px",
             backgroundPosition: "0 0",
             WebkitBackgroundClip: "text",
             WebkitTextFillColor: "transparent",

@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
-import Navbar from "@/components/landing/Navbar";
-import SiteFooter from "@/components/landing/SiteFooter";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -31,7 +29,6 @@ function Section({ title, children }: SectionProps) {
 export default function TermsOfServicePage() {
   return (
     <>
-      <Navbar />
 
       <main className="min-h-screen bg-background pt-24 text-foreground">
         <div className="mx-auto w-full max-w-3xl px-6 py-16 md:py-20">
@@ -191,7 +188,6 @@ export default function TermsOfServicePage() {
         </div>
       </main>
 
-      <SiteFooter />
     </>
   );
 }

@@ -34,7 +34,10 @@ export default function Home() {
               </div>
             </div>
 
-            <h1 className="hero-enter hero-enter-d2 text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight leading-[1.1] mb-5 max-w-2xl mx-auto lg:mx-0">
+            <h1 
+              className="hero-enter hero-enter-d2 text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight leading-[1.1] mb-5 max-w-2xl mx-auto lg:mx-0 drop-shadow-sm"
+              style={{ WebkitTextStroke: "1px currentColor" }}
+            >
               BuyEase COD Form &amp;{" "}
               <span className="text-teal-600">Upsells</span>
             </h1>
@@ -83,30 +86,32 @@ export default function Home() {
             <HeroDashboard />
           </div>
         </div>
-
-        {/* Small Dotted Text Marquee */}
-        <div className="absolute bottom-0 left-0 w-full overflow-hidden pointer-events-none opacity-[0.06] dark:opacity-[0.08] select-none flex items-center justify-center text-foreground z-0 pb-1 mask-radial-faded">
-          {/* A single wrapper moving from 0 to -50% */}
-          <div className="flex w-[200%] animate-marquee gap-8">
-            {[...Array(30)].map((_, i) => (
-              <span
-                key={i}
-                className="text-4xl md:text-[3rem] font-black leading-none whitespace-nowrap tracking-tighter"
-                style={{
-                  backgroundImage: "radial-gradient(circle, currentColor 1.5px, transparent 1.5px)",
-                  backgroundSize: "5px 5px",
-                  backgroundPosition: "0 0",
-                  WebkitBackgroundClip: "text",
-                  WebkitTextFillColor: "transparent",
-                  color: "inherit",
-                }}
-              >
-                BUYEASE
-              </span>
-            ))}
-          </div>
-        </div>
       </section>
+
+      {/* Small Dotted Text Marquee */}
+      <div className="w-full overflow-hidden pointer-events-none opacity-[0.15] dark:opacity-[0.08] select-none flex items-center justify-center text-foreground z-0 py-4 -mt-8 -mb-17 mask-radial-faded">
+        {/* A single wrapper moving from 0 to -50% */}
+        <div className="flex w-[200%] animate-marquee gap-8">
+          {[...Array(30)].map((_, i) => (
+            <div
+              key={i}
+              className="text-4xl md:text-[3rem] tracking-tighter leading-none whitespace-nowrap"
+              style={{
+                fontFamily: "'Arial Black', Impact, sans-serif",
+                fontWeight: 900,
+                backgroundImage: "radial-gradient(circle, currentColor 1px, transparent 1px)",
+                backgroundSize: "3px 3px",
+                backgroundPosition: "0 0",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+                color: "inherit",
+              }}
+            >
+              BUYEASE
+            </div>
+          ))}
+        </div>
+      </div>
 
       <FeaturesSection />
 
