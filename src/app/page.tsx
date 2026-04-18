@@ -6,6 +6,7 @@ import FaqSection from "@/components/landing/FaqSection";
 import CookieConsentBanner from "@/components/landing/CookieConsentBanner";
 import SiteFooter from "@/components/landing/SiteFooter";
 import FeaturesSection from "@/components/landing/FeaturesSection";
+import TestimonialsSection from "@/components/landing/TestimonialsSection";
 import HeroDashboard from "@/components/landing/HeroDashboard";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -151,50 +152,7 @@ export default function Home() {
       {/* ==================== PRICING ==================== */}
       <PricingSection />
 
-      {/* ==================== TESTIMONIALS ==================== */}
-      <section className="py-24" id="testimonials">
-        <div className="max-w-[1160px] mx-auto px-6">
-          <div className="text-center mb-14 reveal">
-            <p className="text-xs font-bold tracking-widest uppercase text-teal-600 mb-3">Testimonials</p>
-            <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight mb-3">
-              Loved by <span className="text-teal-600">Merchants Worldwide</span>
-            </h2>
-            <p className="text-base text-muted-foreground max-w-lg mx-auto leading-relaxed">
-              Don&apos;t just take our word for it — hear what early beta merchants are saying.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {[
-              { initials: "SL", name: "Sarah Lin", role: "Founder, Glow Botanics", text: "\u201CWe saw a 28% lift in average order value within the first week. BuyEase\u2019s recommendations feel like magic — our customers love the personalized experience.\u201D", color: "teal" },
-              { initials: "MK", name: "Marcus Kim", role: "CEO, UrbanThread Co.", text: "\u201CSetup took literally seconds. No code, no theme edits, just pure results. Our upsell revenue went from $0 to $8k/month without lifting a finger.\u201D", color: "orange" },
-              { initials: "PR", name: "Priya Rao", role: "Head of Ecom, FitNest", text: "\u201CThe A/B testing alone paid for a year of BuyEase. We discovered that a simple bundle re\u2011order increased conversions by 41%.\u201D", color: "teal" },
-            ].map((t, i) => (
-              <Card key={t.name} className={`reveal reveal-d${i + 1} hover:-translate-y-1 hover:shadow-md transition-all duration-300`} id={`testimonial-${i + 1}`}>
-                <CardContent className="p-7">
-                  <div className="flex gap-0.5 mb-3 text-orange-500">
-                    {[...Array(5)].map((_, j) => (
-                      <Star key={j} className="size-4 fill-current" />
-                    ))}
-                  </div>
-                  <p className="text-sm text-muted-foreground leading-relaxed mb-5">{t.text}</p>
-                  <div className="flex items-center gap-3">
-                    <div className={`size-9 rounded-full flex items-center justify-center text-xs font-bold ${
-                      t.color === "teal" ? "bg-teal-100 text-teal-700" : "bg-orange-100 text-orange-700"
-                    }`}>
-                      {t.initials}
-                    </div>
-                    <div>
-                      <p className="text-sm font-bold">{t.name}</p>
-                      <p className="text-xs text-muted-foreground">{t.role}</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
+      <TestimonialsSection />
 
       {/* ==================== FAQ ==================== */}
       <FaqSection />
