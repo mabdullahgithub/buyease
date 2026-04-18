@@ -7,15 +7,6 @@ import HeroDashboard from "@/components/landing/HeroDashboard";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import {
-  Zap,
-  Package,
-  Link,
-  Star,
-  TrendingUp,
-  DollarSign,
-  Activity,
-} from "lucide-react";
 
 export default function Home() {
   return (
@@ -29,9 +20,18 @@ export default function Home() {
 
         <div className="relative z-10 max-w-[1160px] mx-auto px-6 grid grid-cols-1 lg:grid-cols-[1.05fr_1fr] gap-10 lg:gap-12 items-center">
           <div className="text-center lg:text-left">
-            <div className="hero-enter hero-enter-d1 inline-flex items-center gap-2 bg-teal-50 border border-teal-200 px-5 py-1.5 rounded-full text-sm font-semibold text-teal-700 mb-6" id="hero-badge">
-              <span className="size-1.5 rounded-full bg-orange-500" />
-              Coming Soon to the Shopify App Store
+            <div className="hero-enter hero-enter-d1 mb-12 mt-6 flex justify-center lg:justify-start" id="hero-badge">
+              <div className="relative inline-flex -rotate-[8deg] drop-shadow-2xl">
+                {/* Banner left bottom fold */}
+                <div className="absolute left-0 top-full z-0 h-4 w-5 bg-orange-800 [clip-path:polygon(0_0,100%_0,100%_100%)]" />
+                
+                {/* Main ribbon shape */}
+                <div className="relative z-10 flex items-center bg-orange-500 py-2.5 pl-6 pr-10 [clip-path:polygon(0_0,100%_0,88%_50%,100%_100%,0_100%)]">
+                  <span className="text-base sm:text-lg lg:text-xl font-black uppercase tracking-[0.15em] text-white drop-shadow-md">
+                    AI Powered
+                  </span>
+                </div>
+              </div>
             </div>
 
             <h1 className="hero-enter hero-enter-d2 text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight leading-[1.1] mb-5 max-w-2xl mx-auto lg:mx-0">
