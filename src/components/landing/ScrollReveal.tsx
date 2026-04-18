@@ -1,8 +1,11 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
+import { usePathname } from "next/navigation";
 
 export default function ScrollReveal() {
+  const pathname = usePathname();
+
   useEffect(() => {
     const selector = ".reveal, .reveal-scale, .reveal-left, .reveal-right";
 
@@ -25,9 +28,9 @@ export default function ScrollReveal() {
       targets.forEach((el) => observer.observe(el));
     };
 
+    // Re-observe targets when the pathname changes so elements aren't permanently invisible
     observeTargets(document);
 
-    // Also watch for dynamically inserted reveal elements (e.g. Show More).
     const mutationObserver = new MutationObserver((mutations) => {
       mutations.forEach((mutation) => {
         mutation.addedNodes.forEach((node) => {
@@ -48,7 +51,7 @@ export default function ScrollReveal() {
       mutationObserver.disconnect();
       observer.disconnect();
     };
-  }, []);
+  }, [pathname]);
 
   return null;
 }
