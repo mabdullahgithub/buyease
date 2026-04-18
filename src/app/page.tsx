@@ -54,7 +54,7 @@ export default function Home() {
               <a
                 href="#cta"
                 id="hero-cta-primary"
-                className={cn(buttonVariants({ size: "sm" }), "bg-teal-600 hover:bg-teal-700 text-white px-4")}
+                className={cn(buttonVariants({ size: "default" }), "bg-teal-600 hover:bg-teal-700 text-white")}
               >
                 Get Early Access
               </a>

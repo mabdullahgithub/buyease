@@ -31,7 +31,7 @@ export default function Navbar() {
           id="navbar-logo"
         >
           <span className="size-8 rounded-md bg-teal-600 flex items-center justify-center text-white">
-            <ShoppingCart className="size-4" />
+            <ShoppingCart />
           </span>
           BuyEase
         </a>
@@ -65,7 +65,7 @@ export default function Navbar() {
         <div className="md:hidden flex items-center gap-1.5">
           <ThemeToggle />
           <Button type="button" size="icon-xs" variant="outline" aria-label="Open menu" id="mobile-menu-btn">
-            <Menu className="size-3.5" />
+            <Menu />
           </Button>
         </div>
       </div>
