@@ -23,15 +23,15 @@ export default function HeroDashboard() {
         {activeView !== "overview" && (
           <button 
             onClick={() => setActiveView("overview")}
-            className="absolute left-3 w-6 h-6 flex items-center justify-center rounded-md bg-background border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-colors opacity-100 animate-in fade-in"
+            className="absolute left-3 size-6 flex items-center justify-center rounded-md bg-background border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-colors opacity-100 animate-in fade-in"
           >
-            <ArrowLeft strokeWidth="3" className="w-3.5 h-3.5" />
+            <ArrowLeft strokeWidth="3" className="size-3.5" />
           </button>
         )}
         <div className={`flex items-center gap-2 transition-transform duration-300 ${activeView !== "overview" ? "translate-x-8" : ""}`}>
-          <span className="w-2.5 h-2.5 rounded-full bg-red-400" />
-          <span className="w-2.5 h-2.5 rounded-full bg-yellow-400" />
-          <span className="w-2.5 h-2.5 rounded-full bg-green-400" />
+          <span className="size-2.5 rounded-full bg-red-400" />
+          <span className="size-2.5 rounded-full bg-yellow-400" />
+          <span className="size-2.5 rounded-full bg-green-400" />
         </div>
         <span className="flex-1 text-center text-[11px] text-muted-foreground font-mono">
           buyease.app/dashboard{activeView !== "overview" ? `/${activeView}` : ""}
@@ -57,10 +57,10 @@ export default function HeroDashboard() {
                 className="bg-muted/30 dark:bg-muted/10 rounded-xl p-2.5 border border-border/50 shadow-sm flex flex-col justify-between cursor-pointer hover:border-teal-500/50 hover:bg-muted/50 transition-all group"
               >
                 <div className="flex justify-between items-start mb-1.5">
-                  <div className={`w-6 h-6 rounded-md flex items-center justify-center transition-transform group-hover:scale-110 ${
+                  <div className={`size-6 rounded-md flex items-center justify-center transition-transform group-hover:scale-110 ${
                     stat.color === "teal" ? "bg-teal-100 text-teal-600 dark:bg-teal-900/30 dark:text-teal-400" : "bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400"
                   }`}>
-                    <stat.icon className="w-3.5 h-3.5" />
+                    <stat.icon className="size-3.5" />
                   </div>
                   <span className="text-[8px] font-bold text-teal-700 bg-teal-100 dark:text-teal-300 dark:bg-teal-900/40 px-1.5 py-0.5 rounded-full">{stat.change}</span>
                 </div>
@@ -96,9 +96,9 @@ export default function HeroDashboard() {
             >
               <div className="flex items-center justify-between mb-2.5">
                 <p className="text-[9px] font-bold">Top Offers</p>
-                <ChevronRight strokeWidth="3" className="w-3 h-3 text-muted-foreground" />
+                <ChevronRight strokeWidth="3" className="size-3 text-muted-foreground" />
               </div>
-              <div className="space-y-2">
+              <div className="flex flex-col gap-2">
                 {[
                   { name: "Post-Purchase Bundle", cr: "12.4%", status: "Active" },
                   { name: "One-Click Upsell #1", cr: "8.2%", status: "Active" },
@@ -107,7 +107,7 @@ export default function HeroDashboard() {
                 ].map((offer, i) => (
                   <div key={i} className="flex items-center justify-between group">
                     <div className="flex items-center gap-1.5">
-                      <div className={`w-1 h-1 rounded-full ${offer.status === 'Active' ? 'bg-teal-500' : 'bg-muted-foreground'}`} />
+                      <div className={`size-1 rounded-full ${offer.status === 'Active' ? 'bg-teal-500' : 'bg-muted-foreground'}`} />
                       <span className="text-[9px] font-semibold group-hover:text-orange-500 transition-colors whitespace-nowrap overflow-hidden text-ellipsis max-w-[100px]">{offer.name}</span>
                     </div>
                     <span className="text-[9px] font-bold text-muted-foreground">{offer.cr}</span>
@@ -119,7 +119,7 @@ export default function HeroDashboard() {
             {/* Traffic Sources / Devices */}
             <div className="bg-muted/30 dark:bg-muted/10 rounded-xl p-2.5 border border-border/50 shadow-sm flex flex-col">
               <p className="text-[9px] font-bold mb-2.5">Traffic Source</p>
-              <div className="flex-1 flex flex-col justify-center space-y-2.5">
+              <div className="flex-1 flex flex-col justify-center flex flex-col gap-2.5">
                 {[
                   { label: "Mobile", percent: 76, color: "bg-teal-500" },
                   { label: "Desktop", percent: 24, color: "bg-orange-400" },
@@ -165,7 +165,7 @@ export default function HeroDashboard() {
                 >
                   <div className="flex items-center justify-between mb-1.5">
                     <span className="text-[7.5px] font-mono font-bold text-teal-600 dark:text-teal-400 group-hover:text-teal-700 transition-colors">{order.id}</span>
-                    <span className={`w-1 h-1 rounded-full ${order.status === 'Fulfilled' ? 'bg-teal-500' : 'bg-orange-400'}`} />
+                    <span className={`size-1 rounded-full ${order.status === 'Fulfilled' ? 'bg-teal-500' : 'bg-orange-400'}`} />
                   </div>
                   <span className="text-[10px] font-extrabold">{order.amount}</span>
                 </div>
@@ -180,7 +180,7 @@ export default function HeroDashboard() {
         }`}>
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-xs font-bold flex items-center gap-1.5">
-              <ShoppingCart className="w-4 h-4 text-teal-600" />
+              <ShoppingCart className="size-4 text-teal-600" />
               All COD Orders
             </h3>
             <div className="flex gap-2">
@@ -218,7 +218,7 @@ export default function HeroDashboard() {
                       <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-sm text-[8px] font-bold ${
                         row.st === 'Fulfilled' ? 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400' : 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400'
                       }`}>
-                        <div className={`w-1 h-1 rounded-full ${row.st === 'Fulfilled' ? 'bg-teal-500' : 'bg-orange-500'}`} />
+                        <div className={`size-1 rounded-full ${row.st === 'Fulfilled' ? 'bg-teal-500' : 'bg-orange-500'}`} />
                         {row.st}
                       </span>
                     </td>
@@ -236,7 +236,7 @@ export default function HeroDashboard() {
         }`}>
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-xs font-bold flex items-center gap-1.5">
-              <LineChart className="w-4 h-4 text-orange-500" />
+              <LineChart className="size-4 text-orange-500" />
               Upsell Funnels Performance
             </h3>
             <span className="bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300 px-2 py-0.5 rounded text-[8px] font-bold">+$8.4k Total Rev</span>
@@ -252,12 +252,12 @@ export default function HeroDashboard() {
               <div key={i} className="bg-muted/30 border border-border/50 rounded-lg p-2.5 flex items-center justify-between group hover:border-orange-500/50 transition-colors">
                 <div className="flex flex-col gap-1">
                   <div className="flex items-center gap-1.5">
-                    <div className={`w-1.5 h-1.5 rounded-full ${offer.status === 'Active' ? 'bg-teal-500' : 'bg-muted-foreground'}`} />
+                    <div className={`size-1.5 rounded-full ${offer.status === 'Active' ? 'bg-teal-500' : 'bg-muted-foreground'}`} />
                     <span className="text-[10px] font-bold">{offer.name}</span>
                   </div>
                   <div className="flex items-center gap-3 text-[8px] text-muted-foreground ml-3">
-                    <span className="flex items-center gap-1"><Users className="w-2.5 h-2.5"/> {offer.views} views</span>
-                    <span className="flex items-center gap-1"><Zap className="w-2.5 h-2.5"/> {offer.conv} conversion</span>
+                    <span className="flex items-center gap-1"><Users className="size-2.5"/> {offer.views} views</span>
+                    <span className="flex items-center gap-1"><Zap className="size-2.5"/> {offer.conv} conversion</span>
                   </div>
                 </div>
                 <div className="text-right">

@@ -15,7 +15,7 @@ import {
   ShieldOff,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 
 type FeatureItem = {
   title: string;
@@ -140,25 +140,27 @@ export default function FeaturesSection() {
                 className={`reveal reveal-d${(i % 6) + 1} hover:-translate-y-1 hover:shadow-md transition-all duration-300`}
                 id={`feature-${i}`}
               >
-                <CardContent className="p-7">
-                  <div className="mb-3 flex items-center gap-3">
+                <CardHeader className="p-7 pb-3">
+                  <CardTitle className="mb-0 flex items-center gap-3">
                     <div
-                      className={`w-11 h-11 shrink-0 rounded-md flex items-center justify-center ${
+                      className={`size-11 shrink-0 rounded-md flex items-center justify-center ${
                         feature.tone === "teal"
                           ? "bg-teal-100 text-teal-600"
                           : "bg-orange-100 text-orange-600"
                       }`}
                     >
                       <Icon
-                        className="w-5 h-5 feature-icon-loop"
+                        className="size-5 feature-icon-loop"
                         style={{ animationDelay: `${(i % 6) * 120}ms` } as React.CSSProperties}
                       />
                     </div>
-                    <h3 className="text-base font-bold leading-tight">{feature.title}</h3>
-                  </div>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    <span className="text-base font-bold leading-tight">{feature.title}</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="px-7 pb-7 pt-0">
+                  <CardDescription className="text-sm text-muted-foreground leading-relaxed">
                     {feature.description}
-                  </p>
+                  </CardDescription>
                 </CardContent>
               </Card>
             );

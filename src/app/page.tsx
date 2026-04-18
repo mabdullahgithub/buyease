@@ -36,7 +36,7 @@ export default function Home() {
         <div className="relative z-10 max-w-[1160px] mx-auto px-6 grid grid-cols-1 lg:grid-cols-[1.05fr_1fr] gap-10 lg:gap-12 items-center">
           <div className="text-center lg:text-left">
             <div className="hero-enter hero-enter-d1 inline-flex items-center gap-2 bg-teal-50 border border-teal-200 px-5 py-1.5 rounded-full text-sm font-semibold text-teal-700 mb-6" id="hero-badge">
-              <span className="w-1.5 h-1.5 rounded-full bg-orange-500" />
+              <span className="size-1.5 rounded-full bg-orange-500" />
               Coming Soon to the Shopify App Store
             </div>
 
@@ -137,7 +137,7 @@ export default function Home() {
               { num: "3", title: "Watch Revenue Grow", desc: "Sit back as intelligent upsells, bundles, and recommendations drive conversions on complete autopilot." },
             ].map((step, i) => (
               <div key={step.num} className={`text-center relative reveal reveal-d${i + 1}`} id={`step-${step.num}`}>
-                <div className="w-20 h-20 rounded-full bg-card border-2 border-border flex items-center justify-center mx-auto mb-5 relative z-10 hover:border-teal-500 hover:shadow-md transition-all duration-300">
+                <div className="size-20 rounded-full bg-card border-2 border-border flex items-center justify-center mx-auto mb-5 relative z-10 hover:border-teal-500 hover:shadow-md transition-all duration-300">
                   <span className="text-2xl font-black text-teal-600">{step.num}</span>
                 </div>
                 <h3 className="text-base font-bold mb-1.5">{step.title}</h3>
@@ -179,7 +179,7 @@ export default function Home() {
                   </div>
                   <p className="text-sm text-muted-foreground leading-relaxed mb-5">{t.text}</p>
                   <div className="flex items-center gap-3">
-                    <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold ${
+                    <div className={`size-9 rounded-full flex items-center justify-center text-xs font-bold ${
                       t.color === "teal" ? "bg-teal-100 text-teal-700" : "bg-orange-100 text-orange-700"
                     }`}>
                       {t.initials}

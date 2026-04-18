@@ -46,7 +46,7 @@ export default function FaqSection() {
           </h2>
         </div>
 
-        <Accordion className="space-y-4">
+        <Accordion className="flex flex-col gap-4">
           {faqs.map((faq, index) => (
             <AccordionItem
               key={index}

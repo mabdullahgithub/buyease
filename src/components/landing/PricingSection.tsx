@@ -272,7 +272,7 @@ export default function PricingSection() {
                     }`}
                   >
                     <Check
-                      className={`w-3.5 h-3.5 mt-0.5 flex-shrink-0 ${
+                      className={`size-3.5 mt-0.5 flex-shrink-0 ${
                         plan.featured ? "text-orange-500" : "text-teal-500"
                       }`}
                       strokeWidth="3"

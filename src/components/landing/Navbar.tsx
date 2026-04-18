@@ -30,7 +30,7 @@ export default function Navbar() {
           className="flex items-center gap-2.5 text-xl font-extrabold tracking-tight text-foreground"
           id="navbar-logo"
         >
-          <span className="w-8 h-8 rounded-md bg-teal-600 flex items-center justify-center text-white">
+          <span className="size-8 rounded-md bg-teal-600 flex items-center justify-center text-white">
             <ShoppingCart className="size-4" />
           </span>
           BuyEase

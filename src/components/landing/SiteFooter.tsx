@@ -26,7 +26,7 @@ export default function SiteFooter() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[2fr_1fr_1fr_1fr] gap-10 mb-12">
           <div className="max-w-[260px]">
             <div className="flex items-center gap-2.5 text-lg font-extrabold mb-3">
-              <span className="w-7 h-7 rounded-md bg-teal-600 flex items-center justify-center text-white">
+              <span className="size-7 rounded-md bg-teal-600 flex items-center justify-center text-white">
                 <ShoppingCart className="size-3.5" />
               </span>
               BuyEase
@@ -62,7 +62,7 @@ export default function SiteFooter() {
               <a 
                 key={social.label} 
                 href="#" 
-                className="w-8 h-8 rounded-full bg-muted border border-border flex items-center justify-center text-muted-foreground hover:border-teal-500 hover:text-teal-600 transition-all text-base" 
+                className="size-8 rounded-full bg-muted border border-border flex items-center justify-center text-muted-foreground hover:border-teal-500 hover:text-teal-600 transition-all text-base" 
                 aria-label={social.label}
               >
                 {social.icon}
