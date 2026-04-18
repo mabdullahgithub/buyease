@@ -1,4 +1,5 @@
 import { ShoppingCart } from "lucide-react";
+import Link from "next/link";
 import { Separator } from "@/components/ui/separator";
 import { TwitterIcon, LinkedinIcon, GithubIcon } from "@/components/ui/social-icons";
 
@@ -36,16 +37,16 @@ export default function SiteFooter() {
             </p>
           </div>
           {[
-            { title: "Product", links: [{ label: "Features", href: "#features" }, { label: "Pricing", href: "#pricing" }, { label: "How It Works", href: "#how-it-works" }, { label: "Changelog", href: "#" }] },
-            { title: "Company", links: [{ label: "About", href: "#" }, { label: "Blog", href: "#" }, { label: "Careers", href: "#" }, { label: "Contact", href: "#" }] },
+            { title: "Product", links: [{ label: "Features", href: "/#features" }, { label: "Pricing", href: "/#pricing" }, { label: "How It Works", href: "/#how-it-works" }, { label: "Changelog", href: "#" }] },
+            { title: "Company", links: [{ label: "About", href: "/about" }, { label: "Blog", href: "/blog" }, { label: "Careers", href: "/careers" }, { label: "Contact", href: "/contact" }] },
             { title: "Legal", links: [{ label: "Privacy Policy", href: "/privacy-policy" }, { label: "Terms of Service", href: "/terms-of-service" }, { label: "Cookie Policy", href: "/cookie-policy" }, { label: "Data Processing", href: "/dpa" }] },
           ].map((col) => (
             <div key={col.title}>
-              <h4 className="text-xs font-bold uppercase tracking-widest mb-4">{col.title}</h4>
+              <h4 className="text-xs font-bold uppercase tracking-widest mb-4 text-foreground">{col.title}</h4>
               {col.links.map((link) => (
-                <a key={link.label} href={link.href} className="block text-sm text-muted-foreground mb-2.5 hover:text-teal-600 transition-colors">
+                <Link key={link.label} href={link.href} className="block text-sm text-muted-foreground mb-2.5 hover:text-teal-600 transition-colors">
                   {link.label}
-                </a>
+                </Link>
               ))}
             </div>
           ))}
