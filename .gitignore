@@ -42,3 +42,6 @@ next-env.d.ts
 .env*.local
 .agents
 .vscode
+.cursor
+CLAUDE.md
+AGENTS.md
