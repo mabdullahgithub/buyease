@@ -135,12 +135,17 @@ export default function FeaturesSection() {
           {visibleItems.map((feature, i) => {
             const Icon = feature.icon;
             return (
-              <Card
+              <div
                 key={feature.title}
-                className={`reveal reveal-d${(i % 6) + 1} hover:-translate-y-1 hover:shadow-md transition-all duration-300`}
+                className={`reveal reveal-d${(i % 6) + 1} h-full`}
                 id={`feature-${i}`}
               >
-                <CardHeader className="p-7 pb-3">
+                <div
+                  className="animate-float h-full"
+                  style={{ animationDelay: `${i * 150}ms` }}
+                >
+                  <Card className="h-full hover:shadow-lg transition-shadow duration-300">
+                    <CardHeader className="p-7 pb-3">
                   <CardTitle className="mb-0 flex items-center gap-3">
                     <div
                       className={`size-11 shrink-0 rounded-md flex items-center justify-center ${
@@ -162,7 +167,9 @@ export default function FeaturesSection() {
                     {feature.description}
                   </CardDescription>
                 </CardContent>
-              </Card>
+                  </Card>
+                </div>
+              </div>
             );
           })}
         </div>
