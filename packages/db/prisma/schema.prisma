@@ -1,0 +1,154 @@
+// Prisma schema for BuyEase
+// PostgreSQL (Supabase compatible)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Shopify OAuth sessions (used by apps/merchant)
+// ---------------------------------------------------------------------------
+model Session {
+  id          String    @id
+  shop        String
+  state       String
+  isOnline    Boolean   @default(false)
+  scope       String?
+  expires     DateTime?
+  accessToken String
+  userId      BigInt?
+  firstName   String?
+  lastName    String?
+  email       String?
+  accountOwner Boolean  @default(false)
+  locale      String?
+  collaborator Boolean?  @default(false)
+  emailVerified Boolean? @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([shop])
+}
+
+// ---------------------------------------------------------------------------
+// Merchants — one row per installed Shopify store
+// ---------------------------------------------------------------------------
+model Merchant {
+  id          String   @id @default(cuid())
+  shop        String   @unique
+  installedAt DateTime @default(now())
+  isActive    Boolean  @default(true)
+  uninstalledAt DateTime?
+
+  planId String?
+  plan   Plan?   @relation(fields: [planId], references: [id])
+
+  orders Order[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([shop])
+  @@index([planId])
+  @@index([isActive])
+}
+
+// ---------------------------------------------------------------------------
+// Orders — COD orders placed via BuyEase forms
+// ---------------------------------------------------------------------------
+model Order {
+  id         String      @id @default(cuid())
+  shopId     String
+  merchant   Merchant    @relation(fields: [shopId], references: [shop])
+  orderId    String
+  codAmount  Decimal     @db.Decimal(10, 2)
+  status     OrderStatus @default(PENDING)
+  customerName  String?
+  customerPhone String?
+  customerEmail String?
+  metadata   Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([shopId, orderId])
+  @@index([shopId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  REFUNDED
+}
+
+// ---------------------------------------------------------------------------
+// Plans — subscription tiers
+// ---------------------------------------------------------------------------
+model Plan {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  price       Decimal  @db.Decimal(10, 2)
+  interval    PlanInterval @default(MONTHLY)
+  isActive    Boolean  @default(true)
+  features    Json
+  limits      Json
+
+  merchants Merchant[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum PlanInterval {
+  MONTHLY
+  ANNUAL
+}
+
+// ---------------------------------------------------------------------------
+// AdminUser — super admin panel users
+// ---------------------------------------------------------------------------
+model AdminUser {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String
+  role         AdminRole @default(VIEWER)
+  lastLoginAt  DateTime?
+  isActive     Boolean   @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ---------------------------------------------------------------------------
+// Admin password reset (forgot-password flow)
+// ---------------------------------------------------------------------------
+model AdminPasswordResetToken {
+  id        String    @id @default(cuid())
+  email     String
+  tokenHash String
+  expiresAt DateTime
+  usedAt    DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([email])
+  @@index([tokenHash])
+  @@index([expiresAt])
+}
+
+enum AdminRole {
+  SUPER_ADMIN
+  ADMIN
+  VIEWER
+}
