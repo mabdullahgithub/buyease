@@ -1,6 +1,7 @@
 import { validateShopDomain } from "@/lib/auth";
+import { redirect } from "next/navigation";
 
-type SearchParams = Promise<{ shop?: string; error?: string }>;
+type SearchParams = Promise<{ shop?: string; error?: string; return_to?: string }>;
 
 export default async function InstallPage({
   searchParams,
@@ -11,6 +12,12 @@ export default async function InstallPage({
   const shopInput = params.shop ?? "";
   const normalizedShop = shopInput ? validateShopDomain(shopInput) : null;
   const hasInvalidShop = Boolean(shopInput) && !normalizedShop;
+  const returnTo = params.return_to?.startsWith("/") ? params.return_to : "/form-builder";
+
+  if (normalizedShop && !params.error) {
+    const next = new URLSearchParams({ shop: normalizedShop, return_to: returnTo });
+    redirect(`/api/auth/install?${next.toString()}`);
+  }
 
   return (
     <main style={{ minHeight: "100vh", display: "grid", placeItems: "center", padding: "24px" }}>
@@ -35,6 +42,7 @@ export default async function InstallPage({
         ) : null}
 
         <form action="/api/auth/install" method="get">
+          <input type="hidden" name="return_to" value={returnTo} />
           <label htmlFor="shop-domain" style={{ display: "block", marginBottom: "8px", fontWeight: 500 }}>
             Shop domain
           </label>

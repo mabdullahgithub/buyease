@@ -3,14 +3,14 @@ import { NextRequest, NextResponse } from "next/server";
 const PUBLIC_PATHS = [
   "/api/auth",
   "/api/auth/install",
+  "/api/auth/session",
   "/api/webhooks",
   "/install",
   "/api/health",
 ];
 
-export function middleware(req: NextRequest): NextResponse {
+export function proxy(req: NextRequest): NextResponse {
   const { pathname } = req.nextUrl;
-
   const isPublic = PUBLIC_PATHS.some((p) => pathname.startsWith(p));
 
   if (isPublic) {

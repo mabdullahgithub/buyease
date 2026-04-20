@@ -4,6 +4,9 @@ import { db } from "@buyease/db";
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
+    const returnToCookie = request.cookies.get("shopify_return_to")?.value;
+    const returnTo = returnToCookie?.startsWith("/") ? returnToCookie : "/form-builder";
+
     const callbackResponse = await shopify.auth.callback({
       rawRequest: request,
     });
@@ -16,9 +19,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       create: { shop: session.shop, isActive: true },
     });
 
-    const response = NextResponse.redirect(
-      new URL("/form-builder", request.url)
-    );
+    const response = NextResponse.redirect(new URL(returnTo, request.url));
 
     response.cookies.set("shopify_session", session.id, {
       httpOnly: true,
@@ -34,6 +35,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       path: "/",
       maxAge: 60 * 60 * 24 * 30,
     });
+    response.cookies.delete("shopify_return_to");
 
     return response;
   } catch {
