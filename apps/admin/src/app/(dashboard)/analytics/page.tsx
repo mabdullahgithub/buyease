@@ -156,7 +156,7 @@ export default async function AnalyticsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {ordersByStatus.map((row) => (
+                {ordersByStatus.map((row: typeof ordersByStatus[number]) => (
                   <TableRow key={row.status}>
                     <TableCell className="font-medium capitalize">
                       {row.status.toLowerCase()}
@@ -183,7 +183,7 @@ export default async function AnalyticsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {recentMerchants.map((m) => (
+                {recentMerchants.map((m: typeof recentMerchants[number]) => (
                   <TableRow key={m.shop}>
                     <TableCell className="font-mono text-xs">{m.shop}</TableCell>
                     <TableCell>{m.plan?.name ?? "Free"}</TableCell>
