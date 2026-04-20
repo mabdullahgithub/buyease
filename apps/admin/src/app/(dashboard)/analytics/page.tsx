@@ -54,7 +54,7 @@ async function getAnalyticsData() {
   ]);
 
   const mrr = mrrResult.reduce(
-    (sum, plan) => sum + Number(plan.price) * plan._count.merchants,
+    (sum: number, plan) => sum + Number(plan.price) * plan._count.merchants,
     0
   );
 
