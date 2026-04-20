@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 
 const ALLOWED_IPS = (process.env.ADMIN_ALLOWED_IPS ?? "127.0.0.1,::1")
   .split(",")
-  .map((ip) => ip.trim());
+  .map((ip) => ip.trim())
+  .filter(Boolean);
 
 function isPublicPath(pathname: string): boolean {
   if (pathname === "/login") return true;
@@ -22,8 +23,9 @@ function getClientIp(request: NextRequest): string {
   );
 }
 
-export async function middleware(request: NextRequest): Promise<NextResponse> {
+export function proxy(request: NextRequest): NextResponse {
   const { pathname } = request.nextUrl;
+
   if (!isPublicPath(pathname)) {
     const clientIp = getClientIp(request);
     if (!ALLOWED_IPS.includes(clientIp)) {
