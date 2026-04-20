@@ -1,6 +1,7 @@
 import "@shopify/shopify-api/adapters/node";
 import { shopifyApi, ApiVersion, Session } from "@shopify/shopify-api";
 import { db } from "@buyease/db";
+import type { Session as DbSession } from "@buyease/db";
 
 if (!process.env.SHOPIFY_API_KEY) throw new Error("SHOPIFY_API_KEY is required");
 if (!process.env.SHOPIFY_API_SECRET) throw new Error("SHOPIFY_API_SECRET is required");
@@ -64,8 +65,8 @@ export const shopifySessionStorage = {
   },
 
   async findSessionsByShop(shop: string): Promise<Session[]> {
-    const rows = await db.session.findMany({ where: { shop } });
-    return rows.map((row) => {
+    const rows: DbSession[] = await db.session.findMany({ where: { shop } });
+    return rows.map((row: DbSession) => {
       const s = new Session({ id: row.id, shop: row.shop, state: row.state, isOnline: row.isOnline });
       s.scope = row.scope ?? undefined;
       s.expires = row.expires ?? undefined;
