@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
 
 const ALLOWED_IPS = (process.env.ADMIN_ALLOWED_IPS ?? "127.0.0.1,::1")
   .split(",")
@@ -25,21 +24,10 @@ function getClientIp(request: NextRequest): string {
 
 export async function middleware(request: NextRequest): Promise<NextResponse> {
   const { pathname } = request.nextUrl;
-  const isPublic = isPublicPath(pathname);
-
-  if (!isPublic) {
+  if (!isPublicPath(pathname)) {
     const clientIp = getClientIp(request);
     if (!ALLOWED_IPS.includes(clientIp)) {
       return new NextResponse("Forbidden", { status: 403 });
-    }
-  }
-
-  if (!isPublic) {
-    const session = await auth();
-    if (!session) {
-      const loginUrl = new URL("/login", request.url);
-      loginUrl.searchParams.set("callbackUrl", pathname);
-      return NextResponse.redirect(loginUrl);
     }
   }
 
