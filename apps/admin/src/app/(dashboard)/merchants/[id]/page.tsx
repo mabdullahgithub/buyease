@@ -18,6 +18,8 @@ import {
 
 type Params = Promise<{ id: string }>;
 
+export const dynamic = "force-dynamic";
+
 async function getMerchantDetail(id: string) {
   const merchant = await db.merchant.findUnique({
     where: { id },

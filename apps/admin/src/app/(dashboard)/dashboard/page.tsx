@@ -25,6 +25,8 @@ import {
 } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
+export const dynamic = "force-dynamic";
+
 async function getOverviewStats() {
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);

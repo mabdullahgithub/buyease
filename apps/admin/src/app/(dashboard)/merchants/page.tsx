@@ -17,6 +17,8 @@ import {
 
 const PAGE_SIZE = 50;
 
+export const dynamic = "force-dynamic";
+
 type SearchParams = Promise<{ page?: string; q?: string }>;
 
 async function getMerchants(page: number, query: string) {

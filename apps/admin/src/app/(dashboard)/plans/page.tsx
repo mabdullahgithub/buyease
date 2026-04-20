@@ -14,6 +14,8 @@ import {
   TableRow,
 } from "@buyease/ui";
 
+export const dynamic = "force-dynamic";
+
 async function getPlans() {
   return db.plan.findMany({
     orderBy: { price: "asc" },

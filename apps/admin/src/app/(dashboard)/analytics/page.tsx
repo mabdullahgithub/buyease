@@ -15,6 +15,8 @@ import {
 } from "@buyease/ui";
 import { TrendingUp, Users, ShoppingBag, DollarSign } from "lucide-react";
 
+export const dynamic = "force-dynamic";
+
 async function getAnalyticsData() {
   const now = new Date();
   const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
