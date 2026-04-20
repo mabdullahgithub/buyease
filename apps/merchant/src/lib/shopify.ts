@@ -1,5 +1,5 @@
 import "@shopify/shopify-api/adapters/node";
-import { shopifyApi, ApiVersion, Session } from "@shopify/shopify-api";
+import { shopifyApi, LATEST_API_VERSION, Session } from "@shopify/shopify-api";
 import { db } from "@buyease/db";
 import type { Session as DbSession } from "@buyease/db";
 
@@ -81,7 +81,7 @@ export const shopify = shopifyApi({
   apiSecretKey: process.env.SHOPIFY_API_SECRET,
   scopes: (process.env.SHOPIFY_SCOPES ?? "read_orders,write_orders,read_products").split(","),
   hostName: process.env.SHOPIFY_APP_URL.replace(/^https?:\/\//, ""),
-  apiVersion: ApiVersion.January25,
+  apiVersion: LATEST_API_VERSION,
   isEmbeddedApp: true,
   sessionStorage: shopifySessionStorage,
 });

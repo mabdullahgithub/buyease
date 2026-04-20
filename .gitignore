@@ -59,3 +59,4 @@ AGENTS.md
 
 # skills
 skills-lock.json
+.env*.local
