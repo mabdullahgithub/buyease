@@ -1,7 +1,6 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
-import { db } from "@buyease/db";
 import { z } from "zod";
 
 const credentialsSchema = z.object({
@@ -20,6 +19,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       async authorize(credentials) {
         const parsed = credentialsSchema.safeParse(credentials);
         if (!parsed.success) return null;
+
+        const { db } = await import("@buyease/db");
 
         const { email, password } = parsed.data;
         const normalizedEmail = email.trim().toLowerCase();
