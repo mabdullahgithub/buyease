@@ -79,7 +79,7 @@ export function AppSidebar() {
           >
             <SidebarGroupContent>
               <SidebarMenu className="gap-0.5">
-                {group.items.map((item) => {
+                {group.items.map((item: NavItem) => {
                   const isActive =
                     pathname === item.href ||
                     (item.href !== "/dashboard" &&

@@ -75,7 +75,7 @@ export default function LogsPage() {
         </CardHeader>
         <CardContent className="p-0">
           <div className="divide-y divide-border">
-            {PLACEHOLDER_LOGS.map((log) => {
+            {PLACEHOLDER_LOGS.map((log: LogEntry) => {
               const { icon: Icon, variant } = LEVEL_CONFIG[log.level];
               return (
                 <div key={log.id} className="flex items-start gap-4 p-4">

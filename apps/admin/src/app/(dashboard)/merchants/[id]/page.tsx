@@ -151,7 +151,7 @@ export default async function MerchantDetailPage({
                   </TableCell>
                 </TableRow>
               ) : (
-                merchant.orders.map((order) => (
+                merchant.orders.map((order: typeof merchant.orders[number]) => (
                   <TableRow key={order.id}>
                     <TableCell className="font-mono text-xs">
                       {order.orderId}

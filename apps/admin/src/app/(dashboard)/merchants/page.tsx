@@ -95,7 +95,7 @@ export default async function MerchantsPage({
                   </TableCell>
                 </TableRow>
               ) : (
-                merchants.map((m) => (
+                merchants.map((m: typeof merchants[number]) => (
                   <TableRow key={m.id}>
                     <TableCell className="font-medium font-mono text-xs">
                       {m.shop}

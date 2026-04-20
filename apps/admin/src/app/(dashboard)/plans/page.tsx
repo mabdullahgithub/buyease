@@ -60,7 +60,7 @@ export default async function PlansPage() {
                   </TableCell>
                 </TableRow>
               ) : (
-                plans.map((plan) => (
+                plans.map((plan: typeof plans[number]) => (
                   <TableRow key={plan.id}>
                     <TableCell className="font-medium">{plan.name}</TableCell>
                     <TableCell>

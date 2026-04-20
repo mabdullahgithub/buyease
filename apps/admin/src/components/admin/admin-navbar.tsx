@@ -151,7 +151,7 @@ export function AdminNavbar() {
               aria-label="Breadcrumb"
               className="flex min-w-0 items-center gap-1 overflow-hidden"
             >
-              {crumbs.map((c, i) => {
+              {crumbs.map((c: { href: string; label: string }, i) => {
                 const isLast = i === crumbs.length - 1;
                 return (
                   <React.Fragment key={c.href}>
