@@ -31,6 +31,9 @@ export const metadata: Metadata = {
       "AI-powered product recommendations, one-click upsells & real-time analytics for Shopify merchants.",
     type: "website",
   },
+  icons: {
+    icon: "/icon.png",
+  },
 };
 
 export default function RootLayout({

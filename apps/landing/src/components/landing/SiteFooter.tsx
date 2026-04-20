@@ -1,5 +1,5 @@
-import { ShoppingCart } from "lucide-react";
 import Link from "next/link";
+import { BrandLogo } from "@/components/landing/brand-logo";
 import { Separator } from "@/components/ui/separator";
 import { TwitterIcon, LinkedinIcon, GithubIcon } from "@/components/ui/social-icons";
 
@@ -28,11 +28,8 @@ export default function SiteFooter() {
       <div className="relative max-w-[1160px] mx-auto px-6 z-10">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[2fr_1fr_1fr_1fr] gap-10 mb-12">
           <div className="max-w-[260px]">
-            <div className="flex items-center gap-2.5 text-lg font-extrabold mb-3">
-              <span className="size-7 rounded-md bg-teal-600 flex items-center justify-center text-white">
-                <ShoppingCart className="size-3.5" />
-              </span>
-              BuyEase
+            <div className="mb-3 flex items-center">
+              <BrandLogo href="/" width={160} />
             </div>
             <p className="text-sm text-muted-foreground leading-relaxed">
               AI&#8209;powered commerce tools helping Shopify merchants sell smarter, not harder.

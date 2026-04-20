@@ -12,6 +12,7 @@ import {
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 
+import { BrandLogo } from "@/components/merchant/brand-logo";
 import enTranslations from "@shopify/polaris/locales/en.json";
 
 type AppLayoutProps = {
@@ -68,12 +69,17 @@ export default function AppLayout({ children }: AppLayoutProps) {
   );
 
   const topBarMarkup = (
-    <TopBar
-      showNavigationToggle
-      onNavigationToggle={() =>
-        setMobileNavigationActive((prev) => !prev)
-      }
-    />
+    <div className="flex items-center gap-3 border-b border-border bg-background px-4 py-2">
+      <BrandLogo href="/dashboard" width={130} />
+      <div className="ml-auto">
+        <TopBar
+          showNavigationToggle
+          onNavigationToggle={() =>
+            setMobileNavigationActive((prev) => !prev)
+          }
+        />
+      </div>
+    </div>
   );
 
   return (

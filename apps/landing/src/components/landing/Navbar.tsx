@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ShoppingCart, Menu } from "lucide-react";
+import { Menu } from "lucide-react";
 import ThemeToggle from "@/components/landing/ThemeToggle";
+import { BrandLogo } from "@/components/landing/brand-logo";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -25,16 +26,7 @@ export default function Navbar() {
       id="navbar"
     >
       <div className="max-w-[1160px] mx-auto px-6 flex items-center justify-between">
-        <a
-          href="#"
-          className="flex items-center gap-2.5 text-xl font-extrabold tracking-tight text-foreground"
-          id="navbar-logo"
-        >
-          <span className="size-8 rounded-md bg-teal-600 flex items-center justify-center text-white">
-            <ShoppingCart />
-          </span>
-          BuyEase
-        </a>
+        <BrandLogo href="#" className="text-foreground" width={160} />
 
         <div className="hidden md:flex items-center gap-8" id="navbar-links">
           <a href="#features" className="text-sm font-medium text-muted-foreground hover:text-teal-600 transition-colors">

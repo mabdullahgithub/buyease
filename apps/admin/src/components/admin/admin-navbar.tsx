@@ -4,9 +4,10 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
-import { Bell, ChevronRight, CircleUser, LogOut, Search, ShieldCheck, ShoppingCart } from "lucide-react";
+import { Bell, ChevronRight, CircleUser, LogOut, Search, ShieldCheck } from "lucide-react";
 
 import { AdminCommandMenu } from "@/components/admin/admin-command-menu";
+import { BrandLogo } from "@/components/admin/brand-logo";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -139,15 +140,7 @@ export function AdminNavbar() {
           <VRule />
 
           {/* Logo + wordmark */}
-          <Link
-            href="/dashboard"
-            className="flex shrink-0 items-center gap-1.5 text-foreground transition-opacity hover:opacity-80"
-          >
-            <span className="flex size-5 items-center justify-center rounded-[4px] bg-[#5c6ac4]">
-              <ShoppingCart className="size-3 text-white" />
-            </span>
-            <span className="text-[13px] font-semibold tracking-tight">BuyEase</span>
-          </Link>
+          <BrandLogo href="/dashboard" width={28} />
 
           {/* VRule only when we have breadcrumb segments */}
           {crumbs.length > 0 && <VRule />}
