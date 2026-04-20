@@ -3,7 +3,12 @@ import { redirect } from "next/navigation";
 import { ChangePasswordForm } from "./change-password-form";
 
 export default async function AccountSecurityPage() {
-  const session = await auth();
+  let session = null;
+  try {
+    session = await auth();
+  } catch {
+    session = null;
+  }
   if (!session?.user?.email) {
     redirect("/login");
   }
