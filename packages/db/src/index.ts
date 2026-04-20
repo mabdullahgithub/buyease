@@ -18,8 +18,9 @@ if (process.env.NODE_ENV !== "production") {
 }
 
 export { Prisma } from "@prisma/client";
-export type DbSession = Prisma.SessionGetPayload<Prisma.SessionDefaultArgs>;
+export type DbSession = Session;
 export type {
+  Session,
   Merchant,
   Order,
   OrderStatus,
