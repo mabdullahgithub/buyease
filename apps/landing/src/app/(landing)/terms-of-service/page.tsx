@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 };
 
 const APP_NAME = "BuyEase";
-const CONTACT_EMAIL = "privacy@buyease.app";
+const CONTACT_EMAIL = "support@buyease.app";
 
 type SectionProps = {
   title: string;

@@ -53,7 +53,15 @@ export default function SiteFooter() {
         <Separator className="mb-5" />
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
           <p className="text-xs text-muted-foreground">&copy; 2026 BuyEase. All rights reserved.</p>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-3">
+            <a
+              href="mailto:support@buyease.app"
+              className="text-xs text-muted-foreground hover:text-teal-600 transition-colors"
+              aria-label="Email BuyEase support"
+            >
+              support@buyease.app
+            </a>
+            <div className="flex gap-2">
             {[
               { label: "Twitter", icon: <TwitterIcon className="size-4" /> },
               { label: "LinkedIn", icon: <LinkedinIcon className="size-4" /> },
@@ -68,6 +76,7 @@ export default function SiteFooter() {
                 {social.icon}
               </a>
             ))}
+            </div>
           </div>
         </div>
       </div>
