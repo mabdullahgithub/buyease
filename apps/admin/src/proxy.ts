@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const ALLOWED_IPS = (process.env.ADMIN_ALLOWED_IPS ?? "127.0.0.1,::1")
+const ALLOWED_IPS = (process.env.ADMIN_ALLOWED_IPS ?? "")
   .split(",")
   .map((ip) => ip.trim())
   .filter(Boolean);
+const ENFORCE_IP_ALLOWLIST = ALLOWED_IPS.length > 0;
 
 function isPublicPath(pathname: string): boolean {
   if (pathname === "/login") return true;
@@ -26,7 +27,7 @@ function getClientIp(request: NextRequest): string {
 export function proxy(request: NextRequest): NextResponse {
   const { pathname } = request.nextUrl;
 
-  if (!isPublicPath(pathname)) {
+  if (ENFORCE_IP_ALLOWLIST && !isPublicPath(pathname)) {
     const clientIp = getClientIp(request);
     if (!ALLOWED_IPS.includes(clientIp)) {
       return new NextResponse("Forbidden", { status: 403 });
