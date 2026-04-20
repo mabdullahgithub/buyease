@@ -37,13 +37,3 @@ export type DbSession = {
   createdAt: Date;
   updatedAt: Date;
 };
-export type {
-  Merchant,
-  Order,
-  OrderStatus,
-  Plan,
-  PlanInterval,
-  AdminUser,
-  AdminRole,
-  AdminPasswordResetToken,
-} from "@prisma/client";
