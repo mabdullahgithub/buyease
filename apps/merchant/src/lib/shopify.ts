@@ -1,7 +1,7 @@
 import "@shopify/shopify-api/adapters/node";
 import { shopifyApi, LATEST_API_VERSION, Session } from "@shopify/shopify-api";
 import { db } from "@buyease/db";
-import type { Session as DbSession } from "@buyease/db";
+import type { DbSession } from "@buyease/db";
 
 if (!process.env.SHOPIFY_API_KEY) throw new Error("SHOPIFY_API_KEY is required");
 if (!process.env.SHOPIFY_API_SECRET) throw new Error("SHOPIFY_API_SECRET is required");
