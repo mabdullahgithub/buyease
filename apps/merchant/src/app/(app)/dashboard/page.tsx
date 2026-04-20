@@ -1,14 +1,6 @@
-import {
-  Page,
-  Layout,
-  Card,
-  Text,
-  BlockStack,
-  InlineGrid,
-  Box,
-} from "@shopify/polaris";
 import { db } from "@buyease/db";
 import { cookies } from "next/headers";
+import { DashboardClient } from "./dashboard-client";
 
 async function getDashboardData(shop: string) {
   const [totalOrders, merchant] = await Promise.all([
@@ -32,77 +24,18 @@ async function getDashboardData(shop: string) {
   };
 }
 
-export default async function DashboardPage() {
+export default async function DashboardPage(): Promise<React.JSX.Element> {
   const cookieStore = await cookies();
   const shop = cookieStore.get("shopify_shop")?.value ?? "demo.myshopify.com";
 
   const { totalOrders, totalRevenue, plan } = await getDashboardData(shop);
 
   return (
-    <Page title="Dashboard" subtitle={`Shop: ${shop}`}>
-      <Layout>
-        <Layout.Section>
-          <InlineGrid columns={{ xs: 1, sm: 2, md: 3 }} gap="400">
-            <Card>
-              <BlockStack gap="200">
-                <Text as="p" variant="bodySm" tone="subdued">
-                  Total Orders
-                </Text>
-                <Text as="p" variant="headingXl" fontWeight="bold">
-                  {totalOrders.toLocaleString()}
-                </Text>
-              </BlockStack>
-            </Card>
-
-            <Card>
-              <BlockStack gap="200">
-                <Text as="p" variant="bodySm" tone="subdued">
-                  COD Revenue
-                </Text>
-                <Text as="p" variant="headingXl" fontWeight="bold">
-                  ${totalRevenue.toFixed(2)}
-                </Text>
-              </BlockStack>
-            </Card>
-
-            <Card>
-              <BlockStack gap="200">
-                <Text as="p" variant="bodySm" tone="subdued">
-                  Current Plan
-                </Text>
-                <Text as="p" variant="headingXl" fontWeight="bold">
-                  {plan}
-                </Text>
-              </BlockStack>
-            </Card>
-          </InlineGrid>
-        </Layout.Section>
-
-        <Layout.Section>
-          <Card>
-            <BlockStack gap="400">
-              <Text as="h2" variant="headingMd">
-                Getting Started
-              </Text>
-              <Box>
-                <BlockStack gap="200">
-                  <Text as="p" variant="bodyMd">
-                    1. Configure your COD form under{" "}
-                    <strong>COD Form</strong>.
-                  </Text>
-                  <Text as="p" variant="bodyMd">
-                    2. Set up upsell offers under <strong>Upsells</strong>.
-                  </Text>
-                  <Text as="p" variant="bodyMd">
-                    3. Review your order analytics under{" "}
-                    <strong>Analytics</strong>.
-                  </Text>
-                </BlockStack>
-              </Box>
-            </BlockStack>
-          </Card>
-        </Layout.Section>
-      </Layout>
-    </Page>
+    <DashboardClient
+      shop={shop}
+      totalOrders={totalOrders}
+      totalRevenue={totalRevenue}
+      plan={plan}
+    />
   );
 }

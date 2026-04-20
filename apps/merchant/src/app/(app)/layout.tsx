@@ -1,6 +1,6 @@
 "use client";
 
-import { AppProvider, Frame, Navigation, TopBar } from "@shopify/polaris";
+import { AppProvider, Box, Frame, Navigation, TopBar } from "@shopify/polaris";
 import {
   HomeIcon,
   OrderIcon,
@@ -11,9 +11,8 @@ import {
 } from "@shopify/polaris-icons";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-
-import { BrandLogo } from "@/components/merchant/brand-logo";
 import enTranslations from "@shopify/polaris/locales/en.json";
+import { BrandLogo } from "@/components/merchant/brand-logo";
 
 type AppLayoutProps = {
   children: React.ReactNode;
@@ -26,30 +25,31 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const navigationMarkup = (
     <Navigation location={pathname}>
       <Navigation.Section
+        title="buyease"
         items={[
           {
-            url: "/dashboard",
-            label: "Dashboard",
-            icon: HomeIcon,
-            selected: pathname === "/dashboard",
-          },
-          {
-            url: "/orders",
-            label: "Orders",
-            icon: OrderIcon,
-            selected: pathname.startsWith("/orders"),
-          },
-          {
-            url: "/cod-form",
-            label: "COD Form",
+            url: "/form-builder",
+            label: "Form Builder",
             icon: FormsIcon,
-            selected: pathname.startsWith("/cod-form"),
+            selected: pathname.startsWith("/form-builder"),
           },
           {
-            url: "/upsells",
-            label: "Upsells",
+            url: "/quantity-offers",
+            label: "Quantity Offers",
+            icon: OrderIcon,
+            selected: pathname.startsWith("/quantity-offers"),
+          },
+          {
+            url: "/upsells-downsells",
+            label: "Upsells & Downsells",
             icon: GiftCardIcon,
-            selected: pathname.startsWith("/upsells"),
+            selected: pathname.startsWith("/upsells-downsells"),
+          },
+          {
+            url: "/integrations-messaging",
+            label: "Integrations & Messaging",
+            icon: HomeIcon,
+            selected: pathname.startsWith("/integrations-messaging"),
           },
           {
             url: "/analytics",
@@ -63,23 +63,35 @@ export default function AppLayout({ children }: AppLayoutProps) {
             icon: SettingsIcon,
             selected: pathname.startsWith("/settings"),
           },
+          {
+            url: "/plan",
+            label: "Plan",
+            icon: OrderIcon,
+            selected: pathname.startsWith("/plan"),
+          },
         ]}
       />
     </Navigation>
   );
 
   const topBarMarkup = (
-    <div className="flex items-center gap-3 border-b border-border bg-background px-4 py-2">
-      <BrandLogo href="/dashboard" width={130} />
-      <div className="ml-auto">
+    <Box paddingInlineStart="300" paddingInlineEnd="200">
+      <div
+        style={{
+          minHeight: "56px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: "12px",
+        }}
+      >
+        <BrandLogo href="/form-builder" />
         <TopBar
           showNavigationToggle
-          onNavigationToggle={() =>
-            setMobileNavigationActive((prev) => !prev)
-          }
+          onNavigationToggle={() => setMobileNavigationActive((prev) => !prev)}
         />
       </div>
-    </div>
+    </Box>
   );
 
   return (

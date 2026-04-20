@@ -4,17 +4,6 @@ import { db } from "@buyease/db";
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
-    const { searchParams } = new URL(request.url);
-    const shop = searchParams.get("shop");
-    const code = searchParams.get("code");
-
-    if (!shop || !code) {
-      return NextResponse.json(
-        { error: "Missing required parameters" },
-        { status: 400 }
-      );
-    }
-
     const callbackResponse = await shopify.auth.callback({
       rawRequest: request,
     });
@@ -28,7 +17,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     });
 
     const response = NextResponse.redirect(
-      new URL(`/dashboard?shop=${session.shop}`, request.url)
+      new URL("/form-builder", request.url)
     );
 
     response.cookies.set("shopify_session", session.id, {
@@ -38,13 +27,18 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       path: "/",
       maxAge: 60 * 60 * 24 * 30,
     });
+    response.cookies.set("shopify_shop", session.shop, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "none",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 30,
+    });
 
     return response;
-  } catch (error) {
-    console.error("[auth/callback] Error:", error);
-    return NextResponse.json(
-      { error: "Authentication failed" },
-      { status: 500 }
+  } catch {
+    return NextResponse.redirect(
+      new URL("/install?error=oauth_callback_failed", request.url)
     );
   }
 }

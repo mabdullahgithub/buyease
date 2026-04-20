@@ -1,12 +1,8 @@
 import { db } from "@buyease/db";
 import { cookies } from "next/headers";
-import { formatCurrency } from "@buyease/utils";
 import { AnalyticsClient } from "./analytics-client";
 
 async function getAnalytics(shop: string) {
-  const thirtyDaysAgo = new Date();
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
   const [totalOrders, deliveredOrders, cancelledOrders, revenueResult] =
     await Promise.all([
       db.order.count({ where: { shopId: shop } }),

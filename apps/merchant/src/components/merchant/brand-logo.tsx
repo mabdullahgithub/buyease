@@ -5,20 +5,22 @@ import Link from "next/link";
 
 type BrandLogoProps = {
   href: string;
-  className?: string;
-  width?: number;
+  size?: number;
 };
 
 export function BrandLogo({
   href,
-  className,
-  width = 130,
+  size = 36,
 }: BrandLogoProps): React.JSX.Element {
-  const rootClassName = `flex items-center transition-opacity hover:opacity-80 ${className ?? ""}`.trim();
-
   return (
-    <Link href={href} className={rootClassName}>
-      <Image src="/logo.png" alt="BuyEase" width={width} height={Math.round(width * 0.286)} priority unoptimized />
+    <Link href={href} aria-label="BuyEase home">
+      <Image
+        src="/icon.png"
+        alt="BuyEase"
+        width={size}
+        height={size}
+        priority
+      />
     </Link>
   );
 }

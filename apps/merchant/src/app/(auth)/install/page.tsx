@@ -1,49 +1,77 @@
-import { redirect } from "next/navigation";
-import { shopify } from "@/lib/shopify";
+import { validateShopDomain } from "@/lib/auth";
 
-type SearchParams = Promise<{ shop?: string; hmac?: string; timestamp?: string }>;
+type SearchParams = Promise<{ shop?: string; error?: string }>;
 
 export default async function InstallPage({
   searchParams,
 }: {
   searchParams: SearchParams;
-}) {
+}): Promise<React.JSX.Element> {
   const params = await searchParams;
-  const shop = params.shop;
+  const shopInput = params.shop ?? "";
+  const normalizedShop = shopInput ? validateShopDomain(shopInput) : null;
+  const hasInvalidShop = Boolean(shopInput) && !normalizedShop;
 
-  if (!shop) {
-    return (
-      <main className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center p-8 max-w-md">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">
-            Install BuyEase
-          </h1>
-          <form action="/install" method="get">
-            <input
-              name="shop"
-              type="text"
-              placeholder="your-store.myshopify.com"
-              className="w-full border border-gray-300 rounded-lg px-4 py-2 mb-4 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
-              required
-            />
-            <button
-              type="submit"
-              className="w-full bg-teal-600 hover:bg-teal-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors"
-            >
-              Install App
-            </button>
-          </form>
-        </div>
-      </main>
-    );
-  }
+  return (
+    <main style={{ minHeight: "100vh", display: "grid", placeItems: "center", padding: "24px" }}>
+      <section style={{ width: "100%", maxWidth: "480px", border: "1px solid #e5e7eb", borderRadius: "12px", padding: "24px" }}>
+        <h1 style={{ margin: "0 0 8px", fontSize: "24px", fontWeight: 600 }}>
+          Install BuyEase
+        </h1>
+        <p style={{ margin: "0 0 16px", color: "#6b7280" }}>
+          Connect your Shopify store to start using buyease.
+        </p>
 
-  const authRoute = await shopify.auth.begin({
-    shop,
-    callbackPath: "/callback",
-    isOnline: false,
-    rawRequest: new Request(`https://${process.env.SHOPIFY_APP_URL}/install?shop=${shop}`),
-  });
+        {params.error ? (
+          <p style={{ margin: "0 0 12px", color: "#b91c1c" }}>
+            Shopify authentication did not complete. Please try again.
+          </p>
+        ) : null}
 
-  redirect(authRoute.headers.get("Location") ?? "/");
+        {hasInvalidShop ? (
+          <p style={{ margin: "0 0 12px", color: "#b91c1c" }}>
+            Please enter a valid `.myshopify.com` domain.
+          </p>
+        ) : null}
+
+        <form action="/api/auth/install" method="get">
+          <label htmlFor="shop-domain" style={{ display: "block", marginBottom: "8px", fontWeight: 500 }}>
+            Shop domain
+          </label>
+          <input
+            id="shop-domain"
+            name="shop"
+            type="text"
+            required
+            autoComplete="off"
+            placeholder="your-store.myshopify.com"
+            defaultValue={normalizedShop ?? shopInput}
+            style={{
+              width: "100%",
+              height: "40px",
+              borderRadius: "8px",
+              border: "1px solid #d1d5db",
+              padding: "0 12px",
+              marginBottom: "12px",
+            }}
+          />
+          <button
+            type="submit"
+            style={{
+              width: "100%",
+              height: "40px",
+              borderRadius: "8px",
+              border: "none",
+              backgroundColor: "#111827",
+              color: "white",
+              fontWeight: 600,
+              cursor: "pointer",
+            }}
+          >
+            Continue to Shopify
+          </button>
+        </form>
+      </section>
+    </main>
+  );
 }

@@ -5,14 +5,20 @@ import {
   Layout,
   Card,
   DataTable,
-  Text,
   Badge,
   EmptyState,
   Pagination,
 } from "@shopify/polaris";
-import { formatCurrency, formatDate } from "@buyease/utils";
 
 type OrderStatus = "PENDING" | "CONFIRMED" | "SHIPPED" | "DELIVERED" | "CANCELLED" | "REFUNDED";
+type OrderListItem = {
+  id: string;
+  orderId: string;
+  codAmount: number | string | { toString(): string };
+  status: OrderStatus;
+  customerName: string | null;
+  createdAt: Date | string;
+};
 
 const STATUS_TONE: Record<
   OrderStatus,
@@ -32,11 +38,11 @@ export function OrdersList({
   page,
   totalPages,
 }: {
-  orders: any[];
+  orders: OrderListItem[];
   total: number;
   page: number;
   totalPages: number;
-}) {
+}): React.JSX.Element {
   if (orders.length === 0) {
     return (
       <Page title="Orders">
