@@ -39,8 +39,7 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{
             __html: `<ui-nav-menu>
   <a href="/form-builder" rel="home">Home</a>
-  <a href="/form-builder">BuyEase COD Form</a>
-  <a href="/form-builder/editor">Form Builder</a>
+  <a href="/form-builder">Form Builder</a>
   <a href="/quantity-offers">Quantity Offers</a>
   <a href="/upsells-downsells">Upsells &amp; Downsells</a>
   <a href="/integrations-messaging">Integrations &amp; Messaging</a>
