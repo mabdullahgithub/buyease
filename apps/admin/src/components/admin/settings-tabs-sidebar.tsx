@@ -9,26 +9,18 @@ import { cn } from "@/lib/utils";
 type SettingsTab = {
   href?: string;
   label: string;
-  group: "Configuration" | "Integrations" | "Billing";
+  group: "Configuration";
   external?: boolean;
   upcoming?: boolean;
 };
 
 const SETTINGS_TABS: SettingsTab[] = [
-  { href: "/settings/system", group: "Configuration", label: "General" },
-  { group: "Configuration", label: "Admin users", upcoming: true },
-  { group: "Configuration", label: "Authentication", upcoming: true },
-  { group: "Configuration", label: "API Keys", upcoming: true },
-  { group: "Integrations", label: "Data API", upcoming: true, external: true },
-  { group: "Integrations", label: "Vault", upcoming: true, external: true },
-  { group: "Billing", label: "Subscription", upcoming: true, external: true },
-  { group: "Billing", label: "Usage", upcoming: true, external: true },
+  { href: "/settings/system", group: "Configuration", label: "IP allowlisting" },
+  { href: "/settings/security", group: "Configuration", label: "Security" },
 ];
 
 const GROUPS: Array<SettingsTab["group"]> = [
   "Configuration",
-  "Integrations",
-  "Billing",
 ];
 
 export function SettingsTabsSidebar() {
