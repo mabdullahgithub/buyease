@@ -4,6 +4,9 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   transpilePackages: ["@buyease/db", "@buyease/utils"],
   serverExternalPackages: ["@prisma/client", "prisma"],
+  experimental: {
+    optimizePackageImports: ["@shopify/polaris", "@shopify/polaris-icons"],
+  },
   /**
    * Shopify Admin often loads the app origin with `/apps/{client_id}/…` (mirroring the
    * admin URL). App Router only defines `/form-builder`, `/plan`, etc. Map the prefix

@@ -4,6 +4,7 @@ import { TitleBar } from "@shopify/app-bridge-react";
 import { AppProvider, Frame } from "@shopify/polaris";
 import { Suspense } from "react";
 import enTranslations from "@shopify/polaris/locales/en.json";
+import { EmbeddedSoftNavigation } from "@/components/merchant/embedded-soft-navigation";
 
 type AppLayoutProps = {
   children: React.ReactNode;
@@ -12,6 +13,7 @@ type AppLayoutProps = {
 function MerchantAppFrame({ children }: AppLayoutProps) {
   return (
     <AppProvider i18n={enTranslations}>
+      <EmbeddedSoftNavigation />
       <TitleBar title="BuyEase COD Form" />
       <Frame>{children}</Frame>
     </AppProvider>
