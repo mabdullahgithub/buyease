@@ -1,5 +1,6 @@
 "use client";
 
+import { SaveBar, useAppBridge } from "@shopify/app-bridge-react";
 import {
   Page,
   Layout,
@@ -13,13 +14,24 @@ import {
   Text,
   Divider,
 } from "@shopify/polaris";
-import { useState } from "react";
+import { useCallback, useMemo, useState } from "react";
+import { SHOPIFY_EMBED_STORAGE_KEY } from "@/lib/shopify-embed-session-storage";
+
+/** Stable id for App Bridge `ui-save-bar` (contextual save bar in Shopify admin chrome). */
+const SETTINGS_SAVE_BAR_ID = "buyease-settings-save-bar";
 
 type Settings = {
   webhookUrl: string;
   notificationEmail: string;
   defaultCurrency: string;
   timezone: string;
+};
+
+const DEFAULT_SETTINGS: Settings = {
+  webhookUrl: "",
+  notificationEmail: "",
+  defaultCurrency: "USD",
+  timezone: "UTC",
 };
 
 const CURRENCY_OPTIONS = [
@@ -41,37 +53,76 @@ const TIMEZONE_OPTIONS = [
   { label: "Asia/Riyadh", value: "Asia/Riyadh" },
 ];
 
+function settingsEqual(a: Settings, b: Settings): boolean {
+  return (
+    a.webhookUrl === b.webhookUrl &&
+    a.notificationEmail === b.notificationEmail &&
+    a.defaultCurrency === b.defaultCurrency &&
+    a.timezone === b.timezone
+  );
+}
+
 export default function SettingsPage() {
-  const [settings, setSettings] = useState<Settings>({
-    webhookUrl: "",
-    notificationEmail: "",
-    defaultCurrency: "USD",
-    timezone: "UTC",
-  });
-  const [saved, setSaved] = useState(false);
+  const shopify = useAppBridge();
+  const [baseline, setBaseline] = useState<Settings>(DEFAULT_SETTINGS);
+  const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
+  const [savedBanner, setSavedBanner] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  const handleSave = async () => {
+  const isDirty = useMemo(() => !settingsEqual(settings, baseline), [settings, baseline]);
+
+  const handleDiscard = useCallback(() => {
+    setSettings({ ...baseline });
+  }, [baseline]);
+
+  const handleSave = useCallback(async () => {
     setSaving(true);
-    await new Promise((r) => setTimeout(r, 600));
-    setSaving(false);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
-  };
+    try {
+      await new Promise((r) => setTimeout(r, 600));
+      setBaseline({ ...settings });
+      setSavedBanner(true);
+      setTimeout(() => setSavedBanner(false), 4000);
+      try {
+        shopify.toast.show("Settings saved");
+      } catch {
+        /* App Bridge toast unavailable outside embedded admin */
+      }
+    } finally {
+      setSaving(false);
+    }
+  }, [settings, shopify]);
 
   return (
     <Page
       title="Settings"
-      primaryAction={
-        <Button variant="primary" loading={saving} onClick={handleSave}>
-          Save
-        </Button>
-      }
+      subtitle="Currency, notifications, and webhooks for this store"
     >
+      {/*
+        App Bridge requires native buttons inside `ui-save-bar` (not Polaris Button).
+        @see https://shopify.dev/docs/api/app-home/apis/save-bar
+      */}
+      <SaveBar id={SETTINGS_SAVE_BAR_ID} open={isDirty}>
+        <button type="button" disabled={saving} onClick={handleDiscard}>
+          Discard
+        </button>
+        <button
+          type="button"
+          variant="primary"
+          disabled={saving}
+          onClick={() => {
+            void handleSave();
+          }}
+        >
+          {saving ? "Saving…" : "Save"}
+        </button>
+      </SaveBar>
+
       <Layout>
-        {saved && (
+        {savedBanner && (
           <Layout.Section>
-            <Banner tone="success">Settings saved successfully.</Banner>
+            <Banner tone="success" onDismiss={() => setSavedBanner(false)}>
+              Settings saved successfully.
+            </Banner>
           </Layout.Section>
         )}
 
@@ -144,6 +195,36 @@ export default function SettingsPage() {
                   autoComplete="off"
                 />
               </FormLayout>
+            </BlockStack>
+          </Card>
+        </Layout.Section>
+
+        <Layout.Section>
+          <Card>
+            <BlockStack gap="400">
+              <Text as="h2" variant="headingMd">
+                Session
+              </Text>
+              <Text as="p" variant="bodyMd" tone="subdued">
+                Log out clears BuyEase cookies and removes stored API sessions for
+                this shop. Re-open the app from Shopify admin to sign in again.
+              </Text>
+              <form
+                method="post"
+                action="/api/auth/logout"
+                target="_top"
+                onSubmit={() => {
+                  try {
+                    sessionStorage.removeItem(SHOPIFY_EMBED_STORAGE_KEY);
+                  } catch {
+                    /* private mode / storage blocked */
+                  }
+                }}
+              >
+                <Button submit tone="critical">
+                  Log out of BuyEase
+                </Button>
+              </form>
             </BlockStack>
           </Card>
         </Layout.Section>

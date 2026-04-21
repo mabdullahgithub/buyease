@@ -7,6 +7,7 @@ import {
   SHOPIFY_EMBED_HOST_COOKIE,
 } from "@/lib/embedded-app-url";
 import { collectSetCookieLines, redirectWithSetCookies, serializeSetCookie } from "@/lib/forward-set-cookies";
+import { invalidateMerchantAppCache } from "@/lib/merchant-cache";
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
@@ -24,6 +25,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       update: { isActive: true, uninstalledAt: null },
       create: { shop: session.shop, isActive: true },
     });
+    invalidateMerchantAppCache(session.shop);
 
     const headersLike = callbackResponse.headers as unknown as Headers;
     const setCookieLines = collectSetCookieLines(headersLike);

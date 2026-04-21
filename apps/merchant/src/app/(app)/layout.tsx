@@ -1,19 +1,9 @@
 "use client";
 
-import { TitleBar } from "@shopify/app-bridge-react";
-import { AppProvider, Box, Frame, Navigation, TopBar } from "@shopify/polaris";
-import {
-  HomeFilledIcon,
-  OrderIcon,
-  FormsIcon,
-  GiftCardIcon,
-  ChartVerticalIcon,
-  SettingsIcon,
-  ConnectIcon,
-  PlanIcon,
-} from "@shopify/polaris-icons";
-import { usePathname, useSearchParams } from "next/navigation";
-import { Suspense, useState } from "react";
+import { NavMenu, TitleBar } from "@shopify/app-bridge-react";
+import { AppProvider, Box, Frame } from "@shopify/polaris";
+import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 import enTranslations from "@shopify/polaris/locales/en.json";
 import { BrandLogo } from "@/components/merchant/brand-logo";
 import { appendEmbeddedAppQuery } from "@/lib/embedded-app-url";
@@ -23,69 +13,24 @@ type AppLayoutProps = {
 };
 
 function MerchantAppFrame({ children }: AppLayoutProps) {
-  const pathname = usePathname();
   const searchParams = useSearchParams();
-  const [mobileNavigationActive, setMobileNavigationActive] = useState(false);
 
   const withEmbed = (path: string): string => appendEmbeddedAppQuery(path, searchParams);
-  const navigationLocation = appendEmbeddedAppQuery(pathname, searchParams);
 
-  const navigationMarkup = (
-    <Navigation location={navigationLocation}>
-      <Navigation.Section
-        title="buyease"
-        items={[
-          {
-            url: withEmbed("/form-builder"),
-            label: "Overview",
-            icon: HomeFilledIcon,
-            selected: pathname === "/form-builder" || pathname === "/form-builder/",
-          },
-          {
-            url: withEmbed("/form-builder/editor"),
-            label: "Form Builder",
-            icon: FormsIcon,
-            selected: pathname.startsWith("/form-builder/editor"),
-          },
-          {
-            url: withEmbed("/quantity-offers"),
-            label: "Quantity Offers",
-            icon: OrderIcon,
-            selected: pathname.startsWith("/quantity-offers"),
-          },
-          {
-            url: withEmbed("/upsells-downsells"),
-            label: "Upsells & Downsells",
-            icon: GiftCardIcon,
-            selected: pathname.startsWith("/upsells-downsells"),
-          },
-          {
-            url: withEmbed("/integrations-messaging"),
-            label: "Integrations & Messaging",
-            icon: ConnectIcon,
-            selected: pathname.startsWith("/integrations-messaging"),
-          },
-          {
-            url: withEmbed("/analytics"),
-            label: "Analytics",
-            icon: ChartVerticalIcon,
-            selected: pathname.startsWith("/analytics"),
-          },
-          {
-            url: withEmbed("/settings"),
-            label: "Settings",
-            icon: SettingsIcon,
-            selected: pathname.startsWith("/settings"),
-          },
-          {
-            url: withEmbed("/plan"),
-            label: "Plan",
-            icon: PlanIcon,
-            selected: pathname.startsWith("/plan"),
-          },
-        ]}
-      />
-    </Navigation>
+  /** Renders in Shopify admin app nav (left rail under Apps), not inside the iframe content. */
+  const adminNavMenu = (
+    <NavMenu>
+      <a href={withEmbed("/form-builder")} rel="home">
+        Home
+      </a>
+      <a href={withEmbed("/form-builder")}>Form Builder</a>
+      <a href={withEmbed("/quantity-offers")}>Quantity Offers</a>
+      <a href={withEmbed("/upsells-downsells")}>Upsells & Downsells</a>
+      <a href={withEmbed("/integrations-messaging")}>Integrations & Messaging</a>
+      <a href={withEmbed("/analytics")}>Analytics</a>
+      <a href={withEmbed("/settings")}>Settings</a>
+      <a href={withEmbed("/plan")}>Plan</a>
+    </NavMenu>
   );
 
   const topBarMarkup = (
@@ -100,23 +45,15 @@ function MerchantAppFrame({ children }: AppLayoutProps) {
         }}
       >
         <BrandLogo href={withEmbed("/form-builder")} />
-        <TopBar
-          showNavigationToggle
-          onNavigationToggle={() => setMobileNavigationActive((prev) => !prev)}
-        />
       </div>
     </Box>
   );
 
   return (
     <AppProvider i18n={enTranslations}>
-      <TitleBar title="BuyEase" />
-      <Frame
-        topBar={topBarMarkup}
-        navigation={navigationMarkup}
-        showMobileNavigation={mobileNavigationActive}
-        onNavigationDismiss={() => setMobileNavigationActive(false)}
-      >
+      {adminNavMenu}
+      <TitleBar title="BuyEase COD" />
+      <Frame topBar={topBarMarkup}>
         {children}
       </Frame>
     </AppProvider>

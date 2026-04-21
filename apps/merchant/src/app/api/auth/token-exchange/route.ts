@@ -4,6 +4,7 @@ import { db } from "@buyease/db";
 import { authenticateEmbeddedRequest } from "@/lib/embedded-auth";
 import { EMBEDDED_HOST_PARAM_RE, SHOPIFY_EMBED_HOST_COOKIE } from "@/lib/embedded-app-url";
 import { serializeSetCookie } from "@/lib/forward-set-cookies";
+import { invalidateMerchantAppCache } from "@/lib/merchant-cache";
 import { getShopify, shopifySessionStorage } from "@/lib/shopify";
 
 function bearerToken(request: NextRequest): string | null {
@@ -57,6 +58,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       update: { isActive: true, uninstalledAt: null },
       create: { shop: session.shop, isActive: true },
     });
+    invalidateMerchantAppCache(session.shop);
 
     const secure = process.env.NODE_ENV === "production";
     const headers = new Headers({ "Content-Type": "application/json" });
