@@ -54,6 +54,27 @@ export function proxy(req: NextRequest): NextResponse {
 
   const sessionId = req.cookies.get("shopify_session")?.value;
   if (!sessionId) {
+    const shop = req.nextUrl.searchParams.get("shop");
+    const host = req.nextUrl.searchParams.get("host");
+    const embeddedShopify = Boolean(shop && host);
+
+    // Embedded admin (managed install): skip /install + OAuth round trip; App Bridge
+    // token exchange sets cookies from the client (rules §5A first load, §5F).
+    if (embeddedShopify) {
+      if (pathname === "/") {
+        const toFormBuilder = new URL("/form-builder", req.url);
+        toFormBuilder.search = req.nextUrl.search;
+        return withShopifyEmbeddedHeaders(req, NextResponse.redirect(toFormBuilder));
+      }
+      if (pathname.startsWith("/api/")) {
+        return withShopifyEmbeddedHeaders(
+          req,
+          NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+        );
+      }
+      return withShopifyEmbeddedHeaders(req, NextResponse.next());
+    }
+
     const installUrl = new URL("/install", req.url);
     installUrl.searchParams.set("return_to", pathname);
 

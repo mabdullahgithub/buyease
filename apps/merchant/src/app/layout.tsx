@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import { Comfortaa } from "next/font/google";
 import "@shopify/polaris/build/esm/styles.css";
+import { EmbeddedSessionBootstrap } from "@/components/merchant/embedded-session-bootstrap";
 
 const comfortaa = Comfortaa({
   subsets: ["latin"],
@@ -19,10 +21,23 @@ export const metadata: Metadata = {
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  const apiKey = process.env.SHOPIFY_API_KEY ?? "";
+
   return (
     <html lang="en" className={comfortaa.variable}>
-      <head />
-      <body>{children}</body>
+      <head>
+        {apiKey ? <meta name="shopify-api-key" content={apiKey} /> : null}
+      </head>
+      <body>
+        {apiKey ? (
+          <Script
+            src="https://cdn.shopify.com/shopifycloud/app-bridge.js"
+            strategy="afterInteractive"
+          />
+        ) : null}
+        <EmbeddedSessionBootstrap />
+        {children}
+      </body>
     </html>
   );
 }
