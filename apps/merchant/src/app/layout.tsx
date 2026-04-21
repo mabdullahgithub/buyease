@@ -3,6 +3,7 @@ import Script from "next/script";
 import { Comfortaa } from "next/font/google";
 import "@shopify/polaris/build/esm/styles.css";
 import { EmbeddedSessionBootstrap } from "@/components/merchant/embedded-session-bootstrap";
+import { EmbeddedTopLevelRedirect } from "@/components/merchant/embedded-top-level-redirect";
 
 const comfortaa = Comfortaa({
   subsets: ["latin"],
@@ -35,6 +36,7 @@ export default function RootLayout({
             strategy="afterInteractive"
           />
         ) : null}
+        <EmbeddedTopLevelRedirect />
         <EmbeddedSessionBootstrap />
         {children}
       </body>

@@ -1,5 +1,6 @@
 "use client";
 
+import { TitleBar } from "@shopify/app-bridge-react";
 import { AppProvider, Box, Frame, Navigation, TopBar } from "@shopify/polaris";
 import {
   HomeIcon,
@@ -101,6 +102,7 @@ function MerchantAppFrame({ children }: AppLayoutProps) {
 
   return (
     <AppProvider i18n={enTranslations}>
+      <TitleBar title="BuyEase" />
       <Frame
         topBar={topBarMarkup}
         navigation={navigationMarkup}
