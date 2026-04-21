@@ -4,8 +4,9 @@ import { useState, Suspense } from "react";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ShoppingCart, Eye, EyeOff, Loader2 } from "lucide-react";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { cn } from "@buyease/ui";
+import { BrandLogo } from "@/components/admin/brand-logo";
 
 type LoginFormState = {
   email: string;
@@ -61,10 +62,8 @@ function LoginForm() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <div className="w-full max-w-sm">
-        <div className="flex items-center gap-2.5 justify-center mb-8">
-          <span className="size-9 rounded-lg bg-primary flex items-center justify-center text-primary-foreground">
-            <ShoppingCart className="size-5" />
-          </span>
+        <div className="flex items-center gap-3 justify-center mb-8">
+          <BrandLogo href="/" width={36} />
           <span className="text-xl font-bold tracking-tight">BuyEase Admin</span>
         </div>
 
