@@ -521,12 +521,11 @@ export function ChangePasswordForm({ activeSessions, userEmail }: ChangePassword
             </DialogHeader>
 
             <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
-              <div className="mx-auto shrink-0 overflow-hidden rounded-xl border bg-white p-3 shadow-sm sm:mx-0">
+              <div className="mx-auto shrink-0 rounded-xl border bg-white p-3 shadow-sm sm:mx-0">
                 <img
                   src={qrCodeImage}
                   alt="Scan this QR code with authenticator app"
-                  className="size-[140px]"
-                  style={{ imageRendering: "pixelated" }}
+                  className="size-44"
                 />
               </div>
 
