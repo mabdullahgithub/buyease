@@ -114,24 +114,29 @@ export default async function AdminDashboardPage() {
         <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
           Overview
         </p>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="flex gap-3 overflow-x-auto px-1 py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {stats.map(({ title, value, description, icon: Icon }) => (
             /*
               bg-card = #1c1c1c in dark — same surface as sidebar/navbar.
               border-border for the single thin line.
               No shadow, no ring — pure flat Supabase style.
             */
-            <Card key={title} className="rounded-lg border border-border bg-card shadow-none ring-0">
+            <Card
+              key={title}
+              className="min-w-[210px] shrink-0 flex-1 rounded-lg border border-border bg-card shadow-none ring-0"
+            >
               <CardHeader className="pb-2 pt-4">
                 <div className="flex items-start justify-between gap-3">
-                  <CardTitle className="text-[12px] font-medium uppercase tracking-wide text-muted-foreground">
+                  <CardTitle className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
                     {title}
                   </CardTitle>
-                  <Icon className="size-4 shrink-0 text-muted-foreground/50" />
+                  <div className="rounded-md border border-border bg-muted/40 p-1.5">
+                    <Icon className="size-3.5 shrink-0 text-muted-foreground" />
+                  </div>
                 </div>
               </CardHeader>
               <CardContent className="pb-4">
-                <p className="text-[28px] font-semibold leading-none tracking-tight text-foreground">
+                <p className="text-2xl font-semibold leading-none tracking-tight text-foreground">
                   {value}
                 </p>
                 <CardDescription className="mt-1.5 text-[12px]">

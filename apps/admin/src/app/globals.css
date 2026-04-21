@@ -143,6 +143,13 @@
   }
 }
 
+/* Prevent visual flash during theme switch */
+.theme-transition-disabled *,
+.theme-transition-disabled *::before,
+.theme-transition-disabled *::after {
+  transition: none !important;
+}
+
 /* ─── Sidebar nav states — Supabase-exact ────────────────── */
 [data-slot="sidebar-menu-button"] {
   background: transparent;

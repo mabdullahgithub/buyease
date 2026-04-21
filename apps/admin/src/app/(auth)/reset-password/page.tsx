@@ -1,10 +1,12 @@
 "use client";
 
 import { useState, Suspense } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ShoppingCart, Loader2, Eye, EyeOff, ArrowLeft } from "lucide-react";
+import { Loader2, Eye, EyeOff, ArrowLeft } from "lucide-react";
 import { cn } from "@buyease/ui";
+import logo from "@/app/logo.png";
 
 type FormState = {
   password: string;
@@ -199,11 +201,15 @@ export default function ResetPasswordPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <div className="w-full max-w-sm">
-        <div className="flex items-center gap-2.5 justify-center mb-8">
-          <span className="size-9 rounded-lg bg-primary flex items-center justify-center text-primary-foreground">
-            <ShoppingCart className="size-5" />
-          </span>
-          <span className="text-xl font-bold tracking-tight">BuyEase Admin</span>
+        <div className="mb-8 flex justify-center">
+          <Image
+            src={logo}
+            alt="BuyEase"
+            width={160}
+            height={41}
+            priority
+            className="h-auto w-[160px]"
+          />
         </div>
         <Suspense
           fallback={

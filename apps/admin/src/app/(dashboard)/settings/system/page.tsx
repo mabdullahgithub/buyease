@@ -1,7 +1,7 @@
 import { revalidatePath } from "next/cache";
 import Link from "next/link";
 import { Prisma, db } from "@buyease/db";
-import { Ban, Globe, Activity } from "lucide-react";
+import { Ban, ShieldCheck, Activity } from "lucide-react";
 
 import {
   Card,
@@ -211,7 +211,7 @@ export default async function SystemSettingsPage() {
         <Card className="xl:row-span-3">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Globe className="size-4" />
+              <ShieldCheck className="size-4" />
               IP allowlisting
             </CardTitle>
             <CardDescription>
@@ -248,6 +248,9 @@ export default async function SystemSettingsPage() {
                         ip={entry.ip}
                         action={removeAllowlistedIp}
                         label={`Remove ${entry.ip}`}
+                        activityAction="ALLOWLIST_IP_REMOVED"
+                        activityCategory="SYSTEM"
+                        activityDescription="Removed IP from allowlist"
                       />
                     </div>
                   ))}
@@ -373,6 +376,9 @@ export default async function SystemSettingsPage() {
                     ip={entry.ip}
                     action={removeBlockedIp}
                     label={`Unblock ${entry.ip}`}
+                    activityAction="BLOCKLIST_IP_REMOVED"
+                    activityCategory="SECURITY"
+                    activityDescription="Removed IP from blocklist"
                   />
                 </div>
               ))}

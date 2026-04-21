@@ -17,6 +17,9 @@ import {
   Sparkles,
 } from "lucide-react";
 
+import { appToast } from "@/lib/toasts";
+import { logSettingsChange } from "@/lib/settings-activity";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -216,7 +219,11 @@ export function ChangePasswordForm({
       };
 
       if (!response.ok || !data.ok || !data.recoveryCodes) {
-        setTwoFactorError(data.error ?? "Unable to enable two-factor authentication.");
+        const message = data.error ?? "Unable to enable two-factor authentication.";
+        setTwoFactorError(message);
+        appToast.settingsError("Failed to enable two-factor authentication", {
+          description: message,
+        });
         return;
       }
 
@@ -226,8 +233,18 @@ export function ChangePasswordForm({
       setShowEnableDialog(false);
       setShowEnableSuccessDialog(true);
       setSuccess("Two-factor authentication enabled.");
+      appToast.settingsChanged("Two-factor authentication enabled");
+      void logSettingsChange({
+        action: "TWO_FACTOR_ENABLED",
+        category: "SECURITY",
+        description: "Enabled two-factor authentication",
+        showToast: false,
+      });
     } catch {
       setTwoFactorError("Network error. Try again.");
+      appToast.settingsError("Failed to enable two-factor authentication", {
+        description: "Network error. Try again.",
+      });
     } finally {
       setEnableLoading(false);
     }
@@ -267,7 +284,11 @@ export function ChangePasswordForm({
       const data = (await response.json()) as { ok?: boolean; error?: string; message?: string };
 
       if (!response.ok || !data.ok) {
-        setTwoFactorError(data.error ?? "Unable to disable two-factor authentication.");
+        const message = data.error ?? "Unable to disable two-factor authentication.";
+        setTwoFactorError(message);
+        appToast.settingsError("Failed to disable two-factor authentication", {
+          description: message,
+        });
         return;
       }
 
@@ -275,8 +296,18 @@ export function ChangePasswordForm({
       setTwoFactorEnabled(false);
       setShowDisableDialog(false);
       setSuccess(data.message ?? "Two-factor authentication disabled.");
+      appToast.settingsChanged("Two-factor authentication disabled");
+      void logSettingsChange({
+        action: "TWO_FACTOR_DISABLED",
+        category: "SECURITY",
+        description: "Disabled two-factor authentication",
+        showToast: false,
+      });
     } catch {
       setTwoFactorError("Network error. Try again.");
+      appToast.settingsError("Failed to disable two-factor authentication", {
+        description: "Network error. Try again.",
+      });
     } finally {
       setDisableLoading(false);
     }
@@ -307,7 +338,11 @@ export function ChangePasswordForm({
 
       const data = (await res.json()) as { ok?: boolean; message?: string; error?: string };
       if (!res.ok) {
-        setError(data.error ?? "Could not update password.");
+        const message = data.error ?? "Could not update password.";
+        setError(message);
+        appToast.settingsError("Failed to update password", {
+          description: message,
+        });
         setLoading(false);
         return;
       }
@@ -316,9 +351,19 @@ export function ChangePasswordForm({
       setNewPassword("");
       setConfirmPassword("");
       setSuccess(data.message ?? "Password updated successfully.");
+      appToast.settingsChanged("Password updated");
+      void logSettingsChange({
+        action: "PASSWORD_CHANGED",
+        category: "SECURITY",
+        description: "Updated admin password",
+        showToast: false,
+      });
       setLoading(false);
     } catch {
       setError("Network error. Try again.");
+      appToast.settingsError("Failed to update password", {
+        description: "Network error. Try again.",
+      });
       setLoading(false);
     }
   };

@@ -1,8 +1,9 @@
 "use client";
 
-import { useActionState, useRef } from "react";
+import { useActionState, useEffect, useRef } from "react";
 import { Ban, Loader2, Plus, Trash2 } from "lucide-react";
 
+import { logSettingsChange } from "@/lib/settings-activity";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -40,6 +41,17 @@ export function AddAllowlistForm({
     },
     null
   );
+
+  useEffect(() => {
+    if (!state?.success) return;
+
+    void logSettingsChange({
+      action: "ALLOWLIST_IP_ADDED",
+      category: "SYSTEM",
+      description: "Added IP to allowlist",
+      showToast: true,
+    });
+  }, [state]);
 
   return (
     <div className="space-y-2">
@@ -84,6 +96,17 @@ export function AddBlocklistForm({
     null
   );
 
+  useEffect(() => {
+    if (!state?.success) return;
+
+    void logSettingsChange({
+      action: "BLOCKLIST_IP_ADDED",
+      category: "SECURITY",
+      description: "Blocked an IP address",
+      showToast: true,
+    });
+  }, [state]);
+
   return (
     <div className="space-y-2">
       <form
@@ -122,20 +145,39 @@ export function AddBlocklistForm({
 
 export function RemoveIpButton({
   id,
+  ip,
   action,
   label,
+  activityAction,
+  activityCategory,
+  activityDescription,
 }: {
   id: string;
   ip: string;
   action: (formData: FormData) => Promise<ActionResult>;
   label: string;
+  activityAction: string;
+  activityCategory: string;
+  activityDescription: string;
 }) {
-  const [, formAction, pending] = useActionState(
+  const [state, formAction, pending] = useActionState(
     async (_prev: ActionResult, formData: FormData) => {
       return action(formData);
     },
     null
   );
+
+  useEffect(() => {
+    if (!state?.success) return;
+
+    void logSettingsChange({
+      action: activityAction,
+      category: activityCategory,
+      description: activityDescription,
+      metadata: { ip },
+      showToast: true,
+    });
+  }, [activityAction, activityCategory, activityDescription, ip, state]);
 
   return (
     <form action={formAction}>

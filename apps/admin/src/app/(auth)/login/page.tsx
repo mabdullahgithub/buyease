@@ -1,12 +1,13 @@
 "use client";
 
 import { useState, Suspense } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Eye, EyeOff, Loader2, ShieldAlert } from "lucide-react";
 import { cn } from "@buyease/ui";
-import { BrandLogo } from "@/components/admin/brand-logo";
+import logo from "@/app/logo.png";
 
 type LoginStage = "password" | "twoFactor";
 
@@ -115,9 +116,15 @@ function LoginForm() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <div className="w-full max-w-sm">
-        <div className="flex items-center gap-3 justify-center mb-8">
-          <BrandLogo href="/" width={36} />
-          <span className="text-xl font-bold tracking-tight">BuyEase Admin</span>
+        <div className="mb-8 flex justify-center">
+          <Image
+            src={logo}
+            alt="BuyEase"
+            width={160}
+            height={41}
+            priority
+            className="h-auto w-[160px]"
+          />
         </div>
 
         <div className="rounded-xl border border-border bg-card p-8 shadow-sm">
