@@ -270,7 +270,7 @@ function HomeClientInner({
     usagePct >= 90 ? "critical" : usagePct >= 70 ? "highlight" : "success";
 
   return (
-    <Page title="Overview" subtitle="BuyEase COD Form & Upsells">
+    <Page title="BuyEase COD Form" subtitle="Overview — COD forms, upsells, and setup">
       <Layout>
         {/* ── Analytics – Last 7 days ─────────────────────────────── */}
         <Layout.Section>
@@ -310,7 +310,7 @@ function HomeClientInner({
                 <InlineStack align="space-between" blockAlign="center">
                   <BlockStack gap="100">
                     <Text as="h2" variant="headingMd">
-                      {allDone ? "You are all set" : "Welcome to BuyEase"}
+                      {allDone ? "You are all set" : "Welcome to BuyEase COD Form"}
                     </Text>
                     <Text as="p" variant="bodySm" tone="subdued">
                       {allDone

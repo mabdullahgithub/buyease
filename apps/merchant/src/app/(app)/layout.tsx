@@ -12,7 +12,7 @@ type AppLayoutProps = {
 function MerchantAppFrame({ children }: AppLayoutProps) {
   return (
     <AppProvider i18n={enTranslations}>
-      <TitleBar title="BuyEase COD" />
+      <TitleBar title="BuyEase COD Form" />
       <Frame>{children}</Frame>
     </AppProvider>
   );

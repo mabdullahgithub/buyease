@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Script from "next/script";
 import { Comfortaa } from "next/font/google";
 import "@shopify/polaris/build/esm/styles.css";
 import { EmbeddedSessionBootstrap } from "@/components/merchant/embedded-session-bootstrap";
@@ -13,7 +12,7 @@ const comfortaa = Comfortaa({
 });
 
 export const metadata: Metadata = {
-  title: "BuyEase — Merchant App",
+  title: "BuyEase COD Form — Merchant",
   description: "BuyEase COD Form & Upsells for Shopify merchants.",
   icons: {
     icon: "/icon.png",
@@ -40,7 +39,8 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{
             __html: `<ui-nav-menu>
   <a href="/form-builder" rel="home">Home</a>
-  <a href="/form-builder">Form Builder</a>
+  <a href="/form-builder">BuyEase COD Form</a>
+  <a href="/form-builder/editor">Form Builder</a>
   <a href="/quantity-offers">Quantity Offers</a>
   <a href="/upsells-downsells">Upsells &amp; Downsells</a>
   <a href="/integrations-messaging">Integrations &amp; Messaging</a>

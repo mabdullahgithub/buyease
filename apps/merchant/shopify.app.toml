@@ -1,5 +1,5 @@
 client_id = "REPLACE_WITH_SHOPIFY_API_KEY"
-name = "BuyEase"
+name = "BuyEase COD Form"
 application_url = "https://app.buyease.app"
 embedded = true
 
