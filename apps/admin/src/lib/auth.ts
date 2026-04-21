@@ -101,7 +101,21 @@ async function isIpAllowlisted(ip: string, db: typeof import("@buyease/db").db):
   }
 
   if (dbIp) return true;
-  return envIps.size === 0;
+  if (envIps.size > 0) return false;
+
+  try {
+    const activeDbAllowlistCount = await db.adminIpAllowlist?.count({
+      where: { isActive: true },
+    });
+    // If DB allowlist has entries, IP must match one of them.
+    if ((activeDbAllowlistCount ?? 0) > 0) return false;
+  } catch (error) {
+    if (!(error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2021")) {
+      throw error;
+    }
+  }
+
+  return true;
 }
 
 async function logLoginActivity(params: {
