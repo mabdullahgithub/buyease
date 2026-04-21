@@ -1,5 +1,7 @@
 import { validateShopDomain } from "@/lib/auth";
+import { InstallEmbedRecovery } from "@/components/merchant/install-embed-recovery";
 import { redirect } from "next/navigation";
+import { Suspense } from "react";
 
 type SearchParams = Promise<{
   shop?: string;
@@ -29,6 +31,9 @@ export default async function InstallPage({
 
   return (
     <main style={{ minHeight: "100vh", display: "grid", placeItems: "center", padding: "24px" }}>
+      <Suspense fallback={null}>
+        <InstallEmbedRecovery />
+      </Suspense>
       <section style={{ width: "100%", maxWidth: "480px", border: "1px solid #e5e7eb", borderRadius: "12px", padding: "24px" }}>
         <h1 style={{ margin: "0 0 8px", fontSize: "24px", fontWeight: 600 }}>
           Install BuyEase

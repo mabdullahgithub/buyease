@@ -5,6 +5,7 @@ import {
   mergeEmbeddedSearchParams,
   SHOPIFY_EMBED_HOST_COOKIE,
 } from "@/lib/embedded-app-url";
+import { urlFromSameOriginReferrerIfEmbedded } from "@/lib/referer-embed-restore";
 import { normalizeShopifyAppsPathname } from "@/lib/shopify-apps-path-prefix";
 
 const PUBLIC_PATHS = [
@@ -55,6 +56,35 @@ export function proxy(req: NextRequest): NextResponse {
   const rawPathname = req.nextUrl.pathname;
   const pathname = normalizeShopifyAppsPathname(rawPathname);
 
+  // Recover `shop` + `host` before any public-route short-circuit (e.g. `/install` is "public"
+  // but must still be able to 302 back to the Referer embed URL when params were dropped).
+  if (!rawPathname.startsWith("/api/")) {
+    const shopFromCookie = req.cookies.get("shopify_shop")?.value;
+    const embedHostCookie = req.cookies.get(SHOPIFY_EMBED_HOST_COOKIE)?.value;
+    const shopCookieOk = shopFromCookie ? validateShopDomain(shopFromCookie) : null;
+    const hostCookieOk =
+      embedHostCookie && EMBEDDED_HOST_PARAM_RE.test(embedHostCookie) ? embedHostCookie : null;
+
+    if (
+      shopCookieOk &&
+      hostCookieOk &&
+      !req.nextUrl.searchParams.get("host") &&
+      !rawPathname.startsWith("/api/")
+    ) {
+      const url = req.nextUrl.clone();
+      url.pathname = pathname;
+      url.searchParams.set("shop", shopCookieOk);
+      url.searchParams.set("host", hostCookieOk);
+      mergeEmbeddedSearchParams(url, req.nextUrl.searchParams);
+      return withShopifyEmbeddedHeaders(req, NextResponse.redirect(url));
+    }
+
+    const fromReferrer = urlFromSameOriginReferrerIfEmbedded(req);
+    if (fromReferrer) {
+      return withShopifyEmbeddedHeaders(req, NextResponse.redirect(fromReferrer));
+    }
+  }
+
   const isPublic = PUBLIC_PATHS.some((p) => rawPathname.startsWith(p));
 
   if (isPublic) {
@@ -96,25 +126,6 @@ export function proxy(req: NextRequest): NextResponse {
     }
 
     return withShopifyEmbeddedHeaders(req, NextResponse.redirect(installUrl));
-  }
-
-  const embedHostCookie = req.cookies.get(SHOPIFY_EMBED_HOST_COOKIE)?.value;
-  const shopFromCookie = req.cookies.get("shopify_shop")?.value;
-  const shopCookieOk = shopFromCookie ? validateShopDomain(shopFromCookie) : null;
-  const hostCookieOk =
-    embedHostCookie && EMBEDDED_HOST_PARAM_RE.test(embedHostCookie) ? embedHostCookie : null;
-
-  if (
-    shopCookieOk &&
-    hostCookieOk &&
-    !req.nextUrl.searchParams.get("host") &&
-    !rawPathname.startsWith("/api/")
-  ) {
-    const url = req.nextUrl.clone();
-    url.pathname = pathname;
-    url.searchParams.set("shop", shopCookieOk);
-    url.searchParams.set("host", hostCookieOk);
-    return withShopifyEmbeddedHeaders(req, NextResponse.redirect(url));
   }
 
   if (pathname === "/") {
