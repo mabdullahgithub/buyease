@@ -13,6 +13,8 @@ import {
   verifyTwoFactorCode,
 } from "@/lib/admin-two-factor";
 
+const authSecret = process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET;
+
 const LOGIN_MAX_ATTEMPTS = 5;
 const LOGIN_LOCK_WINDOW_MS = 15 * 60 * 1000;
 const loginFailures = new Map<string, { count: number; firstFailureAt: number }>();
@@ -143,6 +145,7 @@ const credentialsSchema = z.object({
 });
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
+  secret: authSecret,
   trustHost: true,
   providers: [
     Credentials({
