@@ -32,17 +32,17 @@ export default function RootLayout({
       </head>
       <body>
         {apiKey ? (
-          <>
-            <Script
-              src="https://cdn.shopify.com/shopifycloud/polaris.js"
-              strategy="afterInteractive"
-            />
-            <Script
-              src="https://cdn.shopify.com/shopifycloud/app-bridge.js"
-              strategy="afterInteractive"
-            />
-          </>
+          <Script
+            src="https://cdn.shopify.com/shopifycloud/app-bridge.js"
+            strategy="afterInteractive"
+          />
         ) : null}
+        {/* Hide App Bridge nav children before custom element upgrade */}
+        <style
+          dangerouslySetInnerHTML={{
+            __html: "ui-nav-menu{display:none}",
+          }}
+        />
         <EmbeddedTopLevelRedirect />
         <PersistShopifyEmbedParams />
         <EmbeddedSessionBootstrap />
