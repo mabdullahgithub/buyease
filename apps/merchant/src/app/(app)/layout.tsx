@@ -3,12 +3,14 @@
 import { TitleBar } from "@shopify/app-bridge-react";
 import { AppProvider, Box, Frame, Navigation, TopBar } from "@shopify/polaris";
 import {
-  HomeIcon,
+  HomeFilledIcon,
   OrderIcon,
   FormsIcon,
   GiftCardIcon,
   ChartVerticalIcon,
   SettingsIcon,
+  ConnectIcon,
+  PlanIcon,
 } from "@shopify/polaris-icons";
 import { usePathname, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
@@ -35,9 +37,15 @@ function MerchantAppFrame({ children }: AppLayoutProps) {
         items={[
           {
             url: withEmbed("/form-builder"),
+            label: "Overview",
+            icon: HomeFilledIcon,
+            selected: pathname === "/form-builder" || pathname === "/form-builder/",
+          },
+          {
+            url: withEmbed("/form-builder/editor"),
             label: "Form Builder",
             icon: FormsIcon,
-            selected: pathname.startsWith("/form-builder"),
+            selected: pathname.startsWith("/form-builder/editor"),
           },
           {
             url: withEmbed("/quantity-offers"),
@@ -54,7 +62,7 @@ function MerchantAppFrame({ children }: AppLayoutProps) {
           {
             url: withEmbed("/integrations-messaging"),
             label: "Integrations & Messaging",
-            icon: HomeIcon,
+            icon: ConnectIcon,
             selected: pathname.startsWith("/integrations-messaging"),
           },
           {
@@ -72,7 +80,7 @@ function MerchantAppFrame({ children }: AppLayoutProps) {
           {
             url: withEmbed("/plan"),
             label: "Plan",
-            icon: OrderIcon,
+            icon: PlanIcon,
             selected: pathname.startsWith("/plan"),
           },
         ]}

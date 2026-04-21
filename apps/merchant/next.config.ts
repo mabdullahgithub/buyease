@@ -10,7 +10,7 @@ const nextConfig: NextConfig = {
         source: "/(.*)",
         headers: [
           // Do not set X-Frame-Options: DENY — embedded apps load inside Shopify
-          // admin / shop iframes. CSP frame-ancestors is set in src/proxy.ts.
+          // admin / shop iframes. CSP frame-ancestors is set in `src/proxy.ts` (Next.js proxy).
           { key: "X-Content-Type-Options", value: "nosniff" },
         ],
       },

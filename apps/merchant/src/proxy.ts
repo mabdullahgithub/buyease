@@ -121,3 +121,7 @@ export function proxy(req: NextRequest): NextResponse {
 
   return withShopifyEmbeddedHeaders(req, NextResponse.next());
 }
+
+export const config = {
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|icon.png).*)"],
+};
