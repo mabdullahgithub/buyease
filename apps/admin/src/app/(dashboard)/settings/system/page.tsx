@@ -228,7 +228,7 @@ export default async function SystemSettingsPage() {
                   No database-managed IPs yet.
                 </p>
               ) : (
-                <div className="space-y-2">
+                <div className="space-y-2 pr-1 max-h-[260px] overflow-y-auto">
                   {dbIps.map((entry) => (
                     <div
                       key={entry.id}
@@ -270,14 +270,16 @@ export default async function SystemSettingsPage() {
                 No environment IPs configured.
               </p>
             ) : (
-              envIps.map((ip) => (
-                <div
-                  key={ip}
-                  className="rounded-md border px-2.5 py-1.5 font-mono text-xs"
-                >
-                  {ip}
-                </div>
-              ))
+              <div className="space-y-1.5 pr-1 max-h-[260px] overflow-y-auto">
+                {envIps.map((ip) => (
+                  <div
+                    key={ip}
+                    className="rounded-md border px-2.5 py-1.5 font-mono text-xs"
+                  >
+                    {ip}
+                  </div>
+                ))}
+              </div>
             )}
           </CardContent>
         </Card>
@@ -303,7 +305,7 @@ export default async function SystemSettingsPage() {
               No blocked IPs configured.
             </p>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-2 pr-1 max-h-[260px] overflow-y-auto">
               {blockedIps.map((entry) => (
                 <div
                   key={entry.id}

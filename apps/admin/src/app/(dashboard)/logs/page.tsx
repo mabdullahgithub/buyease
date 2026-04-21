@@ -6,7 +6,7 @@ import {
   Badge,
 } from "@buyease/ui";
 import { formatDate } from "@buyease/utils";
-import { AlertCircle, Info, CheckCircle, XCircle } from "lucide-react";
+import { AlertCircle, Info, XCircle } from "lucide-react";
 
 type LogLevel = "INFO" | "WARN" | "ERROR" | "CRITICAL";
 

@@ -122,7 +122,6 @@ export function AddBlocklistForm({
 
 export function RemoveIpButton({
   id,
-  ip,
   action,
   label,
 }: {
