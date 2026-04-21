@@ -176,8 +176,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           return null;
         }
 
-        const admin = await db.adminUser.findUnique({
-          where: { email: normalizedEmail },
+        const admin = await db.adminUser.findFirst({
+          where: {
+            email: {
+              equals: normalizedEmail,
+              mode: "insensitive",
+            },
+          },
           select: {
             id: true,
             email: true,
