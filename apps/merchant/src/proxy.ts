@@ -10,12 +10,22 @@ const PUBLIC_PATHS = [
 ];
 
 /**
- * CSP for embedded Shopify admin — see
+ * CSP for embedded Shopify — see
  * https://shopify.dev/docs/apps/build/security/set-up-iframe-protection
+ *
+ * The admin UI often nests the app so the *immediate* framing origin is
+ * https://{shop}.myshopify.com, not only admin.shopify.com. Missing *.myshopify.com
+ * commonly surfaces as a blank iframe (especially in Safari).
+ * dev.shopify.com / partners.shopify.com cover Partner Dev Dashboard embeds.
  */
 function contentSecurityPolicyFrameAncestors(request: NextRequest): string {
   const shopRaw = request.nextUrl.searchParams.get("shop");
-  const origins: string[] = ["https://admin.shopify.com"];
+  const origins: string[] = [
+    "https://admin.shopify.com",
+    "https://*.myshopify.com",
+    "https://dev.shopify.com",
+    "https://partners.shopify.com",
+  ];
   if (shopRaw) {
     const normalized = shopRaw
       .trim()
@@ -47,9 +57,12 @@ export function proxy(req: NextRequest): NextResponse {
     const installUrl = new URL("/install", req.url);
     installUrl.searchParams.set("return_to", pathname);
 
-    const queryShop = req.nextUrl.searchParams.get("shop");
-    if (queryShop) {
-      installUrl.searchParams.set("shop", queryShop);
+    const preserveInstallParams = ["shop", "host", "locale", "session", "timestamp", "hmac", "embedded"] as const;
+    for (const key of preserveInstallParams) {
+      const value = req.nextUrl.searchParams.get(key);
+      if (value !== null && value !== "") {
+        installUrl.searchParams.set(key, value);
+      }
     }
 
     return withShopifyEmbeddedHeaders(req, NextResponse.redirect(installUrl));

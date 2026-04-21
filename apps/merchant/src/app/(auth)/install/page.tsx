@@ -1,7 +1,12 @@
 import { validateShopDomain } from "@/lib/auth";
 import { redirect } from "next/navigation";
 
-type SearchParams = Promise<{ shop?: string; error?: string; return_to?: string }>;
+type SearchParams = Promise<{
+  shop?: string;
+  host?: string;
+  error?: string;
+  return_to?: string;
+}>;
 
 export default async function InstallPage({
   searchParams,
@@ -16,6 +21,9 @@ export default async function InstallPage({
 
   if (normalizedShop && !params.error) {
     const next = new URLSearchParams({ shop: normalizedShop, return_to: returnTo });
+    if (params.host) {
+      next.set("host", params.host);
+    }
     redirect(`/api/auth/install?${next.toString()}`);
   }
 
@@ -43,6 +51,7 @@ export default async function InstallPage({
 
         <form action="/api/auth/install" method="get">
           <input type="hidden" name="return_to" value={returnTo} />
+          {params.host ? <input type="hidden" name="host" value={params.host} /> : null}
           <label htmlFor="shop-domain" style={{ display: "block", marginBottom: "8px", fontWeight: 500 }}>
             Shop domain
           </label>
