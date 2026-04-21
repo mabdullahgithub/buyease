@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect } from "react";
 
 const APP_PREFETCH_ROUTES = [
+  "/overview",
   "/form-builder",
   "/form-builder/editor",
   "/quantity-offers",

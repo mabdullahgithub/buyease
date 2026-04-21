@@ -5,7 +5,7 @@ import { AppProvider, Frame } from "@shopify/polaris";
 import enTranslations from "@shopify/polaris/locales/en.json";
 import { EmbeddedSoftNavigation } from "@/components/merchant/embedded-soft-navigation";
 
-export function MerchantAppShell({
+export default function MerchantAppShell({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (

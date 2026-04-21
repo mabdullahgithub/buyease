@@ -33,7 +33,7 @@ import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { appendEmbeddedAppQuery } from "@/lib/embedded-app-url";
 
-type HomeClientProps = {
+export type HomeClientProps = {
   shop: string;
   ordersLast7Days: number;
   revenueLast7Days: number;

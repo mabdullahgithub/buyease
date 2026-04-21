@@ -101,9 +101,9 @@ export function proxy(req: NextRequest): NextResponse {
     // token exchange sets cookies from the client (rules §5A first load, §5F).
     if (embeddedShopify) {
       if (pathname === "/") {
-        const toFormBuilder = new URL("/form-builder", req.url);
-        toFormBuilder.search = req.nextUrl.search;
-        return withShopifyEmbeddedHeaders(req, NextResponse.redirect(toFormBuilder));
+        const toOverview = new URL("/overview", req.url);
+        toOverview.search = req.nextUrl.search;
+        return withShopifyEmbeddedHeaders(req, NextResponse.redirect(toOverview));
       }
       if (rawPathname.startsWith("/api/")) {
         return withShopifyEmbeddedHeaders(
@@ -129,9 +129,9 @@ export function proxy(req: NextRequest): NextResponse {
   }
 
   if (pathname === "/") {
-    const toFormBuilder = new URL("/form-builder", req.url);
-    mergeEmbeddedSearchParams(toFormBuilder, req.nextUrl.searchParams);
-    return withShopifyEmbeddedHeaders(req, NextResponse.redirect(toFormBuilder));
+    const toOverview = new URL("/overview", req.url);
+    mergeEmbeddedSearchParams(toOverview, req.nextUrl.searchParams);
+    return withShopifyEmbeddedHeaders(req, NextResponse.redirect(toOverview));
   }
 
   return withShopifyEmbeddedHeaders(req, NextResponse.next());

@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { MerchantAppShell } from "./merchant-app-shell";
+import { AppShellDynamic } from "./app-shell-dynamic";
 
 /** Avoid Turbopack static prerender of Polaris (`createContext` SSR bug with client layout root). */
 export const dynamic = "force-dynamic";
@@ -9,7 +9,7 @@ export default function AppLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <Suspense fallback={null}>
-      <MerchantAppShell>{children}</MerchantAppShell>
+      <AppShellDynamic>{children}</AppShellDynamic>
     </Suspense>
   );
 }

@@ -24,7 +24,7 @@ function installErrorRedirect(
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const returnToParam = request.nextUrl.searchParams.get("return_to");
-  const returnTo = returnToParam?.startsWith("/") ? returnToParam : "/form-builder";
+  const returnTo = returnToParam?.startsWith("/") ? returnToParam : "/overview";
   const shopParam = request.nextUrl.searchParams.get("shop") ?? "";
   const hostParam = request.nextUrl.searchParams.get("host");
 

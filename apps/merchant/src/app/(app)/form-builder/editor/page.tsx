@@ -13,7 +13,7 @@ import {
 
 /**
  * Form configuration workspace (fields, design, CTA).
- * App home / onboarding lives at `/form-builder` (BuyEase COD Form).
+ * App home / onboarding lives at `/overview` (BuyEase COD Form).
  */
 export default function FormBuilderEditorPage(): React.JSX.Element {
   return (

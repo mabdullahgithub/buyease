@@ -38,7 +38,7 @@ export default function RootLayout({
         <div
           dangerouslySetInnerHTML={{
             __html: `<ui-nav-menu>
-  <a href="/form-builder" rel="home">Home</a>
+  <a href="/overview" rel="home">Home</a>
   <a href="/form-builder">Form Builder</a>
   <a href="/quantity-offers">Quantity Offers</a>
   <a href="/upsells-downsells">Upsells &amp; Downsells</a>

@@ -12,7 +12,7 @@ import { invalidateMerchantAppCache } from "@/lib/merchant-cache";
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
     const returnToCookie = request.cookies.get("shopify_return_to")?.value;
-    const returnTo = returnToCookie?.startsWith("/") ? returnToCookie : "/form-builder";
+    const returnTo = returnToCookie?.startsWith("/") ? returnToCookie : "/overview";
 
     const callbackResponse = await getShopify().auth.callback({
       rawRequest: request,

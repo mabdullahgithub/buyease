@@ -19,7 +19,7 @@ export default async function InstallPage({
   const shopInput = params.shop ?? "";
   const normalizedShop = shopInput ? validateShopDomain(shopInput) : null;
   const hasInvalidShop = Boolean(shopInput) && !normalizedShop;
-  const returnTo = params.return_to?.startsWith("/") ? params.return_to : "/form-builder";
+  const returnTo = params.return_to?.startsWith("/") ? params.return_to : "/overview";
 
   if (normalizedShop && !params.error) {
     const next = new URLSearchParams({ shop: normalizedShop, return_to: returnTo });
