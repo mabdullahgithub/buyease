@@ -1,17 +1,8 @@
-import { auth } from "@/lib/auth";
-import { redirect } from "next/navigation";
+import { requireAdminSession } from "@/lib/admin-session";
 import { ChangePasswordForm } from "./change-password-form";
 
 export default async function AccountSecurityPage() {
-  let session = null;
-  try {
-    session = await auth();
-  } catch {
-    session = null;
-  }
-  if (!session?.user?.email) {
-    redirect("/login");
-  }
+  const session = await requireAdminSession();
 
   return (
     <div className="space-y-8 max-w-lg">

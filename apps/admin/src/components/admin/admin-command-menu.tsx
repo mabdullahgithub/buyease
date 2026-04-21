@@ -3,6 +3,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import {
+  Activity,
   BarChart3,
   CreditCard,
   LayoutDashboard,
@@ -28,7 +29,8 @@ const NAV: { href: string; label: string; icon: React.ElementType }[] = [
   { href: "/plans", label: "Plans", icon: CreditCard },
   { href: "/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/logs", label: "Logs", icon: ScrollText },
-  { href: "/settings", label: "Settings", icon: Settings },
+  { href: "/recent-activities", label: "Recent activity", icon: Activity },
+  { href: "/settings/system", label: "System settings", icon: Settings },
   { href: "/account/security", label: "Account security", icon: Shield },
 ];
 

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { db } from "@buyease/db";
-import { auth } from "@/lib/auth";
+import { requireAdminSession } from "@/lib/admin-session";
 import { adminPasswordSchema } from "@/lib/password-policy";
 
 const bodySchema = z.object({
@@ -11,8 +11,9 @@ const bodySchema = z.object({
 });
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
-  const session = await auth();
-  if (!session?.user?.email) {
+  const session = await requireAdminSession();
+  const email = session.user.email;
+  if (!email) {
     return NextResponse.json({ ok: false, error: "Unauthorized." }, { status: 401 });
   }
 
@@ -36,7 +37,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const { currentPassword, newPassword } = parsed.data;
 
   const admin = await db.adminUser.findFirst({
-    where: { email: session.user.email, isActive: true },
+    where: { email, isActive: true },
     select: { id: true, passwordHash: true },
   });
 
@@ -68,7 +69,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   });
 
   await db.adminPasswordResetToken.deleteMany({
-    where: { email: session.user.email, usedAt: null },
+    where: { email, usedAt: null },
   });
 
   return NextResponse.json({ ok: true, message: "Password updated successfully." });

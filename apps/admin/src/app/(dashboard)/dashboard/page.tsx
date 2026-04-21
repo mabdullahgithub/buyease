@@ -3,6 +3,7 @@ import Link from "next/link";
 import { db } from "@buyease/db";
 import { formatCurrency } from "@buyease/utils";
 import {
+  Activity,
   BarChart3,
   CreditCard,
   DollarSign,
@@ -64,7 +65,8 @@ const QUICK_ACTIONS: { href: string; label: string; icon: ElementType }[] = [
   { href: "/plans",     label: "Plans",     icon: CreditCard },
   { href: "/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/logs",      label: "Logs",      icon: ScrollText },
-  { href: "/settings",  label: "Settings",  icon: Settings },
+  { href: "/settings/system",  label: "System",  icon: Settings },
+  { href: "/recent-activities", label: "Activity", icon: Activity },
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
 ];
 

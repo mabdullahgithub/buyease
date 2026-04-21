@@ -29,6 +29,8 @@ const SEGMENT_LABELS: Record<string, string> = {
   analytics: "Analytics",
   logs: "Logs",
   settings: "Settings",
+  system: "System",
+  "recent-activities": "Recent activity",
   account: "Account",
   security: "Security",
 };

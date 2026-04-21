@@ -125,6 +125,9 @@ model AdminUser {
   role         AdminRole @default(VIEWER)
   lastLoginAt  DateTime?
   isActive     Boolean   @default(true)
+  loginActivities AdminLoginActivity[]
+  createdIpAllowlistEntries AdminIpAllowlist[] @relation("AdminIpAllowlistCreatedBy")
+  createdIpBlocklistEntries AdminIpBlocklist[] @relation("AdminIpBlocklistCreatedBy")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -151,4 +154,52 @@ enum AdminRole {
   SUPER_ADMIN
   ADMIN
   VIEWER
+}
+
+model AdminIpAllowlist {
+  id          String   @id @default(cuid())
+  ip          String   @unique
+  label       String?
+  isActive    Boolean  @default(true)
+  createdById String?
+  createdBy   AdminUser? @relation("AdminIpAllowlistCreatedBy", fields: [createdById], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive])
+}
+
+model AdminLoginActivity {
+  id             String   @id @default(cuid())
+  adminUserId    String?
+  adminUser      AdminUser? @relation(fields: [adminUserId], references: [id])
+  email          String?
+  ip             String
+  userAgent      String?
+  locationCity   String?
+  locationRegion String?
+  locationCountry String?
+  successful     Boolean  @default(false)
+  failureReason  String?
+
+  createdAt DateTime @default(now())
+
+  @@index([adminUserId])
+  @@index([createdAt])
+  @@index([ip])
+}
+
+model AdminIpBlocklist {
+  id          String   @id @default(cuid())
+  ip          String   @unique
+  label       String?
+  isActive    Boolean  @default(true)
+  createdById String?
+  createdBy   AdminUser? @relation("AdminIpBlocklistCreatedBy", fields: [createdById], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive])
 }

@@ -3,7 +3,9 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSession } from "next-auth/react";
 import {
+  Activity,
   BarChart3,
   CreditCard,
   LayoutDashboard,
@@ -22,8 +24,8 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
-  useSidebar,
 } from "@/components/ui/sidebar";
+import { canAccessPath } from "@/lib/admin-access";
 import { cn } from "@/lib/utils";
 
 type NavItem  = { href: string; label: string; icon: React.ElementType };
@@ -49,16 +51,17 @@ const GROUPS: NavGroup[] = [
   },
   {
     items: [
-      { href: "/settings",         label: "Settings", icon: Settings },
-      { href: "/account/security", label: "Account",  icon: Shield },
+      { href: "/recent-activities", label: "Recent activity", icon: Activity },
+      { href: "/settings/system", label: "System settings", icon: Settings },
+      { href: "/account/security", label: "Account", icon: Shield },
     ],
   },
 ];
 
 export function AppSidebar() {
   const pathname = usePathname();
-  const { state, isMobile } = useSidebar();
-  const collapsed = state === "collapsed" && !isMobile;
+  const { data: session } = useSession();
+  const role = session?.user?.role;
 
   return (
     <Sidebar
@@ -79,7 +82,7 @@ export function AppSidebar() {
           >
             <SidebarGroupContent>
               <SidebarMenu className="gap-0.5">
-                {group.items.map((item: NavItem) => {
+                {group.items.filter((item) => canAccessPath(item.href, role)).map((item: NavItem) => {
                   const isActive =
                     pathname === item.href ||
                     (item.href !== "/dashboard" &&
