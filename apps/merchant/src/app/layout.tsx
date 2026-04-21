@@ -32,15 +32,22 @@ export default function RootLayout({
       </head>
       <body>
         {apiKey ? (
-          <Script
+          <script
             src="https://cdn.shopify.com/shopifycloud/app-bridge.js"
-            strategy="afterInteractive"
           />
         ) : null}
-        {/* Hide App Bridge nav children before custom element upgrade */}
-        <style
+        <div
           dangerouslySetInnerHTML={{
-            __html: "ui-nav-menu{display:none}",
+            __html: `<ui-nav-menu>
+  <a href="/form-builder" rel="home">Home</a>
+  <a href="/form-builder">Form Builder</a>
+  <a href="/quantity-offers">Quantity Offers</a>
+  <a href="/upsells-downsells">Upsells &amp; Downsells</a>
+  <a href="/integrations-messaging">Integrations &amp; Messaging</a>
+  <a href="/analytics">Analytics</a>
+  <a href="/settings">Settings</a>
+  <a href="/plan">Plan</a>
+</ui-nav-menu>`,
           }}
         />
         <EmbeddedTopLevelRedirect />
