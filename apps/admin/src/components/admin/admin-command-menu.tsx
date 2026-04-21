@@ -30,7 +30,7 @@ const NAV: { href: string; label: string; icon: React.ElementType }[] = [
   { href: "/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/logs", label: "Logs", icon: ScrollText },
   { href: "/recent-activities", label: "Recent activity", icon: Activity },
-  { href: "/settings/system", label: "System settings", icon: Settings },
+  { href: "/settings", label: "Project Settings", icon: Settings },
   { href: "/account/security", label: "Account security", icon: Shield },
 ];
 

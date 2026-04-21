@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { ExternalLink } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -9,77 +10,82 @@ type SettingsTab = {
   href?: string;
   label: string;
   group: "Configuration" | "Integrations" | "Billing";
+  external?: boolean;
   upcoming?: boolean;
 };
 
 const SETTINGS_TABS: SettingsTab[] = [
-  {
-    href: "/settings/system",
-    group: "Configuration",
-    label: "System",
-  },
-  {
-    group: "Configuration",
-    label: "Admin users",
-    upcoming: true,
-  },
-  {
-    group: "Configuration",
-    label: "Authentication",
-    upcoming: true,
-  },
-  {
-    group: "Integrations",
-    label: "API keys",
-    upcoming: true,
-  },
-  {
-    group: "Billing",
-    label: "Subscription",
-    upcoming: true,
-  },
+  { href: "/settings/system", group: "Configuration", label: "General" },
+  { group: "Configuration", label: "Admin users", upcoming: true },
+  { group: "Configuration", label: "Authentication", upcoming: true },
+  { group: "Configuration", label: "API Keys", upcoming: true },
+  { group: "Integrations", label: "Data API", upcoming: true, external: true },
+  { group: "Integrations", label: "Vault", upcoming: true, external: true },
+  { group: "Billing", label: "Subscription", upcoming: true, external: true },
+  { group: "Billing", label: "Usage", upcoming: true, external: true },
 ];
 
-const GROUPS: Array<SettingsTab["group"]> = ["Configuration", "Integrations", "Billing"];
+const GROUPS: Array<SettingsTab["group"]> = [
+  "Configuration",
+  "Integrations",
+  "Billing",
+];
 
 export function SettingsTabsSidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="w-full shrink-0 border-r border-border pr-3 lg:w-60">
-      <div className="space-y-3">
-        <p className="px-2 text-sm font-semibold text-foreground">Settings</p>
+    <aside className="w-full shrink-0 lg:sticky lg:top-[76px] lg:w-52">
+      <nav className="flex flex-col gap-6">
+        <h2 className="text-[15px] font-semibold text-foreground">Settings</h2>
+
         {GROUPS.map((group) => (
-          <div key={group} className="space-y-1">
-            <p className="px-2 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">{group}</p>
-            <nav className="space-y-0.5">
-              {SETTINGS_TABS.filter((tab) => tab.group === group).map((tab) => {
-                const active = !!tab.href && pathname.startsWith(tab.href);
-                return tab.href ? (
+          <div key={group} className="flex flex-col gap-0.5">
+            <span className="mb-1 text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
+              {group}
+            </span>
+            {SETTINGS_TABS.filter((tab) => tab.group === group).map((tab) => {
+              const active = !!tab.href && pathname.startsWith(tab.href);
+
+              const content = (
+                <>
+                  <span className="truncate">{tab.label}</span>
+                  {tab.external && (
+                    <ExternalLink className="size-3 shrink-0 opacity-40" />
+                  )}
+                </>
+              );
+
+              if (tab.href) {
+                return (
                   <Link
                     key={tab.href}
                     href={tab.href}
                     className={cn(
-                      "block rounded-md px-2 py-1.5 text-[13px] transition-colors",
-                      active ? "bg-accent text-foreground" : "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+                      "flex items-center justify-between rounded-md px-3 py-[7px] text-[13px] leading-tight transition-colors",
+                      active
+                        ? "bg-accent font-medium text-foreground"
+                        : "text-muted-foreground hover:bg-accent/60 hover:text-foreground"
                     )}
                   >
-                    {tab.label}
+                    {content}
                   </Link>
-                ) : (
-                  <span
-                    key={`${group}-${tab.label}`}
-                    className="block cursor-not-allowed rounded-md px-2 py-1.5 text-[13px] text-muted-foreground/60"
-                    aria-disabled
-                  >
-                    {tab.label}
-                  </span>
                 );
-              })}
-            </nav>
+              }
+
+              return (
+                <span
+                  key={`${group}-${tab.label}`}
+                  className="flex cursor-not-allowed items-center justify-between rounded-md px-3 py-[7px] text-[13px] leading-tight text-muted-foreground/40"
+                  aria-disabled
+                >
+                  {content}
+                </span>
+              );
+            })}
           </div>
         ))}
-      </div>
+      </nav>
     </aside>
   );
 }

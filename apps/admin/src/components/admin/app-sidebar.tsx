@@ -52,7 +52,7 @@ const GROUPS: NavGroup[] = [
   {
     items: [
       { href: "/recent-activities", label: "Recent activity", icon: Activity },
-      { href: "/settings/system", label: "System settings", icon: Settings },
+      { href: "/settings", label: "Project Settings", icon: Settings },
       { href: "/account/security", label: "Account", icon: Shield },
     ],
   },
