@@ -4,16 +4,26 @@ import { useState, Suspense } from "react";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { Eye, EyeOff, Loader2, ShieldAlert } from "lucide-react";
 import { cn } from "@buyease/ui";
 import { BrandLogo } from "@/components/admin/brand-logo";
+
+type LoginStage = "password" | "twoFactor";
 
 type LoginFormState = {
   email: string;
   password: string;
+  twoFactorCode: string;
+  rememberDevice: boolean;
   error: string | null;
   loading: boolean;
   showPassword: boolean;
+  stage: LoginStage;
+};
+
+type LoginResponse = {
+  ok?: boolean;
+  code?: string;
 };
 
 function safeCallbackUrl(raw: string | null): string {
@@ -33,28 +43,71 @@ function LoginForm() {
   const [state, setState] = useState<LoginFormState>({
     email: "",
     password: "",
+    twoFactorCode: "",
+    rememberDevice: false,
     error: null,
     loading: false,
     showPassword: false,
+    stage: "password",
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setState((s) => ({ ...s, loading: true, error: null }));
 
-    const result = await signIn("credentials", {
+    const payload: Record<string, string> = {
       email: state.email.trim().toLowerCase(),
       password: state.password,
-      redirect: false,
-    });
+      rememberDevice: state.stage === "twoFactor" && state.rememberDevice ? "true" : "false",
+    };
 
-    if (result?.error) {
+    if (state.stage === "twoFactor") {
+      payload.twoFactorCode = state.twoFactorCode.trim();
+    }
+
+    const result = (await signIn("credentials", {
+      ...payload,
+      redirect: false,
+    })) as LoginResponse | undefined;
+
+    if (result?.code === "TWO_FACTOR_REQUIRED") {
+      setState((current) => ({
+        ...current,
+        loading: false,
+        error: null,
+        stage: "twoFactor",
+        twoFactorCode: "",
+      }));
+      return;
+    }
+
+    if (result?.code === "INVALID_TWO_FACTOR_CODE") {
+      setState((current) => ({
+        ...current,
+        loading: false,
+        error: "Invalid two-factor code.",
+        stage: "twoFactor",
+        twoFactorCode: "",
+      }));
+      return;
+    }
+
+    if (!result?.ok) {
       setState((s) => ({
         ...s,
         loading: false,
         error: "Invalid email or password.",
+        stage: "password",
+        twoFactorCode: "",
       }));
     } else {
+      if (state.stage === "twoFactor" && state.rememberDevice) {
+        await fetch("/api/admin/auth/remember-device", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ rememberDevice: true }),
+        });
+      }
       router.push(callbackUrl);
     }
   };
@@ -145,6 +198,59 @@ function LoginForm() {
               </div>
             </div>
 
+            {state.stage === "twoFactor" && (
+              <div className="rounded-xl border border-sky-500/20 bg-sky-500/5 p-4">
+                <div className="flex items-start gap-3">
+                  <ShieldAlert className="mt-0.5 size-4 shrink-0 text-sky-500" />
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium text-foreground">Two-factor authentication required</p>
+                    <p className="text-sm text-muted-foreground">
+                      Enter the 6-digit code from your authenticator app to finish signing in.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-4 space-y-1.5">
+                  <label htmlFor="two-factor-code" className="block text-sm font-medium">
+                    2FA code
+                  </label>
+                  <input
+                    id="two-factor-code"
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    required
+                    value={state.twoFactorCode}
+                    onChange={(event) =>
+                      setState((current) => ({
+                        ...current,
+                        twoFactorCode: event.target.value.replace(/\D/g, "").slice(0, 6),
+                      }))
+                    }
+                    className={cn(
+                      "flex h-9 w-full rounded-lg border border-input bg-background px-3 py-1 text-center font-mono text-sm tracking-[0.35em] shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50",
+                      state.error && "border-destructive"
+                    )}
+                    placeholder="000000"
+                  />
+                </div>
+
+                <label className="mt-4 flex items-start gap-3 text-sm text-muted-foreground">
+                  <input
+                    type="checkbox"
+                    checked={state.rememberDevice}
+                    onChange={(event) =>
+                      setState((current) => ({ ...current, rememberDevice: event.target.checked }))
+                    }
+                    className="mt-0.5 size-4 rounded border border-input bg-background"
+                  />
+                  <span>
+                    Remember this device for 15 days.
+                  </span>
+                </label>
+              </div>
+            )}
+
             {state.error && (
               <p className="text-sm text-destructive">{state.error}</p>
             )}
@@ -155,7 +261,7 @@ function LoginForm() {
               className="inline-flex w-full h-9 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:pointer-events-none disabled:opacity-50"
             >
               {state.loading && <Loader2 className="size-4 animate-spin" />}
-              Sign in
+              {state.stage === "twoFactor" ? "Verify and sign in" : "Sign in"}
             </button>
           </form>
 
@@ -166,6 +272,23 @@ function LoginForm() {
             >
               Forgot password?
             </Link>
+            {state.stage === "twoFactor" && (
+              <button
+                type="button"
+                onClick={() =>
+                  setState((current) => ({
+                    ...current,
+                    stage: "password",
+                    twoFactorCode: "",
+                    rememberDevice: false,
+                    error: null,
+                  }))
+                }
+                className="mt-3 text-sm text-muted-foreground hover:text-primary transition-colors"
+              >
+                Back to password
+              </button>
+            )}
           </div>
         </div>
       </div>

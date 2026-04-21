@@ -74,6 +74,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       where: { id: match.id },
       data: { usedAt: new Date() },
     }),
+    db.adminTrustedDevice.deleteMany({
+      where: { adminUserId: admin.id },
+    }),
     db.adminPasswordResetToken.deleteMany({
       where: { email: match.email, usedAt: null, id: { not: match.id } },
     }),

@@ -30,7 +30,7 @@ export function AdminDashboardShell({ children }: { children: React.ReactNode })
         <div className="flex flex-1 overflow-hidden">
           <AppSidebar />
           <SidebarInset className="flex flex-1 flex-col overflow-auto">
-            <main className="mx-auto w-full max-w-screen-xl flex-1 px-6 py-6 md:px-8 md:py-8">
+            <main className="w-full flex-1 p-4 md:p-6 lg:p-8">
               {children}
             </main>
           </SidebarInset>

@@ -2,8 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { db } from "@buyease/db";
-import { requireAdminSession } from "@/lib/admin-session";
+import { isCurrentRequestIpAllowed } from "@/lib/admin-ip-guard";
+import { auth } from "@/lib/auth";
 import { adminPasswordSchema } from "@/lib/password-policy";
+import { isValidAdminRole } from "@/lib/admin-access";
 
 const bodySchema = z.object({
   currentPassword: z.string().min(1).max(500),
@@ -11,10 +13,13 @@ const bodySchema = z.object({
 });
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
-  const session = await requireAdminSession();
-  const email = session.user.email;
-  if (!email) {
+  const session = await auth();
+  const email = session?.user?.email;
+  if (!email || !isValidAdminRole(session?.user?.role)) {
     return NextResponse.json({ ok: false, error: "Unauthorized." }, { status: 401 });
+  }
+  if (!(await isCurrentRequestIpAllowed())) {
+    return NextResponse.json({ ok: false, error: "Forbidden." }, { status: 403 });
   }
 
   let json: unknown;
@@ -63,14 +68,18 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   const passwordHash = await bcrypt.hash(newPassword, 12);
 
-  await db.adminUser.update({
-    where: { id: admin.id },
-    data: { passwordHash },
-  });
-
-  await db.adminPasswordResetToken.deleteMany({
-    where: { email, usedAt: null },
-  });
+  await db.$transaction([
+    db.adminUser.update({
+      where: { id: admin.id },
+      data: { passwordHash },
+    }),
+    db.adminPasswordResetToken.deleteMany({
+      where: { email, usedAt: null },
+    }),
+    db.adminTrustedDevice.deleteMany({
+      where: { adminUserId: admin.id },
+    }),
+  ]);
 
   return NextResponse.json({ ok: true, message: "Password updated successfully." });
 }

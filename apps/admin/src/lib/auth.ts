@@ -1,13 +1,29 @@
 import NextAuth from "next-auth";
+import { CredentialsSignin } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { Prisma } from "@buyease/db";
 import { getClientIpFromHeaders, getEnvAllowlistIps, getEnvBlockedIps, parseLocationFromHeaders } from "@/lib/admin-network";
+import {
+  decryptTwoFactorSecret,
+  getTrustedDeviceCookieName,
+  hashTwoFactorRecoveryCode,
+  hashTrustedDeviceToken,
+  verifyTwoFactorCode,
+} from "@/lib/admin-two-factor";
 
 const LOGIN_MAX_ATTEMPTS = 5;
 const LOGIN_LOCK_WINDOW_MS = 15 * 60 * 1000;
 const loginFailures = new Map<string, { count: number; firstFailureAt: number }>();
+
+class TwoFactorRequiredError extends CredentialsSignin {
+  code = "TWO_FACTOR_REQUIRED";
+}
+
+class TwoFactorInvalidCodeError extends CredentialsSignin {
+  code = "INVALID_TWO_FACTOR_CODE";
+}
 
 function getAttemptKey(email: string, ip: string): string {
   return `${email}::${ip}`;
@@ -36,6 +52,19 @@ function registerFailure(attemptKey: string): void {
 
 function clearFailures(attemptKey: string): void {
   loginFailures.delete(attemptKey);
+}
+
+function getCookieValue(cookieHeader: string | null, cookieName: string): string | null {
+  if (!cookieHeader) return null;
+
+  const parts = cookieHeader.split(";");
+  for (const part of parts) {
+    const [rawName, ...rawValue] = part.trim().split("=");
+    if (rawName !== cookieName) continue;
+    return rawValue.join("=") || null;
+  }
+
+  return null;
 }
 
 async function isIpAllowlisted(ip: string, db: typeof import("@buyease/db").db): Promise<boolean> {
@@ -109,6 +138,8 @@ async function logLoginActivity(params: {
 const credentialsSchema = z.object({
   email: z.string().email(),
   password: z.string().min(1).max(500),
+  twoFactorCode: z.string().min(1).max(128).optional(),
+  rememberDevice: z.string().optional(),
 });
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
@@ -126,6 +157,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const { db } = await import("@buyease/db");
 
         const { email, password } = parsed.data;
+        const twoFactorCode = parsed.data.twoFactorCode?.trim() ?? "";
         const normalizedEmail = email.trim().toLowerCase();
         const ip = getClientIpFromHeaders(request.headers);
         const attemptKey = getAttemptKey(normalizedEmail, ip);
@@ -152,6 +184,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             passwordHash: true,
             role: true,
             isActive: true,
+            twoFactorEnabled: true,
+            twoFactorSecretEncrypted: true,
           },
         });
 
@@ -200,6 +234,93 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           return null;
         }
 
+        if (admin.twoFactorEnabled) {
+          const trustedDeviceToken = getCookieValue(request.headers.get("cookie"), getTrustedDeviceCookieName());
+          let trustedDeviceAllowed = false;
+
+          if (trustedDeviceToken) {
+            const trustedDeviceHash = hashTrustedDeviceToken(trustedDeviceToken);
+            const trustedDevice = await db.adminTrustedDevice.findUnique({
+              where: { tokenHash: trustedDeviceHash },
+              select: { adminUserId: true, expiresAt: true },
+            });
+
+            if (trustedDevice?.adminUserId === admin.id && trustedDevice.expiresAt > new Date()) {
+              trustedDeviceAllowed = true;
+              await db.adminTrustedDevice.update({
+                where: { tokenHash: trustedDeviceHash },
+                data: { lastUsedAt: new Date() },
+              });
+            } else if (trustedDevice?.expiresAt && trustedDevice.expiresAt <= new Date()) {
+              await db.adminTrustedDevice.delete({
+                where: { tokenHash: trustedDeviceHash },
+              });
+            }
+          }
+
+          if (!trustedDeviceAllowed) {
+            if (!twoFactorCode) {
+              await logLoginActivity({
+                db,
+                adminUserId: admin.id,
+                email: admin.email,
+                ip,
+                userAgent,
+                successful: false,
+                failureReason: "Two-factor authentication required.",
+                request,
+              });
+              throw new TwoFactorRequiredError();
+            }
+
+            if (!admin.twoFactorSecretEncrypted) {
+              registerFailure(attemptKey);
+              await logLoginActivity({
+                db,
+                adminUserId: admin.id,
+                email: admin.email,
+                ip,
+                userAgent,
+                successful: false,
+                failureReason: "Two-factor secret is missing.",
+                request,
+              });
+              return null;
+            }
+
+            const normalizedCode = twoFactorCode.replace(/[\s-]/g, "").toUpperCase();
+            const decryptedSecret = decryptTwoFactorSecret(admin.twoFactorSecretEncrypted);
+            const totpValid = verifyTwoFactorCode(decryptedSecret, normalizedCode);
+
+            if (!totpValid) {
+              const recoveryCode = await db.adminTwoFactorBackupCode.findUnique({
+                where: { codeHash: hashTwoFactorRecoveryCode(normalizedCode) },
+                select: { id: true, adminUserId: true, usedAt: true },
+              });
+
+              if (!recoveryCode || recoveryCode.adminUserId !== admin.id || recoveryCode.usedAt) {
+                registerFailure(attemptKey);
+                await logLoginActivity({
+                  db,
+                  adminUserId: admin.id,
+                  email: admin.email,
+                  ip,
+                  userAgent,
+                  successful: false,
+                  failureReason: "Invalid two-factor code.",
+                  request,
+                });
+                throw new TwoFactorInvalidCodeError();
+              }
+
+              await db.adminTwoFactorBackupCode.update({
+                where: { id: recoveryCode.id },
+                data: { usedAt: new Date() },
+              });
+            }
+          }
+        }
+
         clearFailures(attemptKey);
 
         await db.adminUser.update({
@@ -214,6 +335,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           ip,
           userAgent,
           successful: true,
+          failureReason: undefined,
           request,
         });
 

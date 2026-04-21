@@ -11,7 +11,6 @@ import {
   LayoutDashboard,
   ScrollText,
   Settings,
-  Shield,
   Users,
 } from "lucide-react";
 
@@ -53,7 +52,6 @@ const GROUPS: NavGroup[] = [
     items: [
       { href: "/recent-activities", label: "Recent activity", icon: Activity },
       { href: "/settings", label: "Project Settings", icon: Settings },
-      { href: "/account/security", label: "Account", icon: Shield },
     ],
   },
 ];

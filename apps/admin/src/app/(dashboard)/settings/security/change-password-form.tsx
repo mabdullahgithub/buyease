@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import {
   AlertTriangle,
   Check,
@@ -42,6 +43,7 @@ type ActiveSessionItem = {
 type ChangePasswordFormProps = {
   activeSessions: ActiveSessionItem[];
   userEmail: string;
+  initialTwoFactorEnabled: boolean;
 };
 
 type PasswordStrength = {
@@ -86,19 +88,11 @@ function generateStrongPassword(length = 18): string {
   return ensure.sort(() => Math.random() - 0.5).join("");
 }
 
-function generateRecoveryCodes(total = 6): string[] {
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  return Array.from({ length: total }, () => {
-    const block = () =>
-      Array.from(
-        { length: 4 },
-        () => chars[Math.floor(Math.random() * chars.length)] ?? "A"
-      ).join("");
-    return `${block()}-${block()}-${block()}`;
-  });
-}
-
-export function ChangePasswordForm({ activeSessions, userEmail }: ChangePasswordFormProps) {
+export function ChangePasswordForm({
+  activeSessions,
+  userEmail,
+  initialTwoFactorEnabled,
+}: ChangePasswordFormProps) {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -111,7 +105,7 @@ export function ChangePasswordForm({ activeSessions, userEmail }: ChangePassword
   const [suggestedPassword, setSuggestedPassword] = useState("");
   const [copied, setCopied] = useState(false);
   const [signOutOtherSessions, setSignOutOtherSessions] = useState(true);
-  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
+  const [twoFactorEnabled, setTwoFactorEnabled] = useState(initialTwoFactorEnabled);
   const [showEnableDialog, setShowEnableDialog] = useState(false);
   const [showEnableSuccessDialog, setShowEnableSuccessDialog] = useState(false);
   const [showDisableDialog, setShowDisableDialog] = useState(false);
@@ -121,19 +115,14 @@ export function ChangePasswordForm({ activeSessions, userEmail }: ChangePassword
   const [recoveryCodes, setRecoveryCodes] = useState<string[]>([]);
   const [copiedRecoveryCodes, setCopiedRecoveryCodes] = useState(false);
   const [copiedSecret, setCopiedSecret] = useState(false);
+  const [twoFactorSetupLoading, setTwoFactorSetupLoading] = useState(false);
+  const [twoFactorSetupError, setTwoFactorSetupError] = useState<string | null>(null);
+  const [twoFactorSetupSecret, setTwoFactorSetupSecret] = useState<string | null>(null);
+  const [twoFactorSetupUri, setTwoFactorSetupUri] = useState<string | null>(null);
+  const [enableLoading, setEnableLoading] = useState(false);
+  const [disableLoading, setDisableLoading] = useState(false);
 
   const strength = useMemo(() => getPasswordStrength(newPassword), [newPassword]);
-  const authenticatorSecret = useMemo(() => "JBSW-Y3DP-EHPK-3PXP-BUYE-ASE2-FA42", []);
-  const otpauthUri = useMemo(
-    () =>
-      `otpauth://totp/BuyEase:admin?secret=${authenticatorSecret.replaceAll("-", "")}&issuer=BuyEase`,
-    [authenticatorSecret]
-  );
-  const qrCodeImage = useMemo(
-    () =>
-      `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(otpauthUri)}`,
-    [otpauthUri]
-  );
 
   useEffect(() => {
     // defer state updates until after initial render boundary to avoid hydration warnings
@@ -142,30 +131,106 @@ export function ChangePasswordForm({ activeSessions, userEmail }: ChangePassword
     }, 0);
   }, []);
 
+  useEffect(() => {
+    setTwoFactorEnabled(initialTwoFactorEnabled);
+  }, [initialTwoFactorEnabled]);
+
   const copySuggestion = async () => {
     await navigator.clipboard.writeText(suggestedPassword);
     setCopied(true);
     setTimeout(() => setCopied(false), 1200);
   };
 
+  const qrCodeImage = useMemo(() => {
+    if (!twoFactorSetupUri) return "";
+
+    return `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(twoFactorSetupUri)}`;
+  }, [twoFactorSetupUri]);
+
   const copySecret = async () => {
-    await navigator.clipboard.writeText(authenticatorSecret);
+    if (!twoFactorSetupSecret) return;
+
+    await navigator.clipboard.writeText(twoFactorSetupSecret);
     setCopiedSecret(true);
     setTimeout(() => setCopiedSecret(false), 1200);
   };
 
-  const enableTwoFactor = () => {
+  const openEnableDialog = async () => {
+    setShowEnableDialog(true);
+    setTwoFactorSetupError(null);
+    setTwoFactorSetupLoading(true);
+    setTwoFactorSetupSecret(null);
+    setTwoFactorSetupUri(null);
+    setVerificationCode("");
+
+    try {
+      const response = await fetch("/api/admin/auth/two-factor");
+      const data = (await response.json()) as {
+        ok?: boolean;
+        error?: string;
+        secret?: string;
+        otpauthUri?: string;
+      };
+
+      if (!response.ok || !data.secret || !data.otpauthUri) {
+        setTwoFactorSetupError(data.error ?? "Unable to prepare two-factor setup.");
+        return;
+      }
+
+      setTwoFactorSetupSecret(data.secret);
+      setTwoFactorSetupUri(data.otpauthUri);
+    } catch {
+      setTwoFactorSetupError("Network error. Try again.");
+    } finally {
+      setTwoFactorSetupLoading(false);
+    }
+  };
+
+  const enableTwoFactor = async () => {
+    if (!twoFactorSetupSecret) {
+      setTwoFactorError("Open the setup panel again before enabling 2FA.");
+      return;
+    }
+
     setTwoFactorError(null);
     if (verificationCode.trim().length !== 6) {
       setTwoFactorError("Enter the 6-digit code from your authenticator app.");
       return;
     }
-    const nextRecoveryCodes = generateRecoveryCodes();
-    setRecoveryCodes(nextRecoveryCodes);
-    setVerificationCode("");
-    setTwoFactorEnabled(true);
-    setShowEnableDialog(false);
-    setShowEnableSuccessDialog(true);
+
+    setEnableLoading(true);
+    try {
+      const response = await fetch("/api/admin/auth/two-factor", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          secret: twoFactorSetupSecret,
+          verificationCode,
+        }),
+      });
+
+      const data = (await response.json()) as {
+        ok?: boolean;
+        error?: string;
+        recoveryCodes?: string[];
+      };
+
+      if (!response.ok || !data.ok || !data.recoveryCodes) {
+        setTwoFactorError(data.error ?? "Unable to enable two-factor authentication.");
+        return;
+      }
+
+      setRecoveryCodes(data.recoveryCodes);
+      setVerificationCode("");
+      setTwoFactorEnabled(true);
+      setShowEnableDialog(false);
+      setShowEnableSuccessDialog(true);
+      setSuccess("Two-factor authentication enabled.");
+    } catch {
+      setTwoFactorError("Network error. Try again.");
+    } finally {
+      setEnableLoading(false);
+    }
   };
 
   const copyRecoveryCodes = async () => {
@@ -184,15 +249,37 @@ export function ChangePasswordForm({ activeSessions, userEmail }: ChangePassword
     URL.revokeObjectURL(url);
   };
 
-  const disableTwoFactor = () => {
+  const disableTwoFactor = async () => {
     setTwoFactorError(null);
     if (!disablePassword.trim()) {
       setTwoFactorError("Confirm your password to deactivate two-factor authentication.");
       return;
     }
-    setDisablePassword("");
-    setTwoFactorEnabled(false);
-    setShowDisableDialog(false);
+
+    setDisableLoading(true);
+    try {
+      const response = await fetch("/api/admin/auth/two-factor", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ currentPassword: disablePassword }),
+      });
+
+      const data = (await response.json()) as { ok?: boolean; error?: string; message?: string };
+
+      if (!response.ok || !data.ok) {
+        setTwoFactorError(data.error ?? "Unable to disable two-factor authentication.");
+        return;
+      }
+
+      setDisablePassword("");
+      setTwoFactorEnabled(false);
+      setShowDisableDialog(false);
+      setSuccess(data.message ?? "Two-factor authentication disabled.");
+    } catch {
+      setTwoFactorError("Network error. Try again.");
+    } finally {
+      setDisableLoading(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -497,7 +584,7 @@ export function ChangePasswordForm({ activeSessions, userEmail }: ChangePassword
                   Deactivate
                 </Button>
               ) : (
-                <Button onClick={() => setShowEnableDialog(true)}>Enable 2FA</Button>
+                <Button onClick={() => void openEnableDialog()}>Enable 2FA</Button>
               )}
             </div>
           </div>
@@ -509,10 +596,16 @@ export function ChangePasswordForm({ activeSessions, userEmail }: ChangePassword
         onOpenChange={(open) => {
           setShowEnableDialog(open);
           setTwoFactorError(null);
+          setTwoFactorSetupError(null);
+          if (!open) {
+            setTwoFactorSetupLoading(false);
+            setTwoFactorSetupSecret(null);
+            setTwoFactorSetupUri(null);
+          }
         }}
       >
-        <DialogContent className="max-w-[480px] p-0 sm:max-w-[500px]">
-          <div className="p-6 pb-4">
+        <DialogContent className="max-w-[480px] p-0 sm:max-w-[540px]">
+          <div className="p-6">
             <DialogHeader className="mb-6 space-y-1.5">
               <DialogTitle className="text-xl font-semibold">Enable two-step authentication</DialogTitle>
               <DialogDescription className="text-sm text-muted-foreground">
@@ -521,40 +614,62 @@ export function ChangePasswordForm({ activeSessions, userEmail }: ChangePassword
             </DialogHeader>
 
             <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
-              <div className="mx-auto shrink-0 rounded-xl border bg-white p-3 shadow-sm sm:mx-0">
-                <img
-                  src={qrCodeImage}
-                  alt="Scan this QR code with authenticator app"
-                  className="size-44"
-                />
+              <div className="mx-auto flex h-[220px] w-[220px] items-center justify-center overflow-hidden rounded-xl border bg-white p-3 shadow-sm sm:mx-0">
+                {twoFactorSetupLoading ? (
+                  <div className="size-44 animate-pulse rounded-lg bg-muted/60" />
+                ) : qrCodeImage ? (
+                  <Image
+                    src={qrCodeImage}
+                    alt="Scan this QR code with authenticator app"
+                    width={220}
+                    height={220}
+                    className="size-44"
+                    unoptimized
+                  />
+                ) : (
+                  <div className="flex size-44 items-center justify-center rounded-lg border border-dashed border-border text-center text-xs text-muted-foreground">
+                    QR code will appear here once setup is ready.
+                  </div>
+                )}
               </div>
 
               <div className="flex w-full min-w-0 flex-1 flex-col gap-5">
                 <div className="space-y-2 rounded-lg border bg-muted/40 p-3">
                   <div className="flex items-center justify-between">
-                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Setup key</p>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      Setup key
+                    </p>
                     <Button
                       variant="ghost"
                       size="icon-sm"
                       className="size-6"
                       onClick={() => void copySecret()}
+                      disabled={!twoFactorSetupSecret}
                     >
                       {copiedSecret ? (
                         <Check className="size-3.5 text-emerald-500" />
                       ) : (
-                         <Copy className="size-3.5 text-muted-foreground" />
+                        <Copy className="size-3.5 text-muted-foreground" />
                       )}
                     </Button>
                   </div>
-                  <Input value={authenticatorSecret} readOnly className="h-8 font-mono text-xs tracking-wider" />
+                  <Input
+                    value={twoFactorSetupSecret ?? "Preparing secret..."}
+                    readOnly
+                    className="h-8 font-mono text-xs tracking-wider"
+                  />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="verification-code" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  <Label
+                    htmlFor="verification-code"
+                    className="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+                  >
                     Verification code
                   </Label>
                   <Input
                     id="verification-code"
+                    autoFocus
                     value={verificationCode}
                     onChange={(event) =>
                       setVerificationCode(event.target.value.replace(/\D/g, "").slice(0, 6))
@@ -565,6 +680,12 @@ export function ChangePasswordForm({ activeSessions, userEmail }: ChangePassword
                     className="h-11 text-center font-mono text-lg tracking-[0.4em]"
                   />
                 </div>
+
+                {twoFactorSetupError ? (
+                  <div className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                    {twoFactorSetupError}
+                  </div>
+                ) : null}
               </div>
             </div>
 
@@ -574,22 +695,31 @@ export function ChangePasswordForm({ activeSessions, userEmail }: ChangePassword
                 <p>{twoFactorError}</p>
               </div>
             ) : null}
-          </div>
 
-          <DialogFooter className="px-6 pb-6 pt-2">
-            <Button variant="ghost" onClick={() => setShowEnableDialog(false)}>
-              Cancel
-            </Button>
-            <Button onClick={enableTwoFactor} disabled={verificationCode.length !== 6}>
-              Enable
-            </Button>
-          </DialogFooter>
+            <div className="mt-8 flex justify-end gap-2">
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setShowEnableDialog(false);
+                  setTwoFactorError(null);
+                  setTwoFactorSetupError(null);
+                  setVerificationCode("");
+                }}
+              >
+                Cancel
+              </Button>
+              <Button onClick={() => void enableTwoFactor()} disabled={verificationCode.length !== 6 || enableLoading || twoFactorSetupLoading}>
+                {enableLoading ? <Loader2 className="size-4 animate-spin" /> : null}
+                Enable
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
 
       <Dialog open={showEnableSuccessDialog} onOpenChange={setShowEnableSuccessDialog}>
-        <DialogContent className="max-w-[500px] p-0" showCloseButton={false}>
-          <div className="p-6 pb-4">
+        <DialogContent className="max-w-[480px] p-0 sm:max-w-[500px]" showCloseButton={false}>
+          <div className="p-6">
             <div className="mb-6 flex items-start gap-4">
               <div className="shrink-0 rounded-full bg-emerald-500/15 p-3 text-emerald-500">
                 <Shield className="size-6" />
@@ -645,11 +775,11 @@ export function ChangePasswordForm({ activeSessions, userEmail }: ChangePassword
                 </div>
               </div>
             </div>
-          </div>
 
-          <DialogFooter className="px-6 pb-6 pt-2">
-            <Button onClick={() => setShowEnableSuccessDialog(false)}>Finish setup</Button>
-          </DialogFooter>
+            <div className="mt-8 flex justify-end">
+              <Button onClick={() => setShowEnableSuccessDialog(false)}>Finish setup</Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
 
@@ -658,6 +788,9 @@ export function ChangePasswordForm({ activeSessions, userEmail }: ChangePassword
         onOpenChange={(open) => {
           setShowDisableDialog(open);
           setTwoFactorError(null);
+          if (!open) {
+            setDisablePassword("");
+          }
         }}
       >
         <DialogContent className="max-w-[440px] p-0">
@@ -685,6 +818,7 @@ export function ChangePasswordForm({ activeSessions, userEmail }: ChangePassword
                   <InputGroupInput
                     id="disable-password"
                     type="password"
+                    autoFocus
                     value={disablePassword}
                     onChange={(event) => setDisablePassword(event.target.value)}
                     placeholder="Enter your password"
@@ -705,10 +839,17 @@ export function ChangePasswordForm({ activeSessions, userEmail }: ChangePassword
           </div>
 
           <DialogFooter className="px-6 pb-6 pt-2">
-            <Button variant="ghost" onClick={() => setShowDisableDialog(false)}>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setShowDisableDialog(false);
+                setDisablePassword("");
+              }}
+            >
               Cancel
             </Button>
-            <Button variant="destructive" onClick={disableTwoFactor} disabled={!disablePassword}>
+            <Button variant="destructive" onClick={() => void disableTwoFactor()} disabled={!disablePassword || disableLoading}>
+              {disableLoading ? <Loader2 className="size-4 animate-spin" /> : null}
               Deactivate
             </Button>
           </DialogFooter>

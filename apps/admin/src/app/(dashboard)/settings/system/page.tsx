@@ -215,12 +215,7 @@ export default async function SystemSettingsPage() {
               IP allowlisting
             </CardTitle>
             <CardDescription>
-              Add trusted IP addresses for admin panel access. Keyboard-first:
-              press{" "}
-              <kbd className="rounded border bg-muted px-1.5 py-0.5 font-mono text-[10px]">
-                Enter
-              </kbd>{" "}
-              on the IP field to add quickly.
+              Add trusted IP addresses for admin panel access.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
