@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getShopify } from "@/lib/shopify";
 import { validateShopDomain } from "@/lib/auth";
-import { forwardSetCookiesToNextResponse } from "@/lib/forward-set-cookies";
+import { collectSetCookieLines, redirectWithSetCookies, serializeSetCookie } from "@/lib/forward-set-cookies";
 
 function installErrorRedirect(
   request: NextRequest,
@@ -48,18 +48,19 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       return installErrorRedirect(request, "oauth_start_failed", { shop, returnTo, host: hostParam });
     }
 
-    const response = NextResponse.redirect(redirectTo);
-    // Web adapter: `auth.begin` returns a Response with signed OAuth state in Set-Cookie.
-    // Must forward those cookies or `/api/auth` callback fails with "Could not find OAuth cookie".
-    forwardSetCookiesToNextResponse(authResponse.headers, response);
-    response.cookies.set("shopify_return_to", returnTo, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/",
-      maxAge: 60 * 10,
-    });
-    return response;
+    // `auth.begin` returns Set-Cookie headers (OAuth state). Next.js `cookies.set` wipes any
+    // Set-Cookie appended only to `headers` — merge everything into one redirect response.
+    const setCookieLines = collectSetCookieLines(authResponse);
+    setCookieLines.push(
+      serializeSetCookie("shopify_return_to", returnTo, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/",
+        maxAge: 60 * 10,
+      })
+    );
+    return redirectWithSetCookies(redirectTo, setCookieLines);
   } catch (error) {
     console.error("[api/auth/install] OAuth start failed", error);
     const normalizedOnError = validateShopDomain(shopParam);

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getShopify } from "@/lib/shopify";
 import { db } from "@buyease/db";
-import { forwardSetCookiesToNextResponse } from "@/lib/forward-set-cookies";
+import { collectSetCookieLines, redirectWithSetCookies, serializeSetCookie } from "@/lib/forward-set-cookies";
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
@@ -20,30 +20,34 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       create: { shop: session.shop, isActive: true },
     });
 
-    const response = NextResponse.redirect(new URL(returnTo, request.url));
-
-    forwardSetCookiesToNextResponse(
-      callbackResponse.headers as unknown as Headers | Record<string, string | string[] | undefined>,
-      response
+    const headersLike = callbackResponse.headers as unknown as Headers;
+    const setCookieLines = collectSetCookieLines(headersLike);
+    const secure = process.env.NODE_ENV === "production";
+    setCookieLines.push(
+      serializeSetCookie("shopify_session", session.id, {
+        httpOnly: true,
+        secure,
+        sameSite: "none",
+        path: "/",
+        maxAge: 60 * 60 * 24 * 30,
+      }),
+      serializeSetCookie("shopify_shop", session.shop, {
+        httpOnly: true,
+        secure,
+        sameSite: "none",
+        path: "/",
+        maxAge: 60 * 60 * 24 * 30,
+      }),
+      serializeSetCookie("shopify_return_to", "", {
+        httpOnly: true,
+        secure,
+        sameSite: "lax",
+        path: "/",
+        maxAge: 0,
+      })
     );
 
-    response.cookies.set("shopify_session", session.id, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "none",
-      path: "/",
-      maxAge: 60 * 60 * 24 * 30,
-    });
-    response.cookies.set("shopify_shop", session.shop, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "none",
-      path: "/",
-      maxAge: 60 * 60 * 24 * 30,
-    });
-    response.cookies.delete("shopify_return_to");
-
-    return response;
+    return redirectWithSetCookies(new URL(returnTo, request.url), setCookieLines);
   } catch (error) {
     console.error("[api/auth] OAuth callback failed", error);
     return NextResponse.redirect(
