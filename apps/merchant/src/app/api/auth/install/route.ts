@@ -2,14 +2,32 @@ import { NextRequest, NextResponse } from "next/server";
 import { getShopify } from "@/lib/shopify";
 import { validateShopDomain } from "@/lib/auth";
 
+function installErrorRedirect(
+  request: NextRequest,
+  code: "invalid_shop" | "oauth_start_failed",
+  opts: { shop?: string | null; returnTo?: string }
+): NextResponse {
+  const url = new URL("/install", request.url);
+  url.searchParams.set("error", code);
+  if (opts.returnTo?.startsWith("/")) {
+    url.searchParams.set("return_to", opts.returnTo);
+  }
+  if (opts.shop) {
+    url.searchParams.set("shop", opts.shop);
+  }
+  return NextResponse.redirect(url);
+}
+
 export async function GET(request: NextRequest): Promise<NextResponse> {
+  const returnToParam = request.nextUrl.searchParams.get("return_to");
+  const returnTo = returnToParam?.startsWith("/") ? returnToParam : "/form-builder";
+  const shopParam = request.nextUrl.searchParams.get("shop") ?? "";
+
   try {
-    const shop = validateShopDomain(request.nextUrl.searchParams.get("shop") ?? "");
-    const returnToParam = request.nextUrl.searchParams.get("return_to");
-    const returnTo = returnToParam?.startsWith("/") ? returnToParam : "/form-builder";
+    const shop = validateShopDomain(shopParam);
 
     if (!shop) {
-      return NextResponse.redirect(new URL("/install?error=invalid_shop", request.url));
+      return installErrorRedirect(request, "invalid_shop", { returnTo });
     }
 
     const authResponse = await getShopify().auth.begin({
@@ -21,7 +39,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     const redirectTo = authResponse.headers.get("Location");
     if (!redirectTo) {
-      return NextResponse.redirect(new URL("/install?error=oauth_start_failed", request.url));
+      console.error("[api/auth/install] auth.begin returned no Location header");
+      return installErrorRedirect(request, "oauth_start_failed", { shop, returnTo });
     }
 
     const response = NextResponse.redirect(redirectTo);
@@ -33,7 +52,12 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       maxAge: 60 * 10,
     });
     return response;
-  } catch {
-    return NextResponse.redirect(new URL("/install?error=oauth_start_failed", request.url));
+  } catch (error) {
+    console.error("[api/auth/install] OAuth start failed", error);
+    const normalizedOnError = validateShopDomain(shopParam);
+    return installErrorRedirect(request, "oauth_start_failed", {
+      shop: normalizedOnError ?? undefined,
+      returnTo,
+    });
   }
 }

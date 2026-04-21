@@ -9,12 +9,37 @@ const PUBLIC_PATHS = [
   "/api/health",
 ];
 
+/**
+ * CSP for embedded Shopify admin — see
+ * https://shopify.dev/docs/apps/build/security/set-up-iframe-protection
+ */
+function contentSecurityPolicyFrameAncestors(request: NextRequest): string {
+  const shopRaw = request.nextUrl.searchParams.get("shop");
+  const origins: string[] = ["https://admin.shopify.com"];
+  if (shopRaw) {
+    const normalized = shopRaw
+      .trim()
+      .toLowerCase()
+      .replace(/^https?:\/\//, "")
+      .replace(/\/$/, "");
+    if (/^[a-z0-9][a-z0-9-]*\.myshopify\.com$/.test(normalized)) {
+      origins.unshift(`https://${normalized}`);
+    }
+  }
+  return `frame-ancestors ${origins.join(" ")};`;
+}
+
+function withShopifyEmbeddedHeaders(request: NextRequest, response: NextResponse): NextResponse {
+  response.headers.set("Content-Security-Policy", contentSecurityPolicyFrameAncestors(request));
+  return response;
+}
+
 export function proxy(req: NextRequest): NextResponse {
   const { pathname } = req.nextUrl;
   const isPublic = PUBLIC_PATHS.some((p) => pathname.startsWith(p));
 
   if (isPublic) {
-    return NextResponse.next();
+    return withShopifyEmbeddedHeaders(req, NextResponse.next());
   }
 
   const sessionId = req.cookies.get("shopify_session")?.value;
@@ -27,14 +52,14 @@ export function proxy(req: NextRequest): NextResponse {
       installUrl.searchParams.set("shop", queryShop);
     }
 
-    return NextResponse.redirect(installUrl);
+    return withShopifyEmbeddedHeaders(req, NextResponse.redirect(installUrl));
   }
 
   if (pathname === "/") {
-    return NextResponse.redirect(new URL("/form-builder", req.url));
+    return withShopifyEmbeddedHeaders(req, NextResponse.redirect(new URL("/form-builder", req.url)));
   }
 
-  return NextResponse.next();
+  return withShopifyEmbeddedHeaders(req, NextResponse.next());
 }
 
 export const config = {

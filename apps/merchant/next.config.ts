@@ -9,7 +9,8 @@ const nextConfig: NextConfig = {
       {
         source: "/(.*)",
         headers: [
-          { key: "X-Frame-Options", value: "DENY" },
+          // Do not set X-Frame-Options: DENY — embedded apps load inside
+          // admin.shopify.com iframes. Iframe CSP is set in src/middleware.ts.
           { key: "X-Content-Type-Options", value: "nosniff" },
         ],
       },
