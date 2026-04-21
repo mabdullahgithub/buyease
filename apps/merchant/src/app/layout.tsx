@@ -32,10 +32,16 @@ export default function RootLayout({
       </head>
       <body>
         {apiKey ? (
-          <Script
-            src="https://cdn.shopify.com/shopifycloud/app-bridge.js"
-            strategy="afterInteractive"
-          />
+          <>
+            <Script
+              src="https://cdn.shopify.com/shopifycloud/polaris.js"
+              strategy="afterInteractive"
+            />
+            <Script
+              src="https://cdn.shopify.com/shopifycloud/app-bridge.js"
+              strategy="afterInteractive"
+            />
+          </>
         ) : null}
         <EmbeddedTopLevelRedirect />
         <PersistShopifyEmbedParams />
