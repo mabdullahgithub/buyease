@@ -1,29 +1,15 @@
-"use client";
-
-import { TitleBar } from "@shopify/app-bridge-react";
-import { AppProvider, Frame } from "@shopify/polaris";
 import { Suspense } from "react";
-import enTranslations from "@shopify/polaris/locales/en.json";
-import { EmbeddedSoftNavigation } from "@/components/merchant/embedded-soft-navigation";
+import { MerchantAppShell } from "./merchant-app-shell";
 
-type AppLayoutProps = {
-  children: React.ReactNode;
-};
+/** Avoid Turbopack static prerender of Polaris (`createContext` SSR bug with client layout root). */
+export const dynamic = "force-dynamic";
 
-function MerchantAppFrame({ children }: AppLayoutProps) {
-  return (
-    <AppProvider i18n={enTranslations}>
-      <EmbeddedSoftNavigation />
-      <TitleBar title="BuyEase COD Form" />
-      <Frame>{children}</Frame>
-    </AppProvider>
-  );
-}
-
-export default function AppLayout({ children }: AppLayoutProps) {
+export default function AppLayout({
+  children,
+}: Readonly<{ children: React.ReactNode }>) {
   return (
     <Suspense fallback={null}>
-      <MerchantAppFrame>{children}</MerchantAppFrame>
+      <MerchantAppShell>{children}</MerchantAppShell>
     </Suspense>
   );
 }
