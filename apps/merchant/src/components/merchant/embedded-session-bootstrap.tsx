@@ -62,6 +62,7 @@ function EmbeddedSessionBootstrapInner(): null {
             Authorization: `Bearer ${idToken}`,
             "Content-Type": "application/json",
           },
+          body: JSON.stringify({ host }),
         });
         if (res.ok) {
           window.location.reload();

@@ -9,62 +9,67 @@ import {
   ChartVerticalIcon,
   SettingsIcon,
 } from "@shopify/polaris-icons";
-import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
+import { Suspense, useState } from "react";
 import enTranslations from "@shopify/polaris/locales/en.json";
 import { BrandLogo } from "@/components/merchant/brand-logo";
+import { appendEmbeddedAppQuery } from "@/lib/embedded-app-url";
 
 type AppLayoutProps = {
   children: React.ReactNode;
 };
 
-export default function AppLayout({ children }: AppLayoutProps) {
+function MerchantAppFrame({ children }: AppLayoutProps) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [mobileNavigationActive, setMobileNavigationActive] = useState(false);
 
+  const withEmbed = (path: string): string => appendEmbeddedAppQuery(path, searchParams);
+  const navigationLocation = appendEmbeddedAppQuery(pathname, searchParams);
+
   const navigationMarkup = (
-    <Navigation location={pathname}>
+    <Navigation location={navigationLocation}>
       <Navigation.Section
         title="buyease"
         items={[
           {
-            url: "/form-builder",
+            url: withEmbed("/form-builder"),
             label: "Form Builder",
             icon: FormsIcon,
             selected: pathname.startsWith("/form-builder"),
           },
           {
-            url: "/quantity-offers",
+            url: withEmbed("/quantity-offers"),
             label: "Quantity Offers",
             icon: OrderIcon,
             selected: pathname.startsWith("/quantity-offers"),
           },
           {
-            url: "/upsells-downsells",
+            url: withEmbed("/upsells-downsells"),
             label: "Upsells & Downsells",
             icon: GiftCardIcon,
             selected: pathname.startsWith("/upsells-downsells"),
           },
           {
-            url: "/integrations-messaging",
+            url: withEmbed("/integrations-messaging"),
             label: "Integrations & Messaging",
             icon: HomeIcon,
             selected: pathname.startsWith("/integrations-messaging"),
           },
           {
-            url: "/analytics",
+            url: withEmbed("/analytics"),
             label: "Analytics",
             icon: ChartVerticalIcon,
             selected: pathname.startsWith("/analytics"),
           },
           {
-            url: "/settings",
+            url: withEmbed("/settings"),
             label: "Settings",
             icon: SettingsIcon,
             selected: pathname.startsWith("/settings"),
           },
           {
-            url: "/plan",
+            url: withEmbed("/plan"),
             label: "Plan",
             icon: OrderIcon,
             selected: pathname.startsWith("/plan"),
@@ -85,7 +90,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
           gap: "12px",
         }}
       >
-        <BrandLogo href="/form-builder" />
+        <BrandLogo href={withEmbed("/form-builder")} />
         <TopBar
           showNavigationToggle
           onNavigationToggle={() => setMobileNavigationActive((prev) => !prev)}
@@ -105,5 +110,13 @@ export default function AppLayout({ children }: AppLayoutProps) {
         {children}
       </Frame>
     </AppProvider>
+  );
+}
+
+export default function AppLayout({ children }: AppLayoutProps) {
+  return (
+    <Suspense fallback={null}>
+      <MerchantAppFrame>{children}</MerchantAppFrame>
+    </Suspense>
   );
 }

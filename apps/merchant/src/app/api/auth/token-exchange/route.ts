@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { RequestedTokenType } from "@shopify/shopify-api";
 import { db } from "@buyease/db";
 import { authenticateEmbeddedRequest } from "@/lib/embedded-auth";
+import { EMBEDDED_HOST_PARAM_RE, SHOPIFY_EMBED_HOST_COOKIE } from "@/lib/embedded-app-url";
 import { serializeSetCookie } from "@/lib/forward-set-cookies";
 import { getShopify, shopifySessionStorage } from "@/lib/shopify";
 
@@ -24,6 +25,18 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const token = bearerToken(request);
     if (!token) {
       return NextResponse.json({ error: "Missing Authorization bearer token" }, { status: 401 });
+    }
+
+    let embedHostFromBody: string | undefined;
+    if (request.headers.get("content-type")?.includes("application/json")) {
+      try {
+        const body = (await request.json()) as { host?: unknown };
+        if (typeof body.host === "string" && EMBEDDED_HOST_PARAM_RE.test(body.host)) {
+          embedHostFromBody = body.host;
+        }
+      } catch {
+        /* empty or invalid JSON body */
+      }
     }
 
     const embedded = await authenticateEmbeddedRequest(request);
@@ -67,6 +80,19 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         maxAge: 60 * 60 * 24 * 30,
       })
     );
+
+    if (embedHostFromBody) {
+      headers.append(
+        "Set-Cookie",
+        serializeSetCookie(SHOPIFY_EMBED_HOST_COOKIE, embedHostFromBody, {
+          httpOnly: true,
+          secure,
+          sameSite: "lax",
+          path: "/",
+          maxAge: 60 * 60 * 24 * 30,
+        })
+      );
+    }
 
     return new NextResponse(JSON.stringify({ ok: true, shop: session.shop }), { status: 200, headers });
   } catch (error) {

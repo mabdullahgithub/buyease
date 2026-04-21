@@ -1,4 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import { validateShopDomain } from "@/lib/auth";
+import {
+  EMBEDDED_HOST_PARAM_RE,
+  mergeEmbeddedSearchParams,
+  SHOPIFY_EMBED_HOST_COOKIE,
+} from "@/lib/embedded-app-url";
 
 const PUBLIC_PATHS = [
   "/api/auth",
@@ -89,13 +95,29 @@ export function proxy(req: NextRequest): NextResponse {
     return withShopifyEmbeddedHeaders(req, NextResponse.redirect(installUrl));
   }
 
+  const embedHostCookie = req.cookies.get(SHOPIFY_EMBED_HOST_COOKIE)?.value;
+  const shopFromCookie = req.cookies.get("shopify_shop")?.value;
+  const shopCookieOk = shopFromCookie ? validateShopDomain(shopFromCookie) : null;
+  const hostCookieOk =
+    embedHostCookie && EMBEDDED_HOST_PARAM_RE.test(embedHostCookie) ? embedHostCookie : null;
+
+  if (
+    shopCookieOk &&
+    hostCookieOk &&
+    !req.nextUrl.searchParams.get("host") &&
+    !pathname.startsWith("/api/")
+  ) {
+    const url = req.nextUrl.clone();
+    url.searchParams.set("shop", shopCookieOk);
+    url.searchParams.set("host", hostCookieOk);
+    return withShopifyEmbeddedHeaders(req, NextResponse.redirect(url));
+  }
+
   if (pathname === "/") {
-    return withShopifyEmbeddedHeaders(req, NextResponse.redirect(new URL("/form-builder", req.url)));
+    const toFormBuilder = new URL("/form-builder", req.url);
+    mergeEmbeddedSearchParams(toFormBuilder, req.nextUrl.searchParams);
+    return withShopifyEmbeddedHeaders(req, NextResponse.redirect(toFormBuilder));
   }
 
   return withShopifyEmbeddedHeaders(req, NextResponse.next());
 }
-
-export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|icon.png).*)"],
-};
