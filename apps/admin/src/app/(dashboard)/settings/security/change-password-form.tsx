@@ -577,7 +577,7 @@ export function ChangePasswordForm({ activeSessions, userEmail }: ChangePassword
             ) : null}
           </div>
 
-          <DialogFooter className="border-t bg-muted/20 px-6 py-4">
+          <DialogFooter className="px-6 pb-6 pt-2">
             <Button variant="ghost" onClick={() => setShowEnableDialog(false)}>
               Cancel
             </Button>
@@ -648,7 +648,7 @@ export function ChangePasswordForm({ activeSessions, userEmail }: ChangePassword
             </div>
           </div>
 
-          <DialogFooter className="border-t bg-muted/20 px-6 py-4">
+          <DialogFooter className="px-6 pb-6 pt-2">
             <Button onClick={() => setShowEnableSuccessDialog(false)}>Finish setup</Button>
           </DialogFooter>
         </DialogContent>
@@ -705,7 +705,7 @@ export function ChangePasswordForm({ activeSessions, userEmail }: ChangePassword
             ) : null}
           </div>
 
-          <DialogFooter className="border-t bg-muted/20 px-6 py-4">
+          <DialogFooter className="px-6 pb-6 pt-2">
             <Button variant="ghost" onClick={() => setShowDisableDialog(false)}>
               Cancel
             </Button>
