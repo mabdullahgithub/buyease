@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getShopify } from "@/lib/shopify";
 import { db } from "@buyease/db";
+import { forwardSetCookiesToNextResponse } from "@/lib/forward-set-cookies";
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
@@ -21,6 +22,11 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     const response = NextResponse.redirect(new URL(returnTo, request.url));
 
+    forwardSetCookiesToNextResponse(
+      callbackResponse.headers as unknown as Headers | Record<string, string | string[] | undefined>,
+      response
+    );
+
     response.cookies.set("shopify_session", session.id, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
@@ -38,7 +44,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     response.cookies.delete("shopify_return_to");
 
     return response;
-  } catch {
+  } catch (error) {
+    console.error("[api/auth] OAuth callback failed", error);
     return NextResponse.redirect(
       new URL("/install?error=oauth_callback_failed", request.url)
     );

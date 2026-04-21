@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getShopify } from "@/lib/shopify";
 import { validateShopDomain } from "@/lib/auth";
+import { forwardSetCookiesToNextResponse } from "@/lib/forward-set-cookies";
 
 function installErrorRedirect(
   request: NextRequest,
@@ -48,6 +49,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     }
 
     const response = NextResponse.redirect(redirectTo);
+    // Web adapter: `auth.begin` returns a Response with signed OAuth state in Set-Cookie.
+    // Must forward those cookies or `/api/auth` callback fails with "Could not find OAuth cookie".
+    forwardSetCookiesToNextResponse(authResponse.headers, response);
     response.cookies.set("shopify_return_to", returnTo, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
