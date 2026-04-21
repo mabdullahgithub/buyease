@@ -1,4 +1,4 @@
-import { shopify } from "@/lib/shopify";
+import { getShopify } from "@/lib/shopify";
 import { validateShopDomain } from "@/lib/auth";
 
 type SessionTokenClaims = {
@@ -43,7 +43,7 @@ export async function authenticateEmbeddedRequest(
     return null;
   }
 
-  const claims = (await shopify.session.decodeSessionToken(token)) as SessionTokenClaims;
+  const claims = (await getShopify().session.decodeSessionToken(token)) as SessionTokenClaims;
   const shop = getShopFromDest(claims.dest);
   if (!shop) {
     return null;

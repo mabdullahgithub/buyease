@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { shopify } from "@/lib/shopify";
+import { getShopify } from "@/lib/shopify";
 import { db } from "@buyease/db";
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
@@ -7,7 +7,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const returnToCookie = request.cookies.get("shopify_return_to")?.value;
     const returnTo = returnToCookie?.startsWith("/") ? returnToCookie : "/form-builder";
 
-    const callbackResponse = await shopify.auth.callback({
+    const callbackResponse = await getShopify().auth.callback({
       rawRequest: request,
     });
 

@@ -3,10 +3,6 @@ import { shopifyApi, LATEST_API_VERSION, Session } from "@shopify/shopify-api";
 import { db } from "@buyease/db";
 import type { DbSession } from "@buyease/db";
 
-if (!process.env.SHOPIFY_API_KEY) throw new Error("SHOPIFY_API_KEY is required");
-if (!process.env.SHOPIFY_API_SECRET) throw new Error("SHOPIFY_API_SECRET is required");
-if (!process.env.SHOPIFY_APP_URL) throw new Error("SHOPIFY_APP_URL is required");
-
 export const shopifySessionStorage = {
   async storeSession(session: Session): Promise<boolean> {
     await db.session.upsert({
@@ -76,12 +72,30 @@ export const shopifySessionStorage = {
   },
 };
 
-export const shopify = shopifyApi({
-  apiKey: process.env.SHOPIFY_API_KEY,
-  apiSecretKey: process.env.SHOPIFY_API_SECRET,
-  scopes: (process.env.SHOPIFY_SCOPES ?? "read_orders,write_orders,read_products").split(","),
-  hostName: process.env.SHOPIFY_APP_URL.replace(/^https?:\/\//, ""),
-  apiVersion: LATEST_API_VERSION,
-  isEmbeddedApp: true,
-  sessionStorage: shopifySessionStorage,
-});
+let shopifyClient: ReturnType<typeof shopifyApi> | undefined;
+
+/**
+ * Lazily constructs the Shopify API client so `next build` can import this module
+ * without `SHOPIFY_*` env vars (they are still required at request time).
+ */
+export function getShopify(): ReturnType<typeof shopifyApi> {
+  if (shopifyClient) {
+    return shopifyClient;
+  }
+
+  if (!process.env.SHOPIFY_API_KEY) throw new Error("SHOPIFY_API_KEY is required");
+  if (!process.env.SHOPIFY_API_SECRET) throw new Error("SHOPIFY_API_SECRET is required");
+  if (!process.env.SHOPIFY_APP_URL) throw new Error("SHOPIFY_APP_URL is required");
+
+  shopifyClient = shopifyApi({
+    apiKey: process.env.SHOPIFY_API_KEY,
+    apiSecretKey: process.env.SHOPIFY_API_SECRET,
+    scopes: (process.env.SHOPIFY_SCOPES ?? "read_orders,write_orders,read_products").split(","),
+    hostName: process.env.SHOPIFY_APP_URL.replace(/^https?:\/\//, ""),
+    apiVersion: LATEST_API_VERSION,
+    isEmbeddedApp: true,
+    sessionStorage: shopifySessionStorage,
+  });
+
+  return shopifyClient;
+}
