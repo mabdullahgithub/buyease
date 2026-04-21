@@ -19,7 +19,7 @@ const PLANS = [
 
 export default function PlanPage(): React.JSX.Element {
   return (
-    <Page title="Plan" subtitle="Upgrade as your COD volume grows.">
+    <Page title="Billing Plans" subtitle="Upgrade as your COD volume grows.">
       <Layout>
         <Layout.Section>
           <InlineGrid columns={{ xs: 1, md: 3 }} gap="400">

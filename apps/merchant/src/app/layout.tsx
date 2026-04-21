@@ -45,7 +45,7 @@ export default function RootLayout({
   <a href="/integrations-messaging">Integrations &amp; Messaging</a>
   <a href="/analytics">Analytics</a>
   <a href="/settings">Settings</a>
-  <a href="/plan">Plan</a>
+  <a href="/plan">Billing Plans</a>
 </ui-nav-menu>`,
           }}
         />
