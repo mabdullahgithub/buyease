@@ -5,6 +5,7 @@ import {
   mergeEmbeddedSearchParams,
   SHOPIFY_EMBED_HOST_COOKIE,
 } from "@/lib/embedded-app-url";
+import { normalizeShopifyAppsPathname } from "@/lib/shopify-apps-path-prefix";
 
 const PUBLIC_PATHS = [
   "/api/auth",
@@ -14,6 +15,11 @@ const PUBLIC_PATHS = [
   "/install",
   "/api/health",
 ];
+
+function withShopifyEmbeddedHeaders(request: NextRequest, response: NextResponse): NextResponse {
+  response.headers.set("Content-Security-Policy", contentSecurityPolicyFrameAncestors(request));
+  return response;
+}
 
 /**
  * CSP for embedded Shopify — see
@@ -45,14 +51,11 @@ function contentSecurityPolicyFrameAncestors(request: NextRequest): string {
   return `frame-ancestors ${origins.join(" ")};`;
 }
 
-function withShopifyEmbeddedHeaders(request: NextRequest, response: NextResponse): NextResponse {
-  response.headers.set("Content-Security-Policy", contentSecurityPolicyFrameAncestors(request));
-  return response;
-}
-
 export function proxy(req: NextRequest): NextResponse {
-  const { pathname } = req.nextUrl;
-  const isPublic = PUBLIC_PATHS.some((p) => pathname.startsWith(p));
+  const rawPathname = req.nextUrl.pathname;
+  const pathname = normalizeShopifyAppsPathname(rawPathname);
+
+  const isPublic = PUBLIC_PATHS.some((p) => rawPathname.startsWith(p));
 
   if (isPublic) {
     return withShopifyEmbeddedHeaders(req, NextResponse.next());
@@ -72,7 +75,7 @@ export function proxy(req: NextRequest): NextResponse {
         toFormBuilder.search = req.nextUrl.search;
         return withShopifyEmbeddedHeaders(req, NextResponse.redirect(toFormBuilder));
       }
-      if (pathname.startsWith("/api/")) {
+      if (rawPathname.startsWith("/api/")) {
         return withShopifyEmbeddedHeaders(
           req,
           NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -105,9 +108,10 @@ export function proxy(req: NextRequest): NextResponse {
     shopCookieOk &&
     hostCookieOk &&
     !req.nextUrl.searchParams.get("host") &&
-    !pathname.startsWith("/api/")
+    !rawPathname.startsWith("/api/")
   ) {
     const url = req.nextUrl.clone();
+    url.pathname = pathname;
     url.searchParams.set("shop", shopCookieOk);
     url.searchParams.set("host", hostCookieOk);
     return withShopifyEmbeddedHeaders(req, NextResponse.redirect(url));

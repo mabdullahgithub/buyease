@@ -3,6 +3,7 @@
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect } from "react";
 import { shopifyAdminEmbeddedAppUrl } from "@/lib/shopify-embedded-admin-url";
+import { normalizeShopifyAppsPathname } from "@/lib/shopify-apps-path-prefix";
 
 /**
  * If the merchant opens the app URL in a normal browser tab (same origin, top window)
@@ -34,7 +35,7 @@ function EmbeddedTopLevelRedirectInner(): null {
     const adminUrl = shopifyAdminEmbeddedAppUrl({
       hostParam: host,
       clientId: apiKey,
-      pathname: window.location.pathname,
+      pathname: normalizeShopifyAppsPathname(window.location.pathname),
       search: window.location.search,
     });
     if (!adminUrl) {
