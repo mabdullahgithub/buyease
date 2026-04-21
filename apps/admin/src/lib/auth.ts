@@ -43,7 +43,7 @@ async function isIpAllowlisted(ip: string, db: typeof import("@buyease/db").db):
   if (ip && envBlocked.has(ip)) return false;
 
   try {
-    const dbBlocked = await db.adminIpBlocklist.findFirst({
+    const dbBlocked = await db.adminIpBlocklist?.findFirst({
       where: { ip, isActive: true },
       select: { id: true },
     });
@@ -59,10 +59,10 @@ async function isIpAllowlisted(ip: string, db: typeof import("@buyease/db").db):
 
   let dbIp: { id: string } | null = null;
   try {
-    dbIp = await db.adminIpAllowlist.findFirst({
+    dbIp = await db.adminIpAllowlist?.findFirst({
       where: { ip, isActive: true },
       select: { id: true },
-    });
+    }) ?? null;
   } catch (error) {
     if (!(error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2021")) {
       throw error;
@@ -85,7 +85,7 @@ async function logLoginActivity(params: {
 }): Promise<void> {
   const location = parseLocationFromHeaders(params.request.headers);
   try {
-    await params.db.adminLoginActivity.create({
+    await params.db.adminLoginActivity?.create({
       data: {
         adminUserId: params.adminUserId,
         email: params.email,
