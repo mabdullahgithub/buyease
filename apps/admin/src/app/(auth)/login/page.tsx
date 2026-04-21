@@ -25,6 +25,7 @@ type LoginFormState = {
 type LoginResponse = {
   ok?: boolean;
   code?: string;
+  error?: string;
 };
 
 function safeCallbackUrl(raw: string | null): string {
@@ -71,7 +72,9 @@ function LoginForm() {
       redirect: false,
     })) as LoginResponse | undefined;
 
-    if (result?.code === "TWO_FACTOR_REQUIRED") {
+    const authCode = result?.code ?? result?.error ?? "";
+
+    if (authCode.includes("TWO_FACTOR_REQUIRED")) {
       setState((current) => ({
         ...current,
         loading: false,
@@ -82,7 +85,7 @@ function LoginForm() {
       return;
     }
 
-    if (result?.code === "INVALID_TWO_FACTOR_CODE") {
+    if (authCode.includes("INVALID_TWO_FACTOR_CODE")) {
       setState((current) => ({
         ...current,
         loading: false,
@@ -97,9 +100,12 @@ function LoginForm() {
       setState((s) => ({
         ...s,
         loading: false,
-        error: "Invalid email or password.",
-        stage: "password",
-        twoFactorCode: "",
+        error:
+          state.stage === "twoFactor"
+            ? "Invalid two-factor code."
+            : "Invalid email or password.",
+        stage: state.stage === "twoFactor" ? "twoFactor" : "password",
+        twoFactorCode: state.stage === "twoFactor" ? "" : s.twoFactorCode,
       }));
     } else {
       if (state.stage === "twoFactor" && state.rememberDevice) {
