@@ -14,7 +14,6 @@ import {
   RefreshCcw,
   Shield,
   Sparkles,
-  Smartphone,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -42,6 +41,7 @@ type ActiveSessionItem = {
 
 type ChangePasswordFormProps = {
   activeSessions: ActiveSessionItem[];
+  userEmail: string;
 };
 
 type PasswordStrength = {
@@ -98,25 +98,7 @@ function generateRecoveryCodes(total = 6): string[] {
   });
 }
 
-function buildPseudoQr(seed: string): boolean[][] {
-  const size = 21;
-  const matrix = Array.from({ length: size }, () => Array.from({ length: size }, () => false));
-  let hash = 0;
-  for (const ch of seed) {
-    hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;
-  }
-  for (let y = 0; y < size; y += 1) {
-    for (let x = 0; x < size; x += 1) {
-      const value = ((x * 11 + y * 7 + hash) ^ (x * y * 3)) % 5;
-      const finderZone =
-        (x < 7 && y < 7) || (x > size - 8 && y < 7) || (x < 7 && y > size - 8);
-      matrix[y][x] = finderZone || value < 2;
-    }
-  }
-  return matrix;
-}
-
-export function ChangePasswordForm({ activeSessions }: ChangePasswordFormProps) {
+export function ChangePasswordForm({ activeSessions, userEmail }: ChangePasswordFormProps) {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -147,7 +129,11 @@ export function ChangePasswordForm({ activeSessions }: ChangePasswordFormProps) 
       `otpauth://totp/BuyEase:admin?secret=${authenticatorSecret.replaceAll("-", "")}&issuer=BuyEase`,
     [authenticatorSecret]
   );
-  const qrMatrix = useMemo(() => buildPseudoQr(otpauthUri), [otpauthUri]);
+  const qrCodeImage = useMemo(
+    () =>
+      `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(otpauthUri)}`,
+    [otpauthUri]
+  );
 
   useEffect(() => {
     // defer state updates until after initial render boundary to avoid hydration warnings
@@ -251,7 +237,8 @@ export function ChangePasswordForm({ activeSessions }: ChangePasswordFormProps) 
   };
 
   return (
-    <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
+    <div className="space-y-5">
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
       <Card>
         <CardHeader className="pb-4">
           <CardTitle className="flex items-center justify-between">
@@ -468,6 +455,266 @@ export function ChangePasswordForm({ activeSessions }: ChangePasswordFormProps) 
           </CardContent>
         </Card>
       </div>
+      </div>
+
+      <Card>
+        <CardHeader className="pb-4">
+          <CardTitle className="flex items-center justify-between text-base">
+            <span className="flex items-center gap-2">
+              <Shield className="size-4" />
+              Two-factor authentication
+            </span>
+            <span
+              className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+                twoFactorEnabled
+                  ? "bg-emerald-500/15 text-emerald-400"
+                  : "bg-amber-500/15 text-amber-400"
+              }`}
+            >
+              {twoFactorEnabled ? "Enabled" : "Not enabled"}
+            </span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Add an extra authentication layer to protect admin access. Use Google Authenticator or
+            another TOTP app.
+          </p>
+          <div className="rounded-xl border border-border/70 bg-muted/20 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-medium">
+                  {twoFactorEnabled
+                    ? "Your account is protected by two-factor authentication."
+                    : "Enable 2FA to secure this account."}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Recovery codes are required in case your authenticator device is lost.
+                </p>
+              </div>
+              {twoFactorEnabled ? (
+                <Button variant="destructive" onClick={() => setShowDisableDialog(true)}>
+                  Deactivate
+                </Button>
+              ) : (
+                <Button onClick={() => setShowEnableDialog(true)}>Enable 2FA</Button>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Dialog
+        open={showEnableDialog}
+        onOpenChange={(open) => {
+          setShowEnableDialog(open);
+          setTwoFactorError(null);
+        }}
+      >
+        <DialogContent className="max-w-[480px] p-0 sm:max-w-[500px]">
+          <div className="p-6 pb-4">
+            <DialogHeader className="mb-6 space-y-1.5">
+              <DialogTitle className="text-xl font-semibold">Enable two-step authentication</DialogTitle>
+              <DialogDescription className="text-sm text-muted-foreground">
+                Scan this QR code with your authenticator app and enter the 6-digit code.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
+              <div className="mx-auto shrink-0 overflow-hidden rounded-xl border bg-white p-3 shadow-sm sm:mx-0">
+                <img
+                  src={qrCodeImage}
+                  alt="Scan this QR code with authenticator app"
+                  className="size-[140px]"
+                  style={{ imageRendering: "pixelated" }}
+                />
+              </div>
+
+              <div className="flex w-full min-w-0 flex-1 flex-col gap-5">
+                <div className="space-y-2 rounded-lg border bg-muted/40 p-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Setup key</p>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      className="size-6"
+                      onClick={() => void copySecret()}
+                    >
+                      {copiedSecret ? (
+                        <Check className="size-3.5 text-emerald-500" />
+                      ) : (
+                         <Copy className="size-3.5 text-muted-foreground" />
+                      )}
+                    </Button>
+                  </div>
+                  <Input value={authenticatorSecret} readOnly className="h-8 font-mono text-xs tracking-wider" />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="verification-code" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Verification code
+                  </Label>
+                  <Input
+                    id="verification-code"
+                    value={verificationCode}
+                    onChange={(event) =>
+                      setVerificationCode(event.target.value.replace(/\D/g, "").slice(0, 6))
+                    }
+                    placeholder="0 0 0 0 0 0"
+                    inputMode="numeric"
+                    maxLength={6}
+                    className="h-11 text-center font-mono text-lg tracking-[0.4em]"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {twoFactorError ? (
+              <div className="mt-4 flex items-center gap-2 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                <AlertTriangle className="size-4 shrink-0" />
+                <p>{twoFactorError}</p>
+              </div>
+            ) : null}
+          </div>
+
+          <DialogFooter className="border-t bg-muted/20 px-6 py-4">
+            <Button variant="ghost" onClick={() => setShowEnableDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={enableTwoFactor} disabled={verificationCode.length !== 6}>
+              Enable
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showEnableSuccessDialog} onOpenChange={setShowEnableSuccessDialog}>
+        <DialogContent className="max-w-[500px] p-0" showCloseButton={false}>
+          <div className="p-6 pb-4">
+            <div className="mb-6 flex items-start gap-4">
+              <div className="shrink-0 rounded-full bg-emerald-500/15 p-3 text-emerald-500">
+                <Shield className="size-6" />
+              </div>
+              <div className="space-y-1">
+                <DialogTitle className="text-xl font-semibold">Two-factor enabled</DialogTitle>
+                <p className="text-sm text-muted-foreground">
+                  Your account is now protected with an extra layer of security.
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Recovery codes
+                </p>
+                <div className="flex items-center gap-2">
+                  <Button variant="secondary" size="icon-sm" onClick={() => void copyRecoveryCodes()} title="Copy codes">
+                    {copiedRecoveryCodes ? <Check className="size-4 text-emerald-500" /> : <Copy className="size-4" />}
+                  </Button>
+                  <Button variant="secondary" size="icon-sm" onClick={downloadRecoveryCodes} title="Download codes">
+                    <Download className="size-4" />
+                  </Button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                {recoveryCodes.map((code) => (
+                  <div
+                    key={code}
+                    className="flex h-10 items-center justify-center rounded-md border bg-muted/30 font-mono text-[13px] tracking-widest"
+                  >
+                    {code}
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex items-start gap-3 rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 text-amber-600 dark:text-amber-400">
+                <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+                <p className="text-xs leading-relaxed">
+                  Store these recovery codes securely. They are the <strong>only way</strong> to recover your account if you lose access to your authenticator app.
+                </p>
+              </div>
+
+              <div className="rounded-xl border bg-muted/20 px-4 py-3">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    <span className="size-2 rounded-full bg-emerald-500" />
+                    Primary method
+                  </span>
+                  <span className="font-medium">Authenticator app</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="border-t bg-muted/20 px-6 py-4">
+            <Button onClick={() => setShowEnableSuccessDialog(false)}>Finish setup</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={showDisableDialog}
+        onOpenChange={(open) => {
+          setShowDisableDialog(open);
+          setTwoFactorError(null);
+        }}
+      >
+        <DialogContent className="max-w-[440px] p-0">
+          <div className="p-6 pb-4">
+            <DialogHeader className="mb-6 space-y-1.5">
+              <DialogTitle className="text-xl font-semibold">Deactivate two-step authentication</DialogTitle>
+              <DialogDescription className="text-sm text-muted-foreground">
+                Enter your password to deactivate the two-step authentication login.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-5">
+              <div className="space-y-2">
+                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Email
+                </Label>
+                <Input value={userEmail} readOnly className="bg-muted/30" />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="disable-password" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Confirm password
+                </Label>
+                <InputGroup>
+                  <InputGroupInput
+                    id="disable-password"
+                    type="password"
+                    value={disablePassword}
+                    onChange={(event) => setDisablePassword(event.target.value)}
+                    placeholder="Enter your password"
+                  />
+                  <InputGroupAddon align="inline-end">
+                    <Eye className="size-4 text-muted-foreground" />
+                  </InputGroupAddon>
+                </InputGroup>
+              </div>
+            </div>
+
+            {twoFactorError ? (
+              <div className="mt-5 flex items-center gap-2 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                <AlertTriangle className="size-4 shrink-0" />
+                <p>{twoFactorError}</p>
+              </div>
+            ) : null}
+          </div>
+
+          <DialogFooter className="border-t bg-muted/20 px-6 py-4">
+            <Button variant="ghost" onClick={() => setShowDisableDialog(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={disableTwoFactor} disabled={!disablePassword}>
+              Deactivate
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
