@@ -1,6 +1,7 @@
 import { revalidatePath } from "next/cache";
+import Link from "next/link";
 import { Prisma, db } from "@buyease/db";
-import { Ban, Globe } from "lucide-react";
+import { Ban, Globe, Activity } from "lucide-react";
 
 import {
   Card,
@@ -171,7 +172,7 @@ export default async function SystemSettingsPage() {
       throw error;
     });
 
-  const [dbIps, blockedIps] = await Promise.all([
+  const [dbIps, blockedIps, mostUsedIps] = await Promise.all([
     db.adminIpAllowlist.findMany({
       where: { isActive: true },
       orderBy: { createdAt: "desc" },
@@ -184,6 +185,12 @@ export default async function SystemSettingsPage() {
       },
     }),
     blockedIpsPromise,
+    db.adminLoginActivity.groupBy({
+      by: ["ip"],
+      _count: { ip: true },
+      orderBy: { _count: { ip: "desc" } },
+      take: 5,
+    }).catch(() => []),
   ]);
 
   const envIps = [...getEnvAllowlistIps()];
@@ -201,7 +208,7 @@ export default async function SystemSettingsPage() {
 
       {/* IP Allowlisting + Environment allowlist */}
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1fr_280px]">
-        <Card>
+        <Card className="xl:row-span-3">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Globe className="size-4" />
@@ -281,6 +288,54 @@ export default async function SystemSettingsPage() {
                 ))}
               </div>
             )}
+          </CardContent>
+        </Card>
+
+        {/* Most used IPs */}
+        <Card className="h-fit">
+          <CardHeader>
+            <CardTitle className="text-sm">Most used IPs</CardTitle>
+            <CardDescription className="text-xs">
+              Frequent login IPs from recent activity.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-1.5">
+            {mostUsedIps.length === 0 ? (
+              <p className="text-xs text-muted-foreground">
+                No activity recorded yet.
+              </p>
+            ) : (
+              <div className="space-y-1.5 pr-1 max-h-[260px] overflow-y-auto">
+                {mostUsedIps.map((entry) => (
+                  <div
+                    key={entry.ip}
+                    className="flex justify-between rounded-md border px-2.5 py-1.5 text-xs"
+                  >
+                    <span className="font-mono">{entry.ip}</span>
+                    <span className="text-muted-foreground">{entry._count.ip} logins</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Authentication activity link */}
+        <Card className="h-fit bg-muted/30">
+          <CardContent className="p-4 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Activity className="size-4 shrink-0 text-muted-foreground" />
+              <div className="space-y-0.5">
+                <p className="text-sm font-medium">Authentication activity</p>
+                <p className="text-xs text-muted-foreground">View detailed admin login logs</p>
+              </div>
+            </div>
+            <Link 
+              href="/recent-activities" 
+              className="text-xs font-semibold text-primary hover:underline whitespace-nowrap ml-4"
+            >
+              View logs &rarr;
+            </Link>
           </CardContent>
         </Card>
       </div>
