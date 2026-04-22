@@ -33,6 +33,7 @@ Maintain and monitor these thresholds:
 - CLS < 0.05
 - INP < 100ms
 
+
 Recommended cadence:
 
 1. Run Lighthouse CI for key merchant app pages on each pull request.
