@@ -109,14 +109,6 @@ function HomeClientInner({ shop }: HomeClientProps): React.JSX.Element {
           background: #1f883d;
           animation: buyease-pulse 1.8s ease-out infinite;
         }
-        .buyease-timeline-line {
-          position: absolute;
-          left: 5px;
-          top: 12px;
-          height: calc(100% + 22px);
-          width: 2px;
-          background: #e1e3e5;
-        }
         .buyease-inner-card {
           background: #f6f6f7;
           border: 1px solid #e1e3e5;
@@ -138,11 +130,37 @@ function HomeClientInner({ shop }: HomeClientProps): React.JSX.Element {
         .buyease-learn-more:hover { background: #f0f6ff; }
         .buyease-learn-more svg  { width: 14px; height: 14px; fill: currentColor; }
         .buyease-theme-row {
-          display: grid;
-          grid-template-columns: 1fr auto;
+          display: flex;
           align-items: center;
+          justify-content: space-between;
           gap: 16px;
           width: 100%;
+        }
+        .buyease-theme-left {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          min-width: 0;
+        }
+        .buyease-theme-icon {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 32px;
+          height: 32px;
+          border-radius: 8px;
+          background: #f1f1f1;
+          flex-shrink: 0;
+        }
+        .buyease-theme-icon svg {
+          width: 18px;
+          height: 18px;
+        }
+        .buyease-theme-right {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          flex-shrink: 0;
         }
         .buyease-analytics-empty {
           display: grid;
@@ -199,8 +217,7 @@ function HomeClientInner({ shop }: HomeClientProps): React.JSX.Element {
                   transition={{ duration: "150ms", timingFunction: "ease-out" }}
                 >
                   <BlockStack gap="500">
-                    {WHATS_NEW.map((entry, idx) => {
-                      const isLast = idx === WHATS_NEW.length - 1;
+                    {WHATS_NEW.map((entry) => {
                       return (
                         <div
                           key={entry.id}
@@ -218,7 +235,6 @@ function HomeClientInner({ shop }: HomeClientProps): React.JSX.Element {
                                 <span className="buyease-dot buyease-dot--inactive" />
                               )}
                             </div>
-                            {!isLast && <span className="buyease-timeline-line" />}
                           </div>
 
                           {/* Content column */}
@@ -320,27 +336,20 @@ function HomeClientInner({ shop }: HomeClientProps): React.JSX.Element {
           <Layout.Section>
             <Card>
               <div className="buyease-theme-row">
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "8px",
-                      marginBottom: "4px",
-                    }}
-                  >
+                <div className="buyease-theme-left">
+                  <span className="buyease-theme-icon">
                     <Icon source={AppsIcon} tone="subdued" />
-                    <Text as="h2" variant="headingMd" fontWeight="semibold">
-                      Theme App Embed
-                    </Text>
-                    <Badge tone="warning">Inactive</Badge>
-                  </div>
+                  </span>
                   <Text as="p" variant="bodySm" tone="subdued">
                     Form will not be visible when app embed is inactive
                   </Text>
                 </div>
 
-                <div style={{ flexShrink: 0 }}>
+                <div className="buyease-theme-right">
+                  <Text as="h2" variant="headingSm" fontWeight="semibold">
+                    Theme App Embed
+                  </Text>
+                  <Badge tone="warning">Inactive</Badge>
                   <Button
                     variant="primary"
                     icon={ExternalIcon}
