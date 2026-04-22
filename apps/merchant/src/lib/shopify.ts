@@ -5,10 +5,12 @@ import type { DbSession } from "@buyease/db";
 
 export const shopifySessionStorage = {
   async storeSession(session: Session): Promise<boolean> {
+    const normalizedShop = session.shop.trim().toLowerCase();
+
     await db.session.upsert({
       where: { id: session.id },
       update: {
-        shop: session.shop,
+        shop: normalizedShop,
         state: session.state,
         isOnline: session.isOnline,
         scope: session.scope,
@@ -20,7 +22,7 @@ export const shopifySessionStorage = {
       },
       create: {
         id: session.id,
-        shop: session.shop,
+        shop: normalizedShop,
         state: session.state,
         isOnline: session.isOnline,
         scope: session.scope,
@@ -31,6 +33,19 @@ export const shopifySessionStorage = {
           : null,
       },
     });
+
+    await db.merchant.upsert({
+      where: { shop: normalizedShop },
+      update: {
+        isActive: true,
+        uninstalledAt: null,
+      },
+      create: {
+        shop: normalizedShop,
+        isActive: true,
+      },
+    });
+
     return true;
   },
 
