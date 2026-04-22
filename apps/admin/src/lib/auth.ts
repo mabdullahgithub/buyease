@@ -4,7 +4,8 @@ import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { Prisma } from "@buyease/db";
-import { getClientIpFromHeaders, getEnvAllowlistIps, getEnvBlockedIps, parseLocationFromHeaders } from "@/lib/admin-network";
+import { getClientIpFromHeaders, parseLocationFromHeaders } from "@/lib/admin-network";
+import { isIpAllowedForAdminAccess } from "@/lib/admin-ip-policy";
 import {
   decryptTwoFactorSecret,
   getTrustedDeviceCookieName,
@@ -67,55 +68,6 @@ function getCookieValue(cookieHeader: string | null, cookieName: string): string
   }
 
   return null;
-}
-
-async function isIpAllowlisted(ip: string, db: typeof import("@buyease/db").db): Promise<boolean> {
-  const envBlocked = getEnvBlockedIps();
-  if (ip && envBlocked.has(ip)) return false;
-
-  try {
-    const dbBlocked = await db.adminIpBlocklist?.findFirst({
-      where: { ip, isActive: true },
-      select: { id: true },
-    });
-    if (dbBlocked) return false;
-  } catch (error) {
-    if (!(error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2021")) {
-      throw error;
-    }
-  }
-
-  const envIps = getEnvAllowlistIps();
-  if (envIps.has(ip)) return true;
-
-  let dbIp: { id: string } | null = null;
-  try {
-    dbIp = await db.adminIpAllowlist?.findFirst({
-      where: { ip, isActive: true },
-      select: { id: true },
-    }) ?? null;
-  } catch (error) {
-    if (!(error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2021")) {
-      throw error;
-    }
-  }
-
-  if (dbIp) return true;
-  if (envIps.size > 0) return false;
-
-  try {
-    const activeDbAllowlistCount = await db.adminIpAllowlist?.count({
-      where: { isActive: true },
-    });
-    // If DB allowlist has entries, IP must match one of them.
-    if ((activeDbAllowlistCount ?? 0) > 0) return false;
-  } catch (error) {
-    if (!(error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2021")) {
-      throw error;
-    }
-  }
-
-  return true;
 }
 
 async function logLoginActivity(params: {
@@ -225,7 +177,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           return null;
         }
 
-        const allowlisted = await isIpAllowlisted(ip, db);
+        const allowlisted = await isIpAllowedForAdminAccess(ip);
         if (!allowlisted) {
           await logLoginActivity({
             db,

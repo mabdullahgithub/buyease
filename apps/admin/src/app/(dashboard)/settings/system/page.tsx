@@ -12,12 +12,14 @@ import {
 } from "@/components/ui/card";
 import { requireAdminSession } from "@/lib/admin-session";
 import { getEnvAllowlistIps, normalizeIp } from "@/lib/admin-network";
+import { resolveIpAccessMode, setIpAccessMode } from "@/lib/admin-ip-policy";
 
 import {
   AddAllowlistForm,
   AddBlocklistForm,
   RemoveIpButton,
 } from "./ip-forms";
+import { IpAccessModeDropdown } from "./ip-access-mode-dropdown";
 
 function isValidIpAddress(value: string): boolean {
   const ipv4 =
@@ -153,8 +155,62 @@ async function removeBlockedIp(
   return { success: true };
 }
 
+async function updateIpAccessMode(
+  formData: FormData
+): Promise<{ success: boolean; error?: string }> {
+  "use server";
+
+  const session = await requireAdminSession();
+  if (session.user.role !== "SUPER_ADMIN") {
+    return { success: false, error: "Insufficient permissions." };
+  }
+
+  const mode = String(formData.get("mode") ?? "").trim();
+  if (mode !== "ALLOW_ALL" && mode !== "RESTRICTED_ALLOWLIST") {
+    return { success: false, error: "Invalid access mode." };
+  }
+
+  try {
+    await setIpAccessMode({
+      mode,
+      updatedById: session.user.id,
+    });
+  } catch (error) {
+    if (error instanceof Error && error.message === "IP_ACCESS_SETTINGS_UNAVAILABLE") {
+      return {
+        success: false,
+        error: "IP access mode is temporarily unavailable. Restart the admin app to reload Prisma client.",
+      };
+    }
+    if (isMissingTableError(error)) {
+      return {
+        success: false,
+        error: "IP access settings table not found. Run migrations.",
+      };
+    }
+    return { success: false, error: "Failed to update IP access mode." };
+  }
+
+  revalidatePath("/settings/system");
+  return { success: true };
+}
+
 export default async function SystemSettingsPage() {
   await requireAdminSession();
+
+  const accessModePromise = resolveIpAccessMode();
+
+  const dbIpsPromise = db.adminIpAllowlist.findMany({
+    where: { isActive: true },
+    orderBy: { createdAt: "desc" },
+    select: {
+      id: true,
+      ip: true,
+      label: true,
+      createdAt: true,
+      createdBy: { select: { email: true } },
+    },
+  });
 
   const blockedIpsPromise = db.adminIpBlocklist
     .findMany({
@@ -172,26 +228,33 @@ export default async function SystemSettingsPage() {
       throw error;
     });
 
-  const [dbIps, blockedIps, mostUsedIps] = await Promise.all([
-    db.adminIpAllowlist.findMany({
-      where: { isActive: true },
-      orderBy: { createdAt: "desc" },
-      select: {
-        id: true,
-        ip: true,
-        label: true,
-        createdAt: true,
-        createdBy: { select: { email: true } },
-      },
-    }),
+  const [dbIps, blockedIps, mostUsedIps, accessMode] = await Promise.all([
+    dbIpsPromise,
     blockedIpsPromise,
     db.adminLoginActivity.groupBy({
       by: ["ip"],
       _count: { ip: true },
       orderBy: { _count: { ip: "desc" } },
-      take: 5,
+      take: 3,
     }).catch(() => []),
+    accessModePromise,
   ]);
+
+  const allowlistIps = dbIps.map((entry) => entry.ip);
+  const allowlistLoginCounts =
+    allowlistIps.length === 0
+      ? {}
+      : Object.fromEntries(
+          (
+            await db.adminLoginActivity
+              .groupBy({
+                by: ["ip"],
+                where: { ip: { in: allowlistIps } },
+                _count: { ip: true },
+              })
+              .catch(() => [])
+          ).map((entry) => [entry.ip, entry._count.ip])
+        );
 
   const envIps = [...getEnvAllowlistIps()];
 
@@ -219,6 +282,11 @@ export default async function SystemSettingsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
+            <IpAccessModeDropdown
+              mode={accessMode}
+              action={updateIpAccessMode}
+            />
+
             <AddAllowlistForm action={addAllowlistedIp} />
 
             <div className="space-y-3">
@@ -230,7 +298,7 @@ export default async function SystemSettingsPage() {
                   No database-managed IPs yet.
                 </p>
               ) : (
-                <div className="space-y-2 pr-1 max-h-[260px] overflow-y-auto">
+                <div className="space-y-2 pr-1 h-[212px] overflow-y-auto">
                   {dbIps.map((entry) => (
                     <div
                       key={entry.id}
@@ -238,9 +306,10 @@ export default async function SystemSettingsPage() {
                     >
                       <div className="min-w-0">
                         <p className="font-mono text-sm">{entry.ip}</p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="truncate text-xs text-muted-foreground">
                           {entry.label || "No label"} &middot;{" "}
-                          {entry.createdBy?.email ?? "unknown admin"}
+                          {entry.createdBy?.email ?? "unknown admin"} &middot;{" "}
+                          {allowlistLoginCounts[entry.ip] ?? 0} logins
                         </p>
                       </div>
                       <RemoveIpButton

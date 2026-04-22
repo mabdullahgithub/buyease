@@ -132,6 +132,7 @@ model AdminUser {
   loginActivities AdminLoginActivity[]
   createdIpAllowlistEntries AdminIpAllowlist[] @relation("AdminIpAllowlistCreatedBy")
   createdIpBlocklistEntries AdminIpBlocklist[] @relation("AdminIpBlocklistCreatedBy")
+  updatedIpAccessSettings AdminIpAccessSetting[] @relation("AdminIpAccessSettingUpdatedBy")
   twoFactorRecoveryCodes AdminTwoFactorBackupCode[]
   trustedDevices AdminTrustedDevice[]
 
@@ -160,6 +161,11 @@ enum AdminRole {
   SUPER_ADMIN
   ADMIN
   VIEWER
+}
+
+enum AdminIpAccessMode {
+  ALLOW_ALL
+  RESTRICTED_ALLOWLIST
 }
 
 model AdminIpAllowlist {
@@ -236,4 +242,16 @@ model AdminIpBlocklist {
   updatedAt DateTime @updatedAt
 
   @@index([isActive])
+}
+
+model AdminIpAccessSetting {
+  id            Int               @id
+  allowlistMode AdminIpAccessMode @default(RESTRICTED_ALLOWLIST)
+  updatedById   String?
+  updatedBy     AdminUser?        @relation("AdminIpAccessSettingUpdatedBy", fields: [updatedById], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([allowlistMode])
 }

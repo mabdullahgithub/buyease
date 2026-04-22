@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server";
 
 import { auth } from "@/lib/auth";
 import { canAccessPath, isValidAdminRole } from "@/lib/admin-access";
-import { getClientIpFromHeaders, getEnvAllowlistIps, getEnvBlockedIps } from "@/lib/admin-network";
+import { getClientIpFromHeaders, getEnvBlockedIps } from "@/lib/admin-network";
 
 const PUBLIC_PATHS = new Set(["/login", "/forgot-password", "/reset-password"]);
 
@@ -15,10 +15,7 @@ function isIpAllowed(request: NextRequest): boolean {
   const blocked = getEnvBlockedIps();
   const clientIp = getClientIp(request);
   if (clientIp && blocked.has(clientIp)) return false;
-
-  const allowlist = getEnvAllowlistIps();
-  if (allowlist.size === 0) return true;
-  return !!clientIp && allowlist.has(clientIp);
+  return true;
 }
 
 export default auth((request) => {
