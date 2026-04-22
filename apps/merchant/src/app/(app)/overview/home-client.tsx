@@ -3,7 +3,6 @@
 import {
   Badge,
   BlockStack,
-  Box,
   Button,
   Card,
   Collapsible,
@@ -14,7 +13,6 @@ import {
   Text,
 } from "@shopify/polaris";
 import {
-  ChartVerticalIcon,
   ChevronDownIcon,
   ChevronUpIcon,
   AppsIcon,
@@ -139,13 +137,6 @@ function HomeClientInner({ shop }: HomeClientProps): React.JSX.Element {
         }
         .buyease-learn-more:hover { background: #f0f6ff; }
         .buyease-learn-more svg  { width: 14px; height: 14px; fill: currentColor; }
-        .buyease-analytics-header {
-          display: flex;
-          align-items: center;
-          justify-content: flex-start;
-          gap: 6px;
-          width: 100%;
-        }
         .buyease-theme-row {
           display: grid;
           grid-template-columns: 1fr auto;
@@ -157,25 +148,6 @@ function HomeClientInner({ shop }: HomeClientProps): React.JSX.Element {
 
       <Page>
         <Layout>
-          {/* Analytics - Last 7 days */}
-          <Layout.Section>
-            <BlockStack gap="300">
-              <div className="buyease-analytics-header">
-                <Icon source={ChartVerticalIcon} tone="subdued" />
-                <Text as="h2" variant="headingSm" fontWeight="semibold">
-                  Analytics - Last 7 days
-                </Text>
-              </div>
-              <Card>
-                <Box paddingBlock="300">
-                  <Text as="p" variant="bodyMd" tone="subdued" alignment="center">
-                    No data available yet
-                  </Text>
-                </Box>
-              </Card>
-            </BlockStack>
-          </Layout.Section>
-
           {/* What's New */}
           <Layout.Section>
             <Card>
