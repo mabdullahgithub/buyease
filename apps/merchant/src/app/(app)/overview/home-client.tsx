@@ -144,15 +144,44 @@ function HomeClientInner({ shop }: HomeClientProps): React.JSX.Element {
           gap: 16px;
           width: 100%;
         }
+        .buyease-analytics-empty {
+          display: grid;
+          place-items: center;
+          height: 40px;
+          border: 1px solid #e1e3e5;
+          border-radius: 10px;
+          color: #6d7175;
+          font-size: 13px;
+          font-weight: 500;
+          background: #ffffff;
+        }
+        .buyease-whats-new-head {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 8px;
+        }
       `}</style>
 
       <Page>
         <Layout>
+          {/* Analytics placeholder */}
+          <Layout.Section>
+            <Card>
+              <BlockStack gap="300">
+                <Text as="h2" variant="headingSm">
+                  Analytics - Last 7 days
+                </Text>
+                <div className="buyease-analytics-empty">No data available yet</div>
+              </BlockStack>
+            </Card>
+          </Layout.Section>
+
           {/* What's New */}
           <Layout.Section>
             <Card>
               <BlockStack gap="400">
-                <InlineStack align="space-between" blockAlign="center">
+                <div className="buyease-whats-new-head">
                   <Text as="h2" variant="headingMd">
                     What&apos;s New
                   </Text>
@@ -162,7 +191,7 @@ function HomeClientInner({ shop }: HomeClientProps): React.JSX.Element {
                     onClick={() => setChangelogOpen((v) => !v)}
                     accessibilityLabel={changelogOpen ? "Collapse updates" : "Expand updates"}
                   />
-                </InlineStack>
+                </div>
 
                 <Collapsible
                   id="whats-new"
@@ -267,7 +296,7 @@ function HomeClientInner({ shop }: HomeClientProps): React.JSX.Element {
                                     height={220}
                                     priority={entry.active}
                                     style={{
-                                      width: "240px",
+                                      width: "220px",
                                       height: "auto",
                                       borderRadius: "12px",
                                       objectFit: "cover",

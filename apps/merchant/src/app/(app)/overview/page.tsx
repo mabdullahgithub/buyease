@@ -59,7 +59,21 @@ async function getHomeData(shop: string) {
 
 export default async function OverviewPage(): Promise<React.JSX.Element> {
   const cookieStore = await cookies();
-  const shop = cookieStore.get("shopify_shop")?.value ?? "demo.myshopify.com";
+  const shopCookie = cookieStore.get("shopify_shop")?.value?.trim().toLowerCase();
+  const sessionId = cookieStore.get("shopify_session")?.value;
+  const session = sessionId
+    ? await db.session.findUnique({ where: { id: sessionId }, select: { shop: true } })
+    : null;
+  const shop = (shopCookie || session?.shop || "").trim().toLowerCase();
+
+  if (shop) {
+    await db.merchant.upsert({
+      where: { shop },
+      update: { isActive: true, uninstalledAt: null },
+      create: { shop, isActive: true },
+    });
+  }
+
   const data = await getHomeData(shop);
 
   return <OverviewClientBridge shop={shop} {...data} />;

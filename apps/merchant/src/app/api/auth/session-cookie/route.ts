@@ -21,8 +21,18 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ hasSession: false, hasActiveMerchant: false }, { status: 200 });
   }
 
-  const merchant = await db.merchant.findUnique({
-    where: { shop: session.shop },
+  const normalizedShop = session.shop.trim().toLowerCase();
+
+  const merchant = await db.merchant.upsert({
+    where: { shop: normalizedShop },
+    update: {
+      isActive: true,
+      uninstalledAt: null,
+    },
+    create: {
+      shop: normalizedShop,
+      isActive: true,
+    },
     select: { isActive: true },
   });
 
