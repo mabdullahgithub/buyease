@@ -34,7 +34,7 @@ export default function RootLayout({
         {apiKey ? (
           <Script
             src="https://cdn.shopify.com/shopifycloud/app-bridge.js"
-            strategy="afterInteractive"
+            strategy="beforeInteractive"
           />
         ) : null}
         <EmbeddedTopLevelRedirect />
