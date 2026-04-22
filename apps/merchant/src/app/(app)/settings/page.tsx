@@ -13,6 +13,8 @@ import {
   BlockStack,
   Text,
   Divider,
+  List,
+  Link,
 } from "@shopify/polaris";
 import { useCallback, useMemo, useState } from "react";
 import { SHOPIFY_EMBED_STORAGE_KEY } from "@/lib/shopify-embed-session-storage";
@@ -195,6 +197,64 @@ export default function SettingsPage() {
                   autoComplete="off"
                 />
               </FormLayout>
+            </BlockStack>
+          </Card>
+        </Layout.Section>
+
+        <Layout.Section>
+          <Card>
+            <BlockStack gap="300">
+              <Text as="h2" variant="headingMd">
+                Built for Shopify readiness
+              </Text>
+              <Text as="p" variant="bodyMd" tone="subdued">
+                Use this checklist before submitting updates in the Shopify Partner
+                Dashboard Distribution page.
+              </Text>
+              <List type="bullet">
+                <List.Item>
+                  Install path: Shopify-initiated OAuth only (manual shop-domain form disabled).
+                </List.Item>
+                <List.Item>
+                  Billing model: fully free app with no external charging.
+                </List.Item>
+                <List.Item>
+                  Distribution prerequisites: sufficient installs, review volume, rating,
+                  and account standing validated in Partner Dashboard.
+                </List.Item>
+              </List>
+              <Text as="p" variant="bodySm" tone="subdued">
+                Review in Shopify Partner Dashboard:{" "}
+                <Link
+                  url="https://partners.shopify.com/current/apps"
+                  target="_blank"
+                  removeUnderline={false}
+                >
+                  Apps → Distribution
+                </Link>
+              </Text>
+            </BlockStack>
+          </Card>
+        </Layout.Section>
+
+        <Layout.Section>
+          <Card>
+            <BlockStack gap="300">
+              <Text as="h2" variant="headingMd">
+                Performance thresholds to monitor
+              </Text>
+              <Text as="p" variant="bodyMd" tone="subdued">
+                Built for Shopify performance guardrails should remain within these limits.
+              </Text>
+              <List type="bullet">
+                <List.Item>LCP: under 1.2s</List.Item>
+                <List.Item>CLS: under 0.05</List.Item>
+                <List.Item>INP: under 100ms</List.Item>
+                <List.Item>
+                  Track checkout/storefront experience continuously with production RUM
+                  or Lighthouse CI.
+                </List.Item>
+              </List>
             </BlockStack>
           </Card>
         </Layout.Section>

@@ -39,60 +39,26 @@ export default async function InstallPage({
           Install BuyEase
         </h1>
         <p style={{ margin: "0 0 16px", color: "#6b7280" }}>
-          Connect your Shopify store to start using buyease.
+          BuyEase installation is initiated by Shopify only. Open the app from your
+          Shopify Admin Apps page to continue securely.
         </p>
 
         {params.error ? (
           <p style={{ margin: "0 0 12px", color: "#b91c1c" }}>
-            Shopify authentication did not complete. Please try again.
+            Shopify authentication did not complete. Re-open BuyEase in Shopify Admin
+            and try again.
           </p>
         ) : null}
 
         {hasInvalidShop ? (
           <p style={{ margin: "0 0 12px", color: "#b91c1c" }}>
-            Please enter a valid `.myshopify.com` domain.
+            The install request did not include a valid Shopify shop context.
           </p>
         ) : null}
-
-        <form action="/api/auth/install" method="get">
-          <input type="hidden" name="return_to" value={returnTo} />
-          {params.host ? <input type="hidden" name="host" value={params.host} /> : null}
-          <label htmlFor="shop-domain" style={{ display: "block", marginBottom: "8px", fontWeight: 500 }}>
-            Shop domain
-          </label>
-          <input
-            id="shop-domain"
-            name="shop"
-            type="text"
-            required
-            autoComplete="off"
-            placeholder="your-store.myshopify.com"
-            defaultValue={normalizedShop ?? shopInput}
-            style={{
-              width: "100%",
-              height: "40px",
-              borderRadius: "8px",
-              border: "1px solid #d1d5db",
-              padding: "0 12px",
-              marginBottom: "12px",
-            }}
-          />
-          <button
-            type="submit"
-            style={{
-              width: "100%",
-              height: "40px",
-              borderRadius: "8px",
-              border: "none",
-              backgroundColor: "#111827",
-              color: "white",
-              fontWeight: 600,
-              cursor: "pointer",
-            }}
-          >
-            Continue to Shopify
-          </button>
-        </form>
+        <p style={{ margin: 0, color: "#374151", fontSize: "14px" }}>
+          Manual shop-domain entry has been disabled to meet Built for Shopify
+          installation requirements.
+        </p>
       </section>
     </main>
   );

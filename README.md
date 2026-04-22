@@ -136,6 +136,14 @@ npm run db:studio
 
 ---
 
+## Shopify BFS Readiness
+
+For merchant-app eligibility controls (OAuth-only install flow, billing policy, Partner Dashboard prerequisites, and performance thresholds), use:
+
+- `apps/merchant/BFS_READINESS.md`
+
+---
+
 ## Building
 
 ```bash

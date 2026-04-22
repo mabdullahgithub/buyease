@@ -5,7 +5,7 @@ import { collectSetCookieLines, redirectWithSetCookies, serializeSetCookie } fro
 
 function installErrorRedirect(
   request: NextRequest,
-  code: "invalid_shop" | "oauth_start_failed",
+  code: "invalid_shop" | "oauth_start_failed" | "shop_context_required",
   opts: { shop?: string | null; returnTo?: string; host?: string | null }
 ): NextResponse {
   const url = new URL("/install", request.url);
@@ -29,6 +29,10 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   const hostParam = request.nextUrl.searchParams.get("host");
 
   try {
+    if (!shopParam) {
+      return installErrorRedirect(request, "shop_context_required", { returnTo, host: hostParam });
+    }
+
     const shop = validateShopDomain(shopParam);
 
     if (!shop) {

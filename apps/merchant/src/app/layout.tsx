@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Comfortaa } from "next/font/google";
+import Script from "next/script";
 import "@shopify/polaris/build/esm/styles.css";
 import { EmbeddedSessionBootstrap } from "@/components/merchant/embedded-session-bootstrap";
 import { EmbeddedTopLevelRedirect } from "@/components/merchant/embedded-top-level-redirect";
@@ -31,8 +32,9 @@ export default function RootLayout({
       </head>
       <body>
         {apiKey ? (
-          <script
+          <Script
             src="https://cdn.shopify.com/shopifycloud/app-bridge.js"
+            strategy="afterInteractive"
           />
         ) : null}
         <div
@@ -45,7 +47,7 @@ export default function RootLayout({
   <a href="/integrations-messaging">Integrations &amp; Messaging</a>
   <a href="/analytics">Analytics</a>
   <a href="/settings">Settings</a>
-  <a href="/plan">Billing Plans</a>
+  <a href="/plan">Billing</a>
 </ui-nav-menu>`,
           }}
         />
