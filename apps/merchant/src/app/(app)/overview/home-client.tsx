@@ -114,8 +114,8 @@ function HomeClientInner({ shop }: HomeClientProps): React.JSX.Element {
         .buyease-timeline-line {
           position: absolute;
           left: 5px;
-          top: 18px;
-          bottom: -18px;
+          top: 12px;
+          height: calc(100% + 22px);
           width: 2px;
           background: #e1e3e5;
         }
@@ -139,6 +139,20 @@ function HomeClientInner({ shop }: HomeClientProps): React.JSX.Element {
         }
         .buyease-learn-more:hover { background: #f0f6ff; }
         .buyease-learn-more svg  { width: 14px; height: 14px; fill: currentColor; }
+        .buyease-analytics-header {
+          display: flex;
+          align-items: center;
+          justify-content: flex-start;
+          gap: 6px;
+          width: 100%;
+        }
+        .buyease-theme-row {
+          display: grid;
+          grid-template-columns: 1fr auto;
+          align-items: center;
+          gap: 16px;
+          width: 100%;
+        }
       `}</style>
 
       <Page>
@@ -146,12 +160,12 @@ function HomeClientInner({ shop }: HomeClientProps): React.JSX.Element {
           {/* Analytics - Last 7 days */}
           <Layout.Section>
             <BlockStack gap="300">
-              <InlineStack gap="150" blockAlign="center" align="start">
+              <div className="buyease-analytics-header">
                 <Icon source={ChartVerticalIcon} tone="subdued" />
                 <Text as="h2" variant="headingSm" fontWeight="semibold">
                   Analytics - Last 7 days
                 </Text>
-              </InlineStack>
+              </div>
               <Card>
                 <Box paddingBlock="300">
                   <Text as="p" variant="bodyMd" tone="subdued" alignment="center">
@@ -304,14 +318,7 @@ function HomeClientInner({ shop }: HomeClientProps): React.JSX.Element {
           {/* Theme App Embed */}
           <Layout.Section>
             <Card>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  gap: "16px",
-                }}
-              >
+              <div className="buyease-theme-row">
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div
                     style={{
