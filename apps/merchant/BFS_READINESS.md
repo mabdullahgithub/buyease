@@ -10,6 +10,7 @@ This runbook captures the high-priority controls required for Built for Shopify 
 
 ## 2) Billing policy
 
+
 - The app is currently **fully free**.
 - No external billing pages, payment links, or off-platform charging flows are used.
 - If paid plans are introduced later, migrate to Shopify Billing API before enabling upgrades.
