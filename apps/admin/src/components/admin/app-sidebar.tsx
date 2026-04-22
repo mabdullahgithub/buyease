@@ -58,7 +58,7 @@ const GROUPS: NavGroup[] = [
 
 export function AppSidebar() {
   const pathname = usePathname();
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const role = session?.user?.role;
 
   return (
@@ -80,7 +80,10 @@ export function AppSidebar() {
           >
             <SidebarGroupContent>
               <SidebarMenu className="gap-0.5">
-                {group.items.filter((item) => canAccessPath(item.href, role)).map((item: NavItem) => {
+                {(status === "loading"
+                  ? group.items
+                  : group.items.filter((item) => canAccessPath(item.href, role))
+                ).map((item: NavItem) => {
                   const isActive =
                     pathname === item.href ||
                     (item.href !== "/dashboard" &&
