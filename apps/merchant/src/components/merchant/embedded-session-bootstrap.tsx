@@ -37,8 +37,11 @@ function EmbeddedSessionBootstrapInner(): null {
         if (!statusRes.ok) {
           return;
         }
-        const status = (await statusRes.json()) as { hasSession?: boolean };
-        if (status.hasSession) {
+        const status = (await statusRes.json()) as {
+          hasSession?: boolean;
+          hasActiveMerchant?: boolean;
+        };
+        if (status.hasSession && status.hasActiveMerchant) {
           return;
         }
 
