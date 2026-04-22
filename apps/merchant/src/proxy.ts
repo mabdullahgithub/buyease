@@ -11,7 +11,9 @@ import { normalizeShopifyAppsPathname } from "@/lib/shopify-apps-path-prefix";
 const PUBLIC_PATHS = [
   "/api/auth",
   "/api/auth/install",
+  "/api/auth/session-cookie",
   "/api/auth/session",
+  "/api/auth/token-exchange",
   "/api/webhooks",
   "/install",
   "/api/health",
