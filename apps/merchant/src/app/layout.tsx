@@ -5,7 +5,6 @@ import "@shopify/polaris/build/esm/styles.css";
 import { EmbeddedSessionBootstrap } from "@/components/merchant/embedded-session-bootstrap";
 import { EmbeddedTopLevelRedirect } from "@/components/merchant/embedded-top-level-redirect";
 import { PersistShopifyEmbedParams } from "@/components/merchant/persist-shopify-embed-params";
-import { WebVitalsReporter } from "@/components/merchant/web-vitals-reporter";
 
 const comfortaa = Comfortaa({
   subsets: ["latin"],
@@ -41,7 +40,6 @@ export default function RootLayout({
         <EmbeddedTopLevelRedirect />
         <PersistShopifyEmbedParams />
         <EmbeddedSessionBootstrap />
-        <WebVitalsReporter />
         {children}
       </body>
     </html>
