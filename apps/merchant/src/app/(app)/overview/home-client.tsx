@@ -79,7 +79,11 @@ const WHATS_NEW: Array<{
 
 function HomeClientInner({ shop }: HomeClientProps): React.JSX.Element {
   const [changelogOpen, setChangelogOpen] = useState(true);
-  const openThemeEditorUrl = `https://${shop}/admin/themes/current/editor?context=apps`;
+  const normalizedShop = shop.trim().toLowerCase();
+  const hasShop = /^[a-z0-9][a-z0-9-]*\.myshopify\.com$/.test(normalizedShop);
+  const openThemeEditorUrl = hasShop
+    ? `https://${normalizedShop}/admin/themes/current/editor?context=apps`
+    : undefined;
 
   return (
     <>
@@ -129,14 +133,14 @@ function HomeClientInner({ shop }: HomeClientProps): React.JSX.Element {
         }
         .buyease-learn-more:hover { background: #f0f6ff; }
         .buyease-learn-more svg  { width: 14px; height: 14px; fill: currentColor; }
-        .buyease-theme-row {
+        .buyease-theme-footer {
           display: flex;
           align-items: center;
           justify-content: space-between;
           gap: 16px;
           width: 100%;
         }
-        .buyease-theme-left {
+        .buyease-theme-footer-left {
           display: flex;
           align-items: center;
           gap: 12px;
@@ -155,12 +159,6 @@ function HomeClientInner({ shop }: HomeClientProps): React.JSX.Element {
         .buyease-theme-icon svg {
           width: 18px;
           height: 18px;
-        }
-        .buyease-theme-right {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          flex-shrink: 0;
         }
         .buyease-analytics-empty {
           display: grid;
@@ -335,31 +333,35 @@ function HomeClientInner({ shop }: HomeClientProps): React.JSX.Element {
           {/* Theme App Embed */}
           <Layout.Section>
             <Card>
-              <div className="buyease-theme-row">
-                <div className="buyease-theme-left">
-                  <span className="buyease-theme-icon">
-                    <Icon source={AppsIcon} tone="subdued" />
-                  </span>
-                  <Text as="p" variant="bodySm" tone="subdued">
-                    Form will not be visible when app embed is inactive
-                  </Text>
-                </div>
-
-                <div className="buyease-theme-right">
+              <BlockStack gap="300">
+                <InlineStack gap="200" blockAlign="center">
                   <Text as="h2" variant="headingSm" fontWeight="semibold">
                     Theme App Embed
                   </Text>
                   <Badge tone="warning">Inactive</Badge>
+                </InlineStack>
+
+                <div className="buyease-theme-footer">
+                  <div className="buyease-theme-footer-left">
+                    <span className="buyease-theme-icon">
+                      <Icon source={AppsIcon} tone="subdued" />
+                    </span>
+                    <Text as="p" variant="bodySm" tone="subdued">
+                      Form will not be visible when app embed is inactive
+                    </Text>
+                  </div>
+
                   <Button
                     variant="primary"
                     icon={ExternalIcon}
                     url={openThemeEditorUrl}
                     target="_blank"
+                    disabled={!openThemeEditorUrl}
                   >
                     Open theme
                   </Button>
                 </div>
-              </div>
+              </BlockStack>
             </Card>
           </Layout.Section>
         </Layout>

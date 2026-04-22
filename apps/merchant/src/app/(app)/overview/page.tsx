@@ -1,6 +1,17 @@
 import { db } from "@buyease/db";
 import { cookies } from "next/headers";
+import { validateShopDomain } from "@/lib/auth";
 import { OverviewClientBridge } from "./overview-client-bridge";
+
+type OverviewSearchParams = Promise<{
+  shop?: string | string[];
+  host?: string | string[];
+}>;
+
+function pickFirst(value: string | string[] | undefined): string | undefined {
+  if (Array.isArray(value)) return value[0];
+  return value;
+}
 
 async function getHomeData(shop: string) {
   const now = new Date();
@@ -57,14 +68,25 @@ async function getHomeData(shop: string) {
   };
 }
 
-export default async function OverviewPage(): Promise<React.JSX.Element> {
-  const cookieStore = await cookies();
+export default async function OverviewPage({
+  searchParams,
+}: {
+  searchParams: OverviewSearchParams;
+}): Promise<React.JSX.Element> {
+  const [cookieStore, params] = await Promise.all([cookies(), searchParams]);
+
   const shopCookie = cookieStore.get("shopify_shop")?.value?.trim().toLowerCase();
   const sessionId = cookieStore.get("shopify_session")?.value;
   const session = sessionId
     ? await db.session.findUnique({ where: { id: sessionId }, select: { shop: true } })
     : null;
-  const shop = (shopCookie || session?.shop || "").trim().toLowerCase();
+
+  // On the very first embedded load (before the App Bridge token exchange completes),
+  // cookies aren't set yet but Shopify always passes `?shop=<store>.myshopify.com`.
+  // Use that as a trusted fallback so we can render real shop URLs and persist the
+  // merchant row immediately (section 5F — Built for Shopify: no broken first-load UI).
+  const shopFromParam = validateShopDomain(pickFirst(params.shop) ?? "");
+  const shop = (shopCookie || session?.shop || shopFromParam || "").trim().toLowerCase();
 
   if (shop) {
     await db.merchant.upsert({
