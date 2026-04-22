@@ -2,6 +2,42 @@ import { db } from "@buyease/db";
 import { cookies } from "next/headers";
 import { OverviewClientBridge } from "./overview-client-bridge";
 
+type VitalsSummary = {
+  lcp: number | null;
+  cls: number | null;
+  inp: number | null;
+  sampleSize: number;
+};
+
+async function getVitalsSummary(shop: string): Promise<VitalsSummary> {
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+  const [lcp, cls, inp, sampleCount] = await Promise.all([
+    db.webVitalMetric.aggregate({
+      where: { shop, name: "LCP", createdAt: { gte: sevenDaysAgo } },
+      _avg: { value: true },
+    }),
+    db.webVitalMetric.aggregate({
+      where: { shop, name: "CLS", createdAt: { gte: sevenDaysAgo } },
+      _avg: { value: true },
+    }),
+    db.webVitalMetric.aggregate({
+      where: { shop, name: "INP", createdAt: { gte: sevenDaysAgo } },
+      _avg: { value: true },
+    }),
+    db.webVitalMetric.count({
+      where: { shop, createdAt: { gte: sevenDaysAgo } },
+    }),
+  ]);
+
+  return {
+    lcp: lcp._avg.value ?? null,
+    cls: cls._avg.value ?? null,
+    inp: inp._avg.value ?? null,
+    sampleSize: sampleCount,
+  };
+}
+
 async function getHomeData(shop: string) {
   const now = new Date();
   const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -14,6 +50,7 @@ async function getHomeData(shop: string) {
     ordersThisMonth,
     totalOrdersAll,
     merchant,
+    vitalsSummary,
   ] = await Promise.all([
     db.order.count({ where: { shopId: shop, createdAt: { gte: sevenDaysAgo } } }),
     db.order.aggregate({
@@ -32,6 +69,7 @@ async function getHomeData(shop: string) {
         plan: { select: { name: true, limits: true } },
       },
     }),
+    getVitalsSummary(shop),
   ]);
 
   const conversionRate =
@@ -54,6 +92,7 @@ async function getHomeData(shop: string) {
     totalOrders: totalOrdersAll,
     planName: merchant?.plan?.name ?? "Free",
     planOrderLimit,
+    vitalsSummary,
   };
 }
 

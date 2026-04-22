@@ -32,6 +32,12 @@ export type HomeClientProps = {
   totalOrders: number;
   planName: string;
   planOrderLimit: number;
+  vitalsSummary: {
+    lcp: number | null;
+    cls: number | null;
+    inp: number | null;
+    sampleSize: number;
+  };
 };
 
 const LEARN_MORE_URL = "https://buyease-landing.vercel.app";
@@ -79,9 +85,44 @@ const WHATS_NEW: Array<{
   },
 ];
 
-function HomeClientInner({ shop }: HomeClientProps): React.JSX.Element {
+function getVitalStatus(
+  name: "LCP" | "CLS" | "INP",
+  value: number | null
+): { tone: "success" | "warning" | "critical"; label: string } {
+  if (value === null) {
+    return { tone: "warning", label: "No data yet" };
+  }
+
+  if (name === "LCP") {
+    if (value < 1200) return { tone: "success", label: "Good" };
+    if (value <= 2500) return { tone: "warning", label: "Needs improvement" };
+    return { tone: "critical", label: "Poor" };
+  }
+  if (name === "CLS") {
+    if (value < 0.05) return { tone: "success", label: "Good" };
+    if (value <= 0.1) return { tone: "warning", label: "Needs improvement" };
+    return { tone: "critical", label: "Poor" };
+  }
+
+  if (value < 100) return { tone: "success", label: "Good" };
+  if (value <= 200) return { tone: "warning", label: "Needs improvement" };
+  return { tone: "critical", label: "Poor" };
+}
+
+function formatVital(name: "LCP" | "CLS" | "INP", value: number | null): string {
+  if (value === null) return "No samples";
+  if (name === "CLS") return value.toFixed(3);
+  if (name === "LCP") return `${Math.round(value)} ms`;
+  return `${Math.round(value)} ms`;
+}
+
+function HomeClientInner({ shop, vitalsSummary }: HomeClientProps): React.JSX.Element {
   const [changelogOpen, setChangelogOpen] = useState(true);
   const openThemeEditorUrl = `https://${shop}/admin/themes/current/editor?context=apps`;
+
+  const lcpStatus = getVitalStatus("LCP", vitalsSummary.lcp);
+  const clsStatus = getVitalStatus("CLS", vitalsSummary.cls);
+  const inpStatus = getVitalStatus("INP", vitalsSummary.inp);
 
   return (
     <>
@@ -163,15 +204,61 @@ function HomeClientInner({ shop }: HomeClientProps): React.JSX.Element {
               <div className="buyease-analytics-header">
                 <Icon source={ChartVerticalIcon} tone="subdued" />
                 <Text as="h2" variant="headingSm" fontWeight="semibold">
-                  Analytics - Last 7 days
+                  Performance monitoring - Last 7 days
                 </Text>
               </div>
               <Card>
-                <Box paddingBlock="300">
-                  <Text as="p" variant="bodyMd" tone="subdued" alignment="center">
-                    No data available yet
-                  </Text>
-                </Box>
+                <BlockStack gap="300">
+                  <InlineStack align="space-between" blockAlign="center">
+                    <Text as="p" variant="bodyMd" tone="subdued">
+                      Live BFS metrics from real merchant sessions.
+                    </Text>
+                    <Badge tone={vitalsSummary.sampleSize > 0 ? "success" : "warning"}>
+                      {`${vitalsSummary.sampleSize} samples`}
+                    </Badge>
+                  </InlineStack>
+                  <InlineStack gap="300" align="start" blockAlign="start">
+                    <Box minWidth="180px">
+                      <BlockStack gap="100">
+                        <InlineStack align="space-between">
+                          <Text as="p" variant="bodySm" tone="subdued">
+                            LCP target
+                          </Text>
+                          <Badge tone={lcpStatus.tone}>{lcpStatus.label}</Badge>
+                        </InlineStack>
+                        <Text as="p" variant="headingMd">
+                          {formatVital("LCP", vitalsSummary.lcp)}
+                        </Text>
+                      </BlockStack>
+                    </Box>
+                    <Box minWidth="180px">
+                      <BlockStack gap="100">
+                        <InlineStack align="space-between">
+                          <Text as="p" variant="bodySm" tone="subdued">
+                            CLS target
+                          </Text>
+                          <Badge tone={clsStatus.tone}>{clsStatus.label}</Badge>
+                        </InlineStack>
+                        <Text as="p" variant="headingMd">
+                          {formatVital("CLS", vitalsSummary.cls)}
+                        </Text>
+                      </BlockStack>
+                    </Box>
+                    <Box minWidth="180px">
+                      <BlockStack gap="100">
+                        <InlineStack align="space-between">
+                          <Text as="p" variant="bodySm" tone="subdued">
+                            INP target
+                          </Text>
+                          <Badge tone={inpStatus.tone}>{inpStatus.label}</Badge>
+                        </InlineStack>
+                        <Text as="p" variant="headingMd">
+                          {formatVital("INP", vitalsSummary.inp)}
+                        </Text>
+                      </BlockStack>
+                    </Box>
+                  </InlineStack>
+                </BlockStack>
               </Card>
             </BlockStack>
           </Layout.Section>

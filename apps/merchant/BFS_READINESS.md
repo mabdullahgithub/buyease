@@ -32,6 +32,12 @@ Maintain and monitor these thresholds:
 - CLS < 0.05
 - INP < 100ms
 
+Implementation status:
+
+- Live capture is enabled via `web-vitals` in the embedded merchant app.
+- Ingestion endpoint: `POST /api/monitoring/web-vitals` (Shopify session token required).
+- Dashboard visibility: Overview page card ("Performance monitoring - Last 7 days").
+
 Recommended cadence:
 
 1. Run Lighthouse CI for key merchant app pages on each pull request.

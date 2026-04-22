@@ -50,6 +50,7 @@ model Merchant {
   plan   Plan?   @relation(fields: [planId], references: [id])
 
   orders Order[]
+  webVitalMetrics WebVitalMetric[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -57,6 +58,29 @@ model Merchant {
   @@index([shop])
   @@index([planId])
   @@index([isActive])
+}
+
+model WebVitalMetric {
+  id             String       @id @default(cuid())
+  shop           String
+  merchant       Merchant     @relation(fields: [shop], references: [shop], onDelete: Cascade)
+  name           WebVitalName
+  value          Float
+  rating         String
+  path           String
+  metricId       String
+  navigationType String?
+  userAgent      String?
+  createdAt      DateTime     @default(now())
+
+  @@index([shop, name, createdAt])
+  @@index([createdAt])
+}
+
+enum WebVitalName {
+  LCP
+  CLS
+  INP
 }
 
 // ---------------------------------------------------------------------------
