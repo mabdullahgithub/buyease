@@ -1,4 +1,5 @@
 import { db } from "@buyease/db";
+import Link from "next/link";
 import { formatCurrency, formatDate } from "@buyease/utils";
 import {
   Card,
@@ -16,15 +17,66 @@ import {
 
 export const dynamic = "force-dynamic";
 
-async function getPlans() {
-  return db.plan.findMany({
-    orderBy: { price: "asc" },
+const PAGE_SIZE = 20;
+
+type SearchParams = Promise<{
+  cursor?: string;
+  direction?: "next" | "prev";
+}>;
+
+async function getPlans({
+  cursor,
+  direction,
+}: {
+  cursor?: string;
+  direction: "next" | "prev";
+}) {
+  const isPrev = direction === "prev" && Boolean(cursor);
+  const rows = await db.plan.findMany({
+    orderBy: { id: isPrev ? "asc" : "desc" },
+    take: PAGE_SIZE + 1,
+    ...(cursor
+      ? {
+          cursor: { id: cursor },
+          skip: 1,
+        }
+      : {}),
     include: { _count: { select: { merchants: true } } },
   });
+
+  const hasExtraRow = rows.length > PAGE_SIZE;
+  const slicedRows = hasExtraRow ? rows.slice(0, PAGE_SIZE) : rows;
+  const plans = isPrev ? slicedRows.reverse() : slicedRows;
+
+  return {
+    plans,
+    hasNextPage: isPrev ? Boolean(cursor) : hasExtraRow,
+    hasPrevPage: isPrev ? hasExtraRow : Boolean(cursor),
+    startCursor: plans[0]?.id ?? null,
+    endCursor: plans[plans.length - 1]?.id ?? null,
+  };
 }
 
-export default async function PlansPage() {
-  const plans = await getPlans();
+export default async function PlansPage({
+  searchParams,
+}: {
+  searchParams: SearchParams;
+}) {
+  const params = await searchParams;
+  const cursor = params.cursor;
+  const direction = params.direction === "prev" ? "prev" : "next";
+  const { plans, hasNextPage, hasPrevPage, startCursor, endCursor } = await getPlans({
+    cursor,
+    direction,
+  });
+
+  const createHref = (nextCursor: string | null, nextDirection: "next" | "prev") => {
+    if (!nextCursor) return "/plans";
+    const nextParams = new URLSearchParams();
+    nextParams.set("cursor", nextCursor);
+    nextParams.set("direction", nextDirection);
+    return `/plans?${nextParams.toString()}`;
+  };
 
   return (
     <div className="space-y-6">
@@ -89,6 +141,32 @@ export default async function PlansPage() {
           </Table>
         </CardContent>
       </Card>
+
+      <div className="flex items-center justify-between">
+        <p className="text-xs text-muted-foreground">Showing {plans.length} plans per page</p>
+        <div className="flex items-center gap-2">
+          {hasPrevPage ? (
+            <Link
+              href={createHref(startCursor, "prev")}
+              className="text-xs text-primary hover:underline"
+            >
+              Previous
+            </Link>
+          ) : (
+            <span className="text-xs text-muted-foreground">Previous</span>
+          )}
+          {hasNextPage ? (
+            <Link
+              href={createHref(endCursor, "next")}
+              className="text-xs text-primary hover:underline"
+            >
+              Next
+            </Link>
+          ) : (
+            <span className="text-xs text-muted-foreground">Next</span>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

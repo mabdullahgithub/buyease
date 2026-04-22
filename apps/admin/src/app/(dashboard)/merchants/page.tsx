@@ -19,20 +19,40 @@ const PAGE_SIZE = 50;
 
 export const dynamic = "force-dynamic";
 
-type SearchParams = Promise<{ page?: string; q?: string }>;
+type SearchParams = Promise<{
+  q?: string;
+  cursor?: string;
+  direction?: "next" | "prev";
+}>;
 
-async function getMerchants(page: number, query: string) {
-  const skip = (page - 1) * PAGE_SIZE;
+async function getMerchants({
+  query,
+  cursor,
+  direction,
+}: {
+  query: string;
+  cursor?: string;
+  direction: "next" | "prev";
+}) {
   const where = query
     ? { shop: { contains: query, mode: "insensitive" as const } }
     : {};
 
-  const [merchants, total] = await Promise.all([
+  const take = PAGE_SIZE + 1;
+  const isPrev = direction === "prev" && Boolean(cursor);
+  const orderBy = { id: isPrev ? ("asc" as const) : ("desc" as const) };
+
+  const [rows, total] = await Promise.all([
     db.merchant.findMany({
       where,
-      orderBy: { installedAt: "desc" },
-      skip,
-      take: PAGE_SIZE,
+      orderBy,
+      take,
+      ...(cursor
+        ? {
+            cursor: { id: cursor },
+            skip: 1,
+          }
+        : {}),
       select: {
         id: true,
         shop: true,
@@ -45,7 +65,18 @@ async function getMerchants(page: number, query: string) {
     db.merchant.count({ where }),
   ]);
 
-  return { merchants, total };
+  const hasExtraRow = rows.length > PAGE_SIZE;
+  const slicedRows = hasExtraRow ? rows.slice(0, PAGE_SIZE) : rows;
+  const merchants = isPrev ? slicedRows.reverse() : slicedRows;
+
+  return {
+    merchants,
+    total,
+    hasNextPage: isPrev ? Boolean(cursor) : hasExtraRow,
+    hasPrevPage: isPrev ? hasExtraRow : Boolean(cursor),
+    startCursor: merchants[0]?.id ?? null,
+    endCursor: merchants[merchants.length - 1]?.id ?? null,
+  };
 }
 
 export default async function MerchantsPage({
@@ -54,10 +85,25 @@ export default async function MerchantsPage({
   searchParams: SearchParams;
 }) {
   const params = await searchParams;
-  const page = Math.max(1, parseInt(params.page ?? "1", 10));
   const query = params.q ?? "";
+  const cursor = params.cursor;
+  const direction = params.direction === "prev" ? "prev" : "next";
 
-  const { merchants, total } = await getMerchants(page, query);
+  const { merchants, total, hasNextPage, hasPrevPage, startCursor, endCursor } =
+    await getMerchants({ query, cursor, direction });
+
+  const baseParams = new URLSearchParams();
+  if (query) baseParams.set("q", query);
+
+  const createHref = (nextCursor: string | null, nextDirection: "next" | "prev") => {
+    const nextParams = new URLSearchParams(baseParams);
+    if (nextCursor) {
+      nextParams.set("cursor", nextCursor);
+      nextParams.set("direction", nextDirection);
+    }
+    const queryString = nextParams.toString();
+    return queryString ? `/merchants?${queryString}` : "/merchants";
+  };
 
   return (
     <div className="space-y-6">
@@ -129,6 +175,34 @@ export default async function MerchantsPage({
           </Table>
         </CardContent>
       </Card>
+
+      <div className="flex items-center justify-between">
+        <p className="text-xs text-muted-foreground">
+          Showing {merchants.length} merchants per page
+        </p>
+        <div className="flex items-center gap-2">
+          {hasPrevPage ? (
+            <Link
+              href={createHref(startCursor, "prev")}
+              className="text-xs text-primary hover:underline"
+            >
+              Previous
+            </Link>
+          ) : (
+            <span className="text-xs text-muted-foreground">Previous</span>
+          )}
+          {hasNextPage ? (
+            <Link
+              href={createHref(endCursor, "next")}
+              className="text-xs text-primary hover:underline"
+            >
+              Next
+            </Link>
+          ) : (
+            <span className="text-xs text-muted-foreground">Next</span>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
