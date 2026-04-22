@@ -3,7 +3,7 @@
 import { NavMenu, TitleBar } from "@shopify/app-bridge-react";
 import { AppProvider, Frame } from "@shopify/polaris";
 import enTranslations from "@shopify/polaris/locales/en.json";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, type ReadonlyURLSearchParams } from "next/navigation";
 import { EmbeddedSoftNavigation } from "@/components/merchant/embedded-soft-navigation";
 import { appendEmbeddedAppQuery } from "@/lib/embedded-app-url";
 
