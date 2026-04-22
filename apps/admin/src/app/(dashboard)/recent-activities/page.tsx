@@ -1,5 +1,4 @@
 import { db } from "@buyease/db";
-import Link from "next/link";
 import { requireAdminSession } from "@/lib/admin-session";
 import {
   ActivityLogClient,
@@ -9,11 +8,13 @@ import {
 
 export const dynamic = "force-dynamic";
 
-const PAGE_SIZE = 100;
+const DEFAULT_PAGE_SIZE = 100;
+const PAGE_SIZE_OPTIONS = [25, 50, 100, 200] as const;
 
 type SearchParams = Promise<{
   cursor?: string;
   direction?: "next" | "prev";
+  pageSize?: string;
 }>;
 
 export default async function RecentActivitiesPage({
@@ -25,11 +26,15 @@ export default async function RecentActivitiesPage({
   const params = await searchParams;
   const cursor = params.cursor;
   const direction = params.direction === "prev" ? "prev" : "next";
+  const requestedPageSize = Number.parseInt(params.pageSize ?? `${DEFAULT_PAGE_SIZE}`, 10);
+  const pageSize = PAGE_SIZE_OPTIONS.includes(requestedPageSize as (typeof PAGE_SIZE_OPTIONS)[number])
+    ? requestedPageSize
+    : DEFAULT_PAGE_SIZE;
   const isPrev = direction === "prev" && Boolean(cursor);
 
   const rows = await db.adminLoginActivity.findMany({
     orderBy: { id: isPrev ? "asc" : "desc" },
-    take: PAGE_SIZE + 1,
+    take: pageSize + 1,
     ...(cursor
       ? {
           cursor: { id: cursor },
@@ -50,8 +55,8 @@ export default async function RecentActivitiesPage({
       adminUser: { select: { role: true } },
     },
   });
-  const hasExtraRow = rows.length > PAGE_SIZE;
-  const slicedRows = hasExtraRow ? rows.slice(0, PAGE_SIZE) : rows;
+  const hasExtraRow = rows.length > pageSize;
+  const slicedRows = hasExtraRow ? rows.slice(0, pageSize) : rows;
   const allLogs = isPrev ? slicedRows.reverse() : slicedRows;
   const loginOnlyLogs = allLogs.filter(
     (log) => !(log.userAgent ?? "").startsWith("SETTINGS_EVENT:")
@@ -100,38 +105,26 @@ export default async function RecentActivitiesPage({
   const startCursor = allLogs[0]?.id ?? null;
   const endCursor = allLogs[allLogs.length - 1]?.id ?? null;
   const createHref = (nextCursor: string | null, nextDirection: "next" | "prev") => {
-    if (!nextCursor) return "/recent-activities";
     const nextParams = new URLSearchParams();
-    nextParams.set("cursor", nextCursor);
-    nextParams.set("direction", nextDirection);
-    return `/recent-activities?${nextParams.toString()}`;
+    nextParams.set("pageSize", String(pageSize));
+    if (nextCursor) {
+      nextParams.set("cursor", nextCursor);
+      nextParams.set("direction", nextDirection);
+    }
+    const queryString = nextParams.toString();
+    return queryString ? `/recent-activities?${queryString}` : "/recent-activities";
   };
 
   return (
-    <div className="space-y-4">
-      <ActivityLogClient logs={logs} stats={stats} />
-      <div className="flex items-center justify-end gap-3">
-        {hasPrevPage ? (
-          <Link
-            href={createHref(startCursor, "prev")}
-            className="text-xs text-primary hover:underline"
-          >
-            Previous
-          </Link>
-        ) : (
-          <span className="text-xs text-muted-foreground">Previous</span>
-        )}
-        {hasNextPage ? (
-          <Link
-            href={createHref(endCursor, "next")}
-            className="text-xs text-primary hover:underline"
-          >
-            Next
-          </Link>
-        ) : (
-          <span className="text-xs text-muted-foreground">Next</span>
-        )}
-      </div>
-    </div>
+    <ActivityLogClient
+      logs={logs}
+      stats={stats}
+      pagination={{
+        rowsPerPage: pageSize,
+        rowOptions: [...PAGE_SIZE_OPTIONS],
+        previousHref: hasPrevPage ? createHref(startCursor, "prev") : null,
+        nextHref: hasNextPage ? createHref(endCursor, "next") : null,
+      }}
+    />
   );
 }

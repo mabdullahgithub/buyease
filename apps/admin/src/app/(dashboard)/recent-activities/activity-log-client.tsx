@@ -37,6 +37,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import { TablePagination } from "@/components/admin/table-pagination";
 import { cn } from "@/lib/utils";
 
 export type ActivityLogEntry = {
@@ -141,9 +142,16 @@ function filterByTab(logs: ActivityLogEntry[], tab: TabId): ActivityLogEntry[] {
 export function ActivityLogClient({
   logs,
   stats,
+  pagination,
 }: {
   logs: ActivityLogEntry[];
   stats: ActivityStats;
+  pagination?: {
+    rowsPerPage: number;
+    rowOptions: number[];
+    previousHref: string | null;
+    nextHref: string | null;
+  };
 }) {
   const [activeTab, setActiveTab] = useState<TabId>("all");
   const [search, setSearch] = useState("");
@@ -416,6 +424,17 @@ export function ActivityLogClient({
               Showing {filteredLogs.length} of {tabFilteredLogs.length} events
             </p>
           )}
+
+          {pagination ? (
+            <div className="pt-1">
+              <TablePagination
+                rowsPerPage={pagination.rowsPerPage}
+                rowOptions={pagination.rowOptions}
+                previousHref={pagination.previousHref}
+                nextHref={pagination.nextHref}
+              />
+            </div>
+          ) : null}
         </div>
       </div>
 

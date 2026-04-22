@@ -1,5 +1,5 @@
 import { SystemSettingsSkeleton } from "@/components/admin/page-skeletons";
 
-export default function SettingsLoading() {
+export default function SystemSettingsLoading() {
   return <SystemSettingsSkeleton />;
 }

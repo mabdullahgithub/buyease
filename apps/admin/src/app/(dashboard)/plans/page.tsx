@@ -1,5 +1,4 @@
 import { db } from "@buyease/db";
-import Link from "next/link";
 import { formatCurrency, formatDate } from "@buyease/utils";
 import {
   Card,
@@ -14,27 +13,32 @@ import {
   TableHeader,
   TableRow,
 } from "@buyease/ui";
+import { TablePagination } from "@/components/admin/table-pagination";
 
 export const dynamic = "force-dynamic";
 
-const PAGE_SIZE = 20;
+const DEFAULT_PAGE_SIZE = 25;
+const PAGE_SIZE_OPTIONS = [10, 25, 50, 100] as const;
 
 type SearchParams = Promise<{
   cursor?: string;
   direction?: "next" | "prev";
+  pageSize?: string;
 }>;
 
 async function getPlans({
   cursor,
   direction,
+  pageSize,
 }: {
   cursor?: string;
   direction: "next" | "prev";
+  pageSize: number;
 }) {
   const isPrev = direction === "prev" && Boolean(cursor);
   const rows = await db.plan.findMany({
     orderBy: { id: isPrev ? "asc" : "desc" },
-    take: PAGE_SIZE + 1,
+    take: pageSize + 1,
     ...(cursor
       ? {
           cursor: { id: cursor },
@@ -44,8 +48,8 @@ async function getPlans({
     include: { _count: { select: { merchants: true } } },
   });
 
-  const hasExtraRow = rows.length > PAGE_SIZE;
-  const slicedRows = hasExtraRow ? rows.slice(0, PAGE_SIZE) : rows;
+  const hasExtraRow = rows.length > pageSize;
+  const slicedRows = hasExtraRow ? rows.slice(0, pageSize) : rows;
   const plans = isPrev ? slicedRows.reverse() : slicedRows;
 
   return {
@@ -65,17 +69,25 @@ export default async function PlansPage({
   const params = await searchParams;
   const cursor = params.cursor;
   const direction = params.direction === "prev" ? "prev" : "next";
+  const requestedPageSize = Number.parseInt(params.pageSize ?? `${DEFAULT_PAGE_SIZE}`, 10);
+  const pageSize = PAGE_SIZE_OPTIONS.includes(requestedPageSize as (typeof PAGE_SIZE_OPTIONS)[number])
+    ? requestedPageSize
+    : DEFAULT_PAGE_SIZE;
   const { plans, hasNextPage, hasPrevPage, startCursor, endCursor } = await getPlans({
     cursor,
     direction,
+    pageSize,
   });
 
   const createHref = (nextCursor: string | null, nextDirection: "next" | "prev") => {
-    if (!nextCursor) return "/plans";
     const nextParams = new URLSearchParams();
-    nextParams.set("cursor", nextCursor);
-    nextParams.set("direction", nextDirection);
-    return `/plans?${nextParams.toString()}`;
+    nextParams.set("pageSize", String(pageSize));
+    if (nextCursor) {
+      nextParams.set("cursor", nextCursor);
+      nextParams.set("direction", nextDirection);
+    }
+    const queryString = nextParams.toString();
+    return queryString ? `/plans?${queryString}` : "/plans";
   };
 
   return (
@@ -142,31 +154,12 @@ export default async function PlansPage({
         </CardContent>
       </Card>
 
-      <div className="flex items-center justify-between">
-        <p className="text-xs text-muted-foreground">Showing {plans.length} plans per page</p>
-        <div className="flex items-center gap-2">
-          {hasPrevPage ? (
-            <Link
-              href={createHref(startCursor, "prev")}
-              className="text-xs text-primary hover:underline"
-            >
-              Previous
-            </Link>
-          ) : (
-            <span className="text-xs text-muted-foreground">Previous</span>
-          )}
-          {hasNextPage ? (
-            <Link
-              href={createHref(endCursor, "next")}
-              className="text-xs text-primary hover:underline"
-            >
-              Next
-            </Link>
-          ) : (
-            <span className="text-xs text-muted-foreground">Next</span>
-          )}
-        </div>
-      </div>
+      <TablePagination
+        rowsPerPage={pageSize}
+        rowOptions={[...PAGE_SIZE_OPTIONS]}
+        previousHref={hasPrevPage ? createHref(startCursor, "prev") : null}
+        nextHref={hasNextPage ? createHref(endCursor, "next") : null}
+      />
     </div>
   );
 }

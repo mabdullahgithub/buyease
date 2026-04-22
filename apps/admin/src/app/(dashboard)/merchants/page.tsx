@@ -14,8 +14,10 @@ import {
   TableRow,
   Badge,
 } from "@buyease/ui";
+import { TablePagination } from "@/components/admin/table-pagination";
 
-const PAGE_SIZE = 50;
+const DEFAULT_PAGE_SIZE = 25;
+const PAGE_SIZE_OPTIONS = [10, 25, 50, 100] as const;
 
 export const dynamic = "force-dynamic";
 
@@ -23,22 +25,25 @@ type SearchParams = Promise<{
   q?: string;
   cursor?: string;
   direction?: "next" | "prev";
+  pageSize?: string;
 }>;
 
 async function getMerchants({
   query,
   cursor,
   direction,
+  pageSize,
 }: {
   query: string;
   cursor?: string;
   direction: "next" | "prev";
+  pageSize: number;
 }) {
   const where = query
     ? { shop: { contains: query, mode: "insensitive" as const } }
     : {};
 
-  const take = PAGE_SIZE + 1;
+  const take = pageSize + 1;
   const isPrev = direction === "prev" && Boolean(cursor);
   const orderBy = { id: isPrev ? ("asc" as const) : ("desc" as const) };
 
@@ -65,8 +70,8 @@ async function getMerchants({
     db.merchant.count({ where }),
   ]);
 
-  const hasExtraRow = rows.length > PAGE_SIZE;
-  const slicedRows = hasExtraRow ? rows.slice(0, PAGE_SIZE) : rows;
+  const hasExtraRow = rows.length > pageSize;
+  const slicedRows = hasExtraRow ? rows.slice(0, pageSize) : rows;
   const merchants = isPrev ? slicedRows.reverse() : slicedRows;
 
   return {
@@ -88,12 +93,17 @@ export default async function MerchantsPage({
   const query = params.q ?? "";
   const cursor = params.cursor;
   const direction = params.direction === "prev" ? "prev" : "next";
+  const requestedPageSize = Number.parseInt(params.pageSize ?? `${DEFAULT_PAGE_SIZE}`, 10);
+  const pageSize = PAGE_SIZE_OPTIONS.includes(requestedPageSize as (typeof PAGE_SIZE_OPTIONS)[number])
+    ? requestedPageSize
+    : DEFAULT_PAGE_SIZE;
 
   const { merchants, total, hasNextPage, hasPrevPage, startCursor, endCursor } =
-    await getMerchants({ query, cursor, direction });
+    await getMerchants({ query, cursor, direction, pageSize });
 
   const baseParams = new URLSearchParams();
   if (query) baseParams.set("q", query);
+  baseParams.set("pageSize", String(pageSize));
 
   const createHref = (nextCursor: string | null, nextDirection: "next" | "prev") => {
     const nextParams = new URLSearchParams(baseParams);
@@ -176,33 +186,12 @@ export default async function MerchantsPage({
         </CardContent>
       </Card>
 
-      <div className="flex items-center justify-between">
-        <p className="text-xs text-muted-foreground">
-          Showing {merchants.length} merchants per page
-        </p>
-        <div className="flex items-center gap-2">
-          {hasPrevPage ? (
-            <Link
-              href={createHref(startCursor, "prev")}
-              className="text-xs text-primary hover:underline"
-            >
-              Previous
-            </Link>
-          ) : (
-            <span className="text-xs text-muted-foreground">Previous</span>
-          )}
-          {hasNextPage ? (
-            <Link
-              href={createHref(endCursor, "next")}
-              className="text-xs text-primary hover:underline"
-            >
-              Next
-            </Link>
-          ) : (
-            <span className="text-xs text-muted-foreground">Next</span>
-          )}
-        </div>
-      </div>
+      <TablePagination
+        rowsPerPage={pageSize}
+        rowOptions={[...PAGE_SIZE_OPTIONS]}
+        previousHref={hasPrevPage ? createHref(startCursor, "prev") : null}
+        nextHref={hasNextPage ? createHref(endCursor, "next") : null}
+      />
     </div>
   );
 }

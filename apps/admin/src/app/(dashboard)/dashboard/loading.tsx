@@ -1,5 +1,5 @@
 import { DashboardHomeSkeleton } from "@/components/admin/page-skeletons";
 
-export default function DashboardLoading() {
+export default function DashboardHomeLoading() {
   return <DashboardHomeSkeleton />;
 }
