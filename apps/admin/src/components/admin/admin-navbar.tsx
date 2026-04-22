@@ -4,12 +4,20 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
-import { Bell, ChevronRight, CircleUser, LogOut, Search, ShieldCheck } from "lucide-react";
+import { Bell, ChevronRight, CircleUser, LogOut, Search, ShieldCheck, Upload } from "lucide-react";
 
 import { AdminCommandMenu } from "@/components/admin/admin-command-menu";
 import { BrandLogo } from "@/components/admin/brand-logo";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,6 +25,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 
@@ -103,13 +113,46 @@ export function AdminNavbar() {
   const pathname = usePathname();
   const { data: session } = useSession();
   const [cmdOpen, setCmdOpen] = React.useState(false);
+  const [profileModalOpen, setProfileModalOpen] = React.useState(false);
+  const [profileName, setProfileName] = React.useState("");
+  const [profileAvatar, setProfileAvatar] = React.useState<string | null>(null);
+  const [draftName, setDraftName] = React.useState("");
+  const [draftAvatar, setDraftAvatar] = React.useState<string | null>(null);
+  const [profileSaving, setProfileSaving] = React.useState(false);
+  const [profileError, setProfileError] = React.useState<string | null>(null);
 
   const crumbs = useBreadcrumbs(pathname);
 
   const email = session?.user?.email ?? "";
   const displayName =
+    profileName ||
     (session?.user as { name?: string } | undefined)?.name?.trim() ||
     (email ? email.split("@")[0] : "Admin");
+
+  React.useEffect(() => {
+    let mounted = true;
+    if (!email) return;
+
+    const loadProfile = async () => {
+      try {
+        const response = await fetch("/api/admin/profile", { method: "GET" });
+        const data = (await response.json()) as {
+          ok?: boolean;
+          profile?: { displayName?: string | null; avatarDataUrl?: string | null };
+        };
+        if (!mounted || !response.ok || !data.ok) return;
+        setProfileName((data.profile?.displayName ?? "").trim());
+        setProfileAvatar(data.profile?.avatarDataUrl ?? null);
+      } catch {
+        // keep graceful fallback to session display data
+      }
+    };
+
+    void loadProfile();
+    return () => {
+      mounted = false;
+    };
+  }, [email]);
 
   React.useEffect(() => {
     const h = (e: KeyboardEvent) => {
@@ -122,9 +165,153 @@ export function AdminNavbar() {
     return () => window.removeEventListener("keydown", h);
   }, []);
 
+  const handleOpenProfileModal = () => {
+    setProfileError(null);
+    setDraftName(displayName);
+    setDraftAvatar(profileAvatar);
+    setProfileModalOpen(true);
+  };
+
+  const handleAvatarUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = typeof reader.result === "string" ? reader.result : null;
+      setDraftAvatar(result);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const saveProfile = async () => {
+    if (!email) return;
+    setProfileSaving(true);
+    setProfileError(null);
+    try {
+      const formData = new FormData();
+      formData.set("displayName", draftName.trim());
+      if (draftAvatar === null && profileAvatar !== null) {
+        formData.set("removeImage", "true");
+      }
+
+      if (draftAvatar && draftAvatar.startsWith("data:")) {
+        const [meta, payload] = draftAvatar.split(",", 2);
+        const mimeType = meta.match(/^data:(.*?);base64$/)?.[1] ?? "image/png";
+        const binary = atob(payload ?? "");
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+        const file = new File([bytes], "avatar", { type: mimeType });
+        formData.set("image", file);
+      }
+
+      const response = await fetch("/api/admin/profile", {
+        method: "PATCH",
+        body: formData,
+      });
+      let data: {
+        ok?: boolean;
+        error?: string;
+        profile?: { displayName?: string | null; avatarDataUrl?: string | null };
+      } | null = null;
+      try {
+        data = (await response.json()) as {
+          ok?: boolean;
+          error?: string;
+          profile?: { displayName?: string | null; avatarDataUrl?: string | null };
+        };
+      } catch {
+        data = null;
+      }
+      if (!response.ok || !data?.ok) {
+        setProfileError(
+          data?.error ??
+            `Unable to save profile right now (${response.status}). Please try again.`
+        );
+        return;
+      }
+
+      setProfileName((data.profile?.displayName ?? "").trim());
+      setProfileAvatar(data.profile?.avatarDataUrl ?? null);
+      setProfileModalOpen(false);
+    } catch {
+      setProfileError("Network error. Try again.");
+    } finally {
+      setProfileSaving(false);
+    }
+  };
+
   return (
     <>
       <AdminCommandMenu open={cmdOpen} onOpenChange={setCmdOpen} />
+      <Dialog open={profileModalOpen} onOpenChange={setProfileModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>My Profile</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-5 py-2">
+            <div className="flex items-center gap-4">
+              <Avatar className="size-14">
+                {draftAvatar ? <AvatarImage src={draftAvatar} alt={displayName} /> : null}
+                <AvatarFallback className="bg-[#5c6ac4] text-sm font-bold text-white">
+                  {initialsFrom(email)}
+                </AvatarFallback>
+              </Avatar>
+              <div className="space-y-2">
+                <Label htmlFor="profile-avatar">Profile picture</Label>
+                <div className="flex items-center gap-2">
+                  <Label
+                    htmlFor="profile-avatar"
+                    className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-md border border-border px-3 text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    <Upload className="size-3.5" />
+                    Upload
+                  </Label>
+                  {draftAvatar ? (
+                    <button
+                      type="button"
+                      className="text-xs text-muted-foreground hover:text-foreground"
+                      onClick={() => setDraftAvatar(null)}
+                    >
+                      Remove
+                    </button>
+                  ) : null}
+                </div>
+                <input
+                  id="profile-avatar"
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleAvatarUpload}
+                />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="profile-name">Name</Label>
+              <Input
+                id="profile-name"
+                value={draftName}
+                onChange={(event) => setDraftName(event.target.value)}
+                placeholder="Your name"
+                maxLength={60}
+              />
+            </div>
+            {profileError ? <p className="text-xs text-destructive">{profileError}</p> : null}
+          </div>
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              onClick={() => setProfileModalOpen(false)}
+              disabled={profileSaving}
+            >
+              Cancel
+            </Button>
+            <Button onClick={() => void saveProfile()} disabled={profileSaving}>
+              {profileSaving ? "Saving..." : "Save changes"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/*
         Full-width sticky navbar — spans the entire viewport.
@@ -208,6 +395,7 @@ export function AdminNavbar() {
             <DropdownMenuTrigger className="flex items-center outline-none">
               <div className="relative">
                 <Avatar className="size-6">
+                  {profileAvatar ? <AvatarImage src={profileAvatar} alt={displayName} /> : null}
                   <AvatarFallback className="bg-[#5c6ac4] text-[9px] font-bold text-white">
                     {initialsFrom(email)}
                   </AvatarFallback>
@@ -225,6 +413,7 @@ export function AdminNavbar() {
               {/* User block */}
               <div className="flex items-center gap-3 px-4 py-3.5">
                 <Avatar className="size-9 shrink-0">
+                  {profileAvatar ? <AvatarImage src={profileAvatar} alt={displayName} /> : null}
                   <AvatarFallback className="bg-[#5c6ac4] text-[11px] font-bold text-white">
                     {initialsFrom(email)}
                   </AvatarFallback>
@@ -239,14 +428,15 @@ export function AdminNavbar() {
 
               <DropdownMenuSeparator className="m-0" />
 
-              <Link href="/account/profile" className="block">
-                <DropdownMenuItem className="cursor-pointer gap-2.5 rounded-none px-4 py-2.5 text-[13px]">
-                  <CircleUser className="size-3.5 opacity-60" />
-                  My Profile
-                </DropdownMenuItem>
-              </Link>
+              <DropdownMenuItem
+                onClick={handleOpenProfileModal}
+                className="cursor-pointer gap-2.5 rounded-none px-4 py-2.5 text-[13px]"
+              >
+                <CircleUser className="size-3.5 opacity-60" />
+                My Profile
+              </DropdownMenuItem>
 
-              <Link href="/account/security" className="block">
+              <Link href="/settings/security" className="block">
                 <DropdownMenuItem className="cursor-pointer gap-2.5 rounded-none px-4 py-2.5 text-[13px]">
                   <ShieldCheck className="size-3.5 opacity-60" />
                   Account Security

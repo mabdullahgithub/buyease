@@ -121,6 +121,9 @@ enum PlanInterval {
 model AdminUser {
   id           String    @id @default(cuid())
   email        String    @unique
+  displayName  String?
+  profileImage Bytes?
+  profileImageMimeType String?
   passwordHash String
   role         AdminRole @default(VIEWER)
   passwordReminderDays Int @default(30)

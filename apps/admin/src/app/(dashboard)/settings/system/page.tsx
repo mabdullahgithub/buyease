@@ -12,7 +12,11 @@ import {
 } from "@/components/ui/card";
 import { requireAdminSession } from "@/lib/admin-session";
 import { getEnvAllowlistIps, normalizeIp } from "@/lib/admin-network";
-import { resolveIpAccessMode, setIpAccessMode } from "@/lib/admin-ip-policy";
+import {
+  invalidateAdminIpPolicyCache,
+  resolveIpAccessMode,
+  setIpAccessMode,
+} from "@/lib/admin-ip-policy";
 
 import {
   AddAllowlistForm,
@@ -62,6 +66,7 @@ async function addAllowlistedIp(
     return { success: false, error: "Failed to add IP. Please try again." };
   }
 
+  invalidateAdminIpPolicyCache();
   revalidatePath("/settings/system");
   return { success: true };
 }
@@ -88,6 +93,7 @@ async function removeAllowlistedIp(
     return { success: false, error: "Failed to remove IP." };
   }
 
+  invalidateAdminIpPolicyCache();
   revalidatePath("/settings/system");
   return { success: true };
 }
@@ -122,6 +128,7 @@ async function addBlockedIp(
     return { success: false, error: "Failed to block IP. Please try again." };
   }
 
+  invalidateAdminIpPolicyCache();
   revalidatePath("/settings/system");
   return { success: true };
 }
@@ -151,6 +158,7 @@ async function removeBlockedIp(
     return { success: false, error: "Failed to unblock IP." };
   }
 
+  invalidateAdminIpPolicyCache();
   revalidatePath("/settings/system");
   return { success: true };
 }
