@@ -123,23 +123,23 @@ export default async function AdminDashboardPage() {
             */
             <Card
               key={title}
-              className="min-w-[210px] shrink-0 flex-1 rounded-lg border border-border bg-card shadow-none ring-0"
+              className="min-w-[180px] shrink-0 flex-1 rounded-lg border border-border bg-card shadow-none ring-0"
             >
-              <CardHeader className="pb-2 pt-4">
+              <CardHeader className="pb-1.5 pt-3">
                 <div className="flex items-start justify-between gap-3">
                   <CardTitle className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
                     {title}
                   </CardTitle>
-                  <div className="rounded-md border border-border bg-muted/40 p-1.5">
-                    <Icon className="size-3.5 shrink-0 text-muted-foreground" />
+                  <div className="rounded-md border border-border bg-muted/40 p-1">
+                    <Icon className="size-3 shrink-0 text-muted-foreground" />
                   </div>
                 </div>
               </CardHeader>
-              <CardContent className="pb-4">
-                <p className="text-2xl font-semibold leading-none tracking-tight text-foreground">
+              <CardContent className="pb-3">
+                <p className="text-xl font-semibold leading-none tracking-tight text-foreground">
                   {value}
                 </p>
-                <CardDescription className="mt-1.5 text-[12px]">
+                <CardDescription className="mt-1 text-[11px]">
                   {description}
                 </CardDescription>
               </CardContent>
@@ -153,19 +153,19 @@ export default async function AdminDashboardPage() {
         <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
           Quick actions
         </p>
-        <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+        <div className="grid grid-cols-7 gap-2">
           {QUICK_ACTIONS.map(({ href, label, icon: Icon }) => (
             <Link
               key={href}
               href={href}
               className={cn(
                 buttonVariants({ variant: "outline", size: "default" }),
-                "h-auto flex-col gap-2 rounded-lg border-border bg-card py-4 text-muted-foreground shadow-none",
+                "h-auto min-w-0 flex-col gap-1.5 rounded-lg border-border bg-card px-2 py-2 text-muted-foreground shadow-none",
                 "hover:bg-accent hover:text-foreground",
               )}
             >
-              <Icon className="size-4 opacity-60" />
-              <span className="text-[12px] font-normal">{label}</span>
+              <Icon className="size-3.5 opacity-60" />
+              <span className="truncate text-[10px] font-normal">{label}</span>
             </Link>
           ))}
         </div>
