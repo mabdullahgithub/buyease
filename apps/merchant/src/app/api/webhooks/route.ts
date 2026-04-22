@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyShopifyWebhookHmac } from "@buyease/utils";
-import { db, Prisma } from "@buyease/db";
+import { Prisma } from "@prisma/client";
+import { db } from "@buyease/db";
 import { validateShopDomain } from "@/lib/auth";
 import { invalidateMerchantAppCache } from "@/lib/merchant-cache";
 
