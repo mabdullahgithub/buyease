@@ -1,6 +1,7 @@
 import { db } from "@buyease/db";
 import { cookies } from "next/headers";
 import { validateShopDomain } from "@/lib/auth";
+import { getThemeAppEmbedStatus } from "@/lib/theme-app-embed";
 import { OverviewClientBridge } from "./overview-client-bridge";
 
 type OverviewSearchParams = Promise<{
@@ -96,7 +97,10 @@ export default async function OverviewPage({
     });
   }
 
-  const data = await getHomeData(shop);
+  const [data, themeEmbed] = await Promise.all([
+    getHomeData(shop),
+    shop ? getThemeAppEmbedStatus(shop) : Promise.resolve({ state: "unknown" as const, reason: "missing_session" as const }),
+  ]);
 
-  return <OverviewClientBridge shop={shop} {...data} />;
+  return <OverviewClientBridge shop={shop} themeEmbed={themeEmbed} {...data} />;
 }

@@ -20,6 +20,8 @@ import {
 } from "@shopify/polaris-icons";
 import Image from "next/image";
 import { Suspense, useState } from "react";
+import { MerchantPageSkeleton } from "@/components/merchant/app-skeleton";
+import type { ThemeAppEmbedStatus } from "@/lib/theme-app-embed";
 
 export type HomeClientProps = {
   shop: string;
@@ -30,6 +32,7 @@ export type HomeClientProps = {
   totalOrders: number;
   planName: string;
   planOrderLimit: number;
+  themeEmbed: ThemeAppEmbedStatus;
 };
 
 const LEARN_MORE_URL = "https://buyease-landing.vercel.app";
@@ -77,13 +80,39 @@ const WHATS_NEW: Array<{
   },
 ];
 
-function HomeClientInner({ shop }: HomeClientProps): React.JSX.Element {
+function HomeClientInner({ shop, themeEmbed }: HomeClientProps): React.JSX.Element {
   const [changelogOpen, setChangelogOpen] = useState(true);
   const normalizedShop = shop.trim().toLowerCase();
   const hasShop = /^[a-z0-9][a-z0-9-]*\.myshopify\.com$/.test(normalizedShop);
+
+  const themeEditorPath =
+    themeEmbed.state === "active" || themeEmbed.state === "inactive"
+      ? `themes/${themeEmbed.themeId}/editor`
+      : "themes/current/editor";
   const openThemeEditorUrl = hasShop
-    ? `https://${normalizedShop}/admin/themes/current/editor?context=apps`
+    ? `https://${normalizedShop}/admin/${themeEditorPath}?context=apps`
     : undefined;
+
+  const embedBadge: {
+    tone: "success" | "warning" | "attention";
+    label: string;
+  } =
+    themeEmbed.state === "active"
+      ? { tone: "success", label: "Active" }
+      : themeEmbed.state === "inactive"
+        ? { tone: "warning", label: "Inactive" }
+        : { tone: "attention", label: "Status unknown" };
+
+  const embedHelperText: string =
+    themeEmbed.state === "active"
+      ? "BuyEase is embedded in your live theme."
+      : themeEmbed.state === "inactive"
+        ? "Form will not be visible until the app embed is enabled in your theme."
+        : themeEmbed.reason === "missing_extension_id"
+          ? "Theme embed check is not configured. Set SHOPIFY_THEME_EXTENSION_ID to enable live status."
+          : themeEmbed.reason === "missing_session"
+            ? "Re-open BuyEase from Shopify Admin to refresh the embed status."
+            : "We couldn't read the live theme right now. Try again in a moment.";
 
   return (
     <>
@@ -338,7 +367,7 @@ function HomeClientInner({ shop }: HomeClientProps): React.JSX.Element {
                   <Text as="h2" variant="headingSm" fontWeight="semibold">
                     Theme App Embed
                   </Text>
-                  <Badge tone="warning">Inactive</Badge>
+                  <Badge tone={embedBadge.tone}>{embedBadge.label}</Badge>
                 </InlineStack>
 
                 <div className="buyease-theme-footer">
@@ -347,7 +376,7 @@ function HomeClientInner({ shop }: HomeClientProps): React.JSX.Element {
                       <Icon source={AppsIcon} tone="subdued" />
                     </span>
                     <Text as="p" variant="bodySm" tone="subdued">
-                      Form will not be visible when app embed is inactive
+                      {embedHelperText}
                     </Text>
                   </div>
 
@@ -372,7 +401,7 @@ function HomeClientInner({ shop }: HomeClientProps): React.JSX.Element {
 
 export function HomeClient(props: HomeClientProps): React.JSX.Element {
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<MerchantPageSkeleton />}>
       <HomeClientInner {...props} />
     </Suspense>
   );

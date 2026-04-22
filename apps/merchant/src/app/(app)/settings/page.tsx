@@ -15,9 +15,35 @@ import {
   Divider,
   List,
   Link,
+  SkeletonBodyText,
+  SkeletonDisplayText,
 } from "@shopify/polaris";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { SHOPIFY_EMBED_STORAGE_KEY } from "@/lib/shopify-embed-session-storage";
+
+declare global {
+  interface Window {
+    shopify?: {
+      idToken?: () => Promise<string>;
+    };
+  }
+}
+
+async function getShopifySessionToken(): Promise<string | null> {
+  const deadline = Date.now() + 6000;
+  while (Date.now() < deadline) {
+    const idTokenFn = window.shopify?.idToken;
+    if (typeof idTokenFn === "function") {
+      try {
+        return await idTokenFn.call(window.shopify);
+      } catch {
+        return null;
+      }
+    }
+    await new Promise((r) => setTimeout(r, 40));
+  }
+  return null;
+}
 
 /** Stable id for App Bridge `ui-save-bar` (contextual save bar in Shopify admin chrome). */
 const SETTINGS_SAVE_BAR_ID = "buyease-settings-save-bar";
@@ -70,18 +96,86 @@ export default function SettingsPage() {
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
   const [savedBanner, setSavedBanner] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const isDirty = useMemo(() => !settingsEqual(settings, baseline), [settings, baseline]);
 
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const token = await getShopifySessionToken();
+        if (!token) {
+          if (!cancelled) {
+            setLoadError("Couldn't authenticate with Shopify — please reload the page.");
+            setLoading(false);
+          }
+          return;
+        }
+        const res = await fetch("/api/settings", {
+          credentials: "same-origin",
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) {
+          throw new Error(`Failed to load settings (${res.status})`);
+        }
+        const data = (await res.json()) as { settings?: Settings };
+        if (cancelled) return;
+        if (data.settings) {
+          setBaseline(data.settings);
+          setSettings(data.settings);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setLoadError(error instanceof Error ? error.message : "Failed to load settings.");
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const handleDiscard = useCallback(() => {
     setSettings({ ...baseline });
+    setSaveError(null);
   }, [baseline]);
 
   const handleSave = useCallback(async () => {
     setSaving(true);
+    setSaveError(null);
     try {
-      await new Promise((r) => setTimeout(r, 600));
-      setBaseline({ ...settings });
+      const token = await getShopifySessionToken();
+      if (!token) {
+        throw new Error("Couldn't authenticate with Shopify — please reload the page.");
+      }
+      const res = await fetch("/api/settings", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(settings),
+      });
+      if (!res.ok) {
+        let message = `Failed to save settings (${res.status})`;
+        try {
+          const body = (await res.json()) as { error?: string };
+          if (body?.error) message = body.error;
+        } catch {
+          /* no JSON body */
+        }
+        throw new Error(message);
+      }
+      const data = (await res.json()) as { settings?: Settings };
+      const nextBaseline = data.settings ?? settings;
+      setBaseline(nextBaseline);
+      setSettings(nextBaseline);
       setSavedBanner(true);
       setTimeout(() => setSavedBanner(false), 4000);
       try {
@@ -89,6 +183,8 @@ export default function SettingsPage() {
       } catch {
         /* App Bridge toast unavailable outside embedded admin */
       }
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : "Failed to save settings.");
     } finally {
       setSaving(false);
     }
@@ -103,7 +199,7 @@ export default function SettingsPage() {
         App Bridge requires native buttons inside `ui-save-bar` (not Polaris Button).
         @see https://shopify.dev/docs/api/app-home/apis/save-bar
       */}
-      <SaveBar id={SETTINGS_SAVE_BAR_ID} open={isDirty}>
+      <SaveBar id={SETTINGS_SAVE_BAR_ID} open={isDirty && !loading}>
         <button type="button" disabled={saving} onClick={handleDiscard}>
           Discard
         </button>
@@ -120,6 +216,22 @@ export default function SettingsPage() {
       </SaveBar>
 
       <Layout>
+        {loadError && (
+          <Layout.Section>
+            <Banner tone="critical" onDismiss={() => setLoadError(null)}>
+              {loadError}
+            </Banner>
+          </Layout.Section>
+        )}
+
+        {saveError && (
+          <Layout.Section>
+            <Banner tone="critical" onDismiss={() => setSaveError(null)}>
+              {saveError}
+            </Banner>
+          </Layout.Section>
+        )}
+
         {savedBanner && (
           <Layout.Section>
             <Banner tone="success" onDismiss={() => setSavedBanner(false)}>
@@ -128,78 +240,95 @@ export default function SettingsPage() {
           </Layout.Section>
         )}
 
-        <Layout.Section>
-          <Card>
-            <BlockStack gap="400">
-              <Text as="h2" variant="headingMd">
-                General
-              </Text>
-              <FormLayout>
-                <Select
-                  label="Default Currency"
-                  options={CURRENCY_OPTIONS}
-                  value={settings.defaultCurrency}
-                  onChange={(v) =>
-                    setSettings((s) => ({ ...s, defaultCurrency: v }))
-                  }
-                />
-                <Select
-                  label="Timezone"
-                  options={TIMEZONE_OPTIONS}
-                  value={settings.timezone}
-                  onChange={(v) =>
-                    setSettings((s) => ({ ...s, timezone: v }))
-                  }
-                />
-              </FormLayout>
-            </BlockStack>
-          </Card>
-        </Layout.Section>
+        {loading && (
+          <Layout.Section>
+            <Card>
+              <BlockStack gap="400">
+                <SkeletonDisplayText size="small" />
+                <SkeletonBodyText lines={4} />
+              </BlockStack>
+            </Card>
+          </Layout.Section>
+        )}
 
-        <Layout.Section>
-          <Card>
-            <BlockStack gap="400">
-              <Text as="h2" variant="headingMd">
-                Notifications
-              </Text>
-              <FormLayout>
-                <TextField
-                  label="Notification Email"
-                  type="email"
-                  value={settings.notificationEmail}
-                  onChange={(v) =>
-                    setSettings((s) => ({ ...s, notificationEmail: v }))
-                  }
-                  helpText="Receive order notifications at this address"
-                  autoComplete="email"
-                />
-              </FormLayout>
-            </BlockStack>
-          </Card>
-        </Layout.Section>
+        {!loading && (
+          <Layout.Section>
+            <Card>
+              <BlockStack gap="400">
+                <Text as="h2" variant="headingMd">
+                  General
+                </Text>
+                <FormLayout>
+                  <Select
+                    label="Default Currency"
+                    options={CURRENCY_OPTIONS}
+                    value={settings.defaultCurrency}
+                    onChange={(v) =>
+                      setSettings((s) => ({ ...s, defaultCurrency: v }))
+                    }
+                  />
+                  <Select
+                    label="Timezone"
+                    options={TIMEZONE_OPTIONS}
+                    value={settings.timezone}
+                    onChange={(v) =>
+                      setSettings((s) => ({ ...s, timezone: v }))
+                    }
+                  />
+                </FormLayout>
+              </BlockStack>
+            </Card>
+          </Layout.Section>
+        )}
 
-        <Layout.Section>
-          <Card>
-            <BlockStack gap="400">
-              <Text as="h2" variant="headingMd">
-                Webhooks
-              </Text>
-              <Divider />
-              <FormLayout>
-                <TextField
-                  label="Webhook Endpoint URL"
-                  type="url"
-                  value={settings.webhookUrl}
-                  onChange={(v) =>
-                    setSettings((s) => ({ ...s, webhookUrl: v }))
-                  }
-                  helpText="BuyEase will POST order events to this URL"
-                  autoComplete="off"
-                />
-              </FormLayout>
-            </BlockStack>
-          </Card>
-        </Layout.Section>
+        {!loading && (
+          <Layout.Section>
+            <Card>
+              <BlockStack gap="400">
+                <Text as="h2" variant="headingMd">
+                  Notifications
+                </Text>
+                <FormLayout>
+                  <TextField
+                    label="Notification Email"
+                    type="email"
+                    value={settings.notificationEmail}
+                    onChange={(v) =>
+                      setSettings((s) => ({ ...s, notificationEmail: v }))
+                    }
+                    helpText="Receive order notifications at this address"
+                    autoComplete="email"
+                  />
+                </FormLayout>
+              </BlockStack>
+            </Card>
+          </Layout.Section>
+        )}
+
+        {!loading && (
+          <Layout.Section>
+            <Card>
+              <BlockStack gap="400">
+                <Text as="h2" variant="headingMd">
+                  Webhooks
+                </Text>
+                <Divider />
+                <FormLayout>
+                  <TextField
+                    label="Webhook Endpoint URL"
+                    type="url"
+                    value={settings.webhookUrl}
+                    onChange={(v) =>
+                      setSettings((s) => ({ ...s, webhookUrl: v }))
+                    }
+                    helpText="BuyEase will POST order events to this URL (must be https)"
+                    autoComplete="off"
+                  />
+                </FormLayout>
+              </BlockStack>
+            </Card>
+          </Layout.Section>
+        )}
 
         <Layout.Section>
           <Card>
