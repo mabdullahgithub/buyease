@@ -151,7 +151,7 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    let nextImage: Buffer | null | undefined;
+    let nextImage: Uint8Array<ArrayBuffer> | null | undefined;
     let nextImageType: string | null | undefined;
 
     if (removeImage) {
@@ -174,7 +174,7 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
       }
 
       const arrayBuffer = await imageFile.arrayBuffer();
-      nextImage = Buffer.from(arrayBuffer);
+      nextImage = new Uint8Array(arrayBuffer);
       nextImageType = imageFile.type;
     }
 
