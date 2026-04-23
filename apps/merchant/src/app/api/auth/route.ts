@@ -20,14 +20,33 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   }
 
   try {
-    const { url } = await shopify.auth.begin({
+    const shopifyRes = (await shopify.auth.begin({
       shop: sanitizedShop,
       callbackPath: "/api/auth/callback",
       isOnline: false,
       rawRequest: req,
-    });
+    })) as Response;
 
-    return NextResponse.redirect(url);
+    const location = shopifyRes.headers.get("Location");
+    if (!location) {
+      console.error("Auth start failed: missing Location on OAuth response");
+      return NextResponse.json({ error: "OAuth initiation failed" }, { status: 500 });
+    }
+
+    const out = NextResponse.redirect(location, shopifyRes.status === 307 ? 307 : 302);
+    const raw = shopifyRes.headers as Headers & { getSetCookie?: () => string[] };
+    const list = typeof raw.getSetCookie === "function" ? raw.getSetCookie() : [];
+    if (list.length > 0) {
+      for (const cookie of list) {
+        out.headers.append("Set-Cookie", cookie);
+      }
+    } else {
+      const single = shopifyRes.headers.get("set-cookie");
+      if (single) {
+        out.headers.append("Set-Cookie", single);
+      }
+    }
+    return out;
   } catch (error) {
     console.error("Auth start failed", error);
     return NextResponse.json({ error: "OAuth initiation failed" }, { status: 500 });

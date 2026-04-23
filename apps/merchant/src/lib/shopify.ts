@@ -1,4 +1,4 @@
-import "@shopify/shopify-api/adapters/node";
+import "@shopify/shopify-api/adapters/web-api";
 import { ApiVersion, LogSeverity, shopifyApi } from "@shopify/shopify-api";
 import { RedisSessionStorage } from "@shopify/shopify-app-session-storage-redis";
 
