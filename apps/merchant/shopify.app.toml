@@ -1,43 +1,39 @@
-name = "COD Form & Upsells"
-client_id = ""
+# Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
+
+client_id = "e41060c8d2fb8abbc90ae3d1fc42455a"
+name = "BuyEase COD Form"
 application_url = "https://buyease-merchant-4st4.vercel.app"
 embedded = true
+
+[webhooks]
+api_version = "2026-04"
+
+  [[webhooks.subscriptions]]
+  topics = [
+    "orders/create",
+    "orders/updated",
+    "app/uninstalled",
+    "app_subscriptions/update",
+  ]
+  compliance_topics = [
+    "customers/data_request",
+    "customers/redact",
+    "shop/redact",
+  ]
+  uri = "/api/webhooks"
 
 [access.admin]
 direct_api_mode = "offline"
 embedded_app_direct_api_access = true
 
 [access_scopes]
-scopes = "read_products,write_products,write_orders,read_orders,read_customers,write_customers,read_script_tags,write_script_tags"
+# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
+scopes = "read_customers,write_customers,read_orders,write_orders,read_products,write_products,read_script_tags,write_script_tags"
+optional_scopes = [ ]
 use_legacy_install_flow = false
 
-[webhooks]
-api_version = "2026-04"
-
-[[webhooks.subscriptions]]
-topics = ["orders/create"]
-uri = "/api/webhooks"
-
-[[webhooks.subscriptions]]
-topics = ["orders/updated"]
-uri = "/api/webhooks"
-
-[[webhooks.subscriptions]]
-topics = ["app/uninstalled"]
-uri = "/api/webhooks"
-
-[[webhooks.subscriptions]]
-topics = ["app_subscriptions/update"]
-uri = "/api/webhooks"
-
-[[webhooks.subscriptions]]
-topics = ["customers/data_request"]
-uri = "/api/webhooks"
-
-[[webhooks.subscriptions]]
-topics = ["customers/redact"]
-uri = "/api/webhooks"
-
-[[webhooks.subscriptions]]
-topics = ["shop/redact"]
-uri = "/api/webhooks"
+[auth]
+redirect_urls = [
+  "https://buyease-merchant-4st4.vercel.app/api/auth",
+  "https://buyease-merchant-4st4.vercel.app/api/auth/callback"
+]
