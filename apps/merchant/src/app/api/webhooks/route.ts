@@ -1,145 +1,124 @@
 import { NextRequest, NextResponse } from "next/server";
+
 import { verifyShopifyWebhookHmac } from "@buyease/utils";
-import { db, Prisma } from "@buyease/db";
-import { validateShopDomain } from "@/lib/auth";
-import { invalidateMerchantAppCache } from "@/lib/merchant-cache";
+import { prisma } from "@/lib/db";
+import { getPlanRecord, normalizePlanKey } from "@/lib/billing";
 
-export async function POST(request: NextRequest): Promise<NextResponse> {
+type AppSubscriptionPayload = {
+  app_subscription?: {
+    status?: string;
+    name?: string;
+  };
+};
+
+export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
-    const rawBody = await request.text();
-    const hmacHeader = request.headers.get("x-shopify-hmac-sha256") ?? "";
-    const topic = request.headers.get("x-shopify-topic") ?? "";
-    const shopHeader = request.headers.get("x-shopify-shop-domain") ?? "";
+    const rawBody = await req.text();
+    const topic = req.headers.get("x-shopify-topic") ?? "";
+    const shop = req.headers.get("x-shopify-shop-domain") ?? "";
+    const hmac = req.headers.get("x-shopify-hmac-sha256") ?? "";
 
-    const secret = process.env.SHOPIFY_API_SECRET;
-    if (!secret) {
-      return NextResponse.json({ error: "Server misconfigured" }, { status: 500 });
+    if (!hmac) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const isValid = verifyShopifyWebhookHmac(rawBody, secret, hmacHeader);
-    if (!isValid) {
-      return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
+    const secret = process.env.SHOPIFY_API_SECRET ?? "";
+    const valid = verifyShopifyWebhookHmac(rawBody, secret, hmac);
+
+    if (!valid) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    await handleWebhook(topic, shopHeader, rawBody);
+    const payload = JSON.parse(rawBody) as AppSubscriptionPayload;
 
-    return NextResponse.json({ received: true }, { status: 200 });
-  } catch (error) {
-    console.error("[webhooks] Error:", error);
-    return NextResponse.json({ error: "Webhook processing failed" }, { status: 500 });
-  }
-}
-
-function webhookShop(shopHeader: string): string | null {
-  return validateShopDomain(shopHeader);
-}
-
-async function handleWebhook(topic: string, shopHeader: string, rawBody: string): Promise<void> {
-  const shop = webhookShop(shopHeader);
-
-  try {
     switch (topic) {
-      case "app/uninstalled": {
-        if (!shop) {
-          console.warn("[webhooks] app/uninstalled: invalid shop header", shopHeader);
-          return;
-        }
-        await db.$transaction([
-          db.session.deleteMany({ where: { shop } }),
-          db.merchant.updateMany({
-            where: { shop },
-            data: { isActive: false, uninstalledAt: new Date() },
-          }),
-        ]);
-        invalidateMerchantAppCache(shop);
-        break;
-      }
-
-      case "shop/redact": {
-        if (!shop) {
-          console.warn("[webhooks] shop/redact: invalid shop header", shopHeader);
-          return;
-        }
-        await db.$transaction([
-          db.session.deleteMany({ where: { shop } }),
-          db.order.deleteMany({ where: { shopId: shop } }),
-          db.merchant.deleteMany({ where: { shop } }),
-        ]);
-        invalidateMerchantAppCache(shop);
-        break;
-      }
-
-      case "customers/redact": {
-        if (!shop) {
-          console.warn("[webhooks] customers/redact: invalid shop header", shopHeader);
-          return;
-        }
-        let payload: { orders_to_redact?: unknown };
-        try {
-          payload = JSON.parse(rawBody) as { orders_to_redact?: unknown };
-        } catch {
-          console.warn("[webhooks] customers/redact: invalid JSON");
-          return;
-        }
-        const rawIds = payload.orders_to_redact;
-        const orderIds = Array.isArray(rawIds)
-          ? rawIds.map((id) => String(id)).filter((id) => id.length > 0)
-          : [];
-        if (orderIds.length === 0) {
-          return;
-        }
-        await db.order.updateMany({
-          where: { shopId: shop, orderId: { in: orderIds } },
+      case "app/uninstalled":
+        await prisma.merchant.updateMany({
+          where: { shop },
           data: {
-            customerName: null,
-            customerPhone: null,
-            customerEmail: null,
-            metadata: Prisma.JsonNull,
+            isActive: false,
+            uninstalledAt: new Date(),
           },
         });
-        invalidateMerchantAppCache(shop);
         break;
-      }
+      case "app_subscriptions/update": {
+        const status = payload.app_subscription?.status;
+        if (status === "ACTIVE") {
+          const normalizedPlan = normalizePlanKey(payload.app_subscription?.name ?? "free");
+          const planRecord = getPlanRecord(normalizedPlan);
 
-      case "customers/data_request": {
-        if (!shop) {
-          console.warn("[webhooks] customers/data_request: invalid shop header", shopHeader);
-          return;
-        }
-        try {
-          const payload = JSON.parse(rawBody) as { customer?: { id?: unknown } };
-          console.info("[webhooks] customers/data_request", {
-            shop,
-            customerId: payload.customer?.id,
+          const dbPlan = await prisma.plan.upsert({
+            where: { name: planRecord.name },
+            create: {
+              name: planRecord.name,
+              price: planRecord.price,
+              interval: "MONTHLY",
+              features: planRecord.features,
+              limits: planRecord.limits,
+              isActive: true,
+            },
+            update: {
+              price: planRecord.price,
+              features: planRecord.features,
+              limits: planRecord.limits,
+              isActive: true,
+            },
           });
-        } catch {
-          console.info("[webhooks] customers/data_request", { shop });
+
+          await prisma.merchant.upsert({
+            where: { shop },
+            create: {
+              shop,
+              isActive: true,
+              planId: dbPlan.id,
+              billingCycleStart: new Date(),
+            },
+            update: {
+              isActive: true,
+              uninstalledAt: null,
+              planId: dbPlan.id,
+              billingCycleStart: new Date(),
+            },
+          });
+        } else if (status === "CANCELLED" || status === "DECLINED") {
+          const freePlan = getPlanRecord("free");
+          const dbPlan = await prisma.plan.upsert({
+            where: { name: freePlan.name },
+            create: {
+              name: freePlan.name,
+              price: freePlan.price,
+              interval: "MONTHLY",
+              features: freePlan.features,
+              limits: freePlan.limits,
+              isActive: true,
+            },
+            update: {
+              price: freePlan.price,
+              features: freePlan.features,
+              limits: freePlan.limits,
+              isActive: true,
+            },
+          });
+          await prisma.merchant.updateMany({
+            where: { shop },
+            data: { planId: dbPlan.id },
+          });
         }
         break;
       }
-
-      case "orders/create": {
-        if (!shop) {
-          console.warn("[webhooks] orders/create: invalid shop header", shopHeader);
-          return;
-        }
-        const order = JSON.parse(rawBody) as { id: number; total_price: string };
-        await db.order.create({
-          data: {
-            shopId: shop,
-            orderId: String(order.id),
-            codAmount: parseFloat(order.total_price),
-            status: "PENDING",
-          },
-        });
-        invalidateMerchantAppCache(shop);
+      case "orders/create":
+      case "orders/updated":
+      case "customers/data_request":
+      case "customers/redact":
+      case "shop/redact":
         break;
-      }
-
       default:
         break;
     }
+
+    return NextResponse.json({ ok: true });
   } catch (error) {
-    console.error(`[webhooks] Failed to process topic "${topic}" for shop "${shopHeader}":`, error);
+    console.error("Webhook processing failed", error);
+    return NextResponse.json({ error: "Webhook processing failed" }, { status: 500 });
   }
 }

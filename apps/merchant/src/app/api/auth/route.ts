@@ -1,80 +1,35 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getShopify } from "@/lib/shopify";
-import { db } from "@buyease/db";
-import {
-  EMBEDDED_HOST_PARAM_RE,
-  mergeEmbeddedSearchParams,
-  SHOPIFY_EMBED_HOST_COOKIE,
-} from "@/lib/embedded-app-url";
-import { collectSetCookieLines, redirectWithSetCookies, serializeSetCookie } from "@/lib/forward-set-cookies";
-import { invalidateMerchantAppCache } from "@/lib/merchant-cache";
 
-export async function GET(request: NextRequest): Promise<NextResponse> {
+import shopify from "@/lib/shopify";
+
+export async function GET(req: NextRequest): Promise<NextResponse> {
+  const shop = req.nextUrl.searchParams.get("shop");
+  if (!shop) {
+    return NextResponse.json({ error: "Missing shop" }, { status: 400 });
+  }
+
+  let sanitizedShop: string | null = null;
   try {
-    const returnToCookie = request.cookies.get("shopify_return_to")?.value;
-    const returnTo = returnToCookie?.startsWith("/") ? returnToCookie : "/overview";
+    sanitizedShop = shopify.utils.sanitizeShop(shop, true);
+  } catch {
+    return NextResponse.json({ error: "Invalid shop" }, { status: 400 });
+  }
 
-    const callbackResponse = await getShopify().auth.callback({
-      rawRequest: request,
+  if (!sanitizedShop) {
+    return NextResponse.json({ error: "Invalid shop" }, { status: 400 });
+  }
+
+  try {
+    const { url } = await shopify.auth.begin({
+      shop: sanitizedShop,
+      callbackPath: "/api/auth/callback",
+      isOnline: false,
+      rawRequest: req,
     });
 
-    const session = callbackResponse.session;
-
-    await db.merchant.upsert({
-      where: { shop: session.shop },
-      update: { isActive: true, uninstalledAt: null },
-      create: { shop: session.shop, isActive: true },
-    });
-    invalidateMerchantAppCache(session.shop);
-
-    const headersLike = callbackResponse.headers as unknown as Headers;
-    const setCookieLines = collectSetCookieLines(headersLike);
-    const secure = process.env.NODE_ENV === "production";
-    setCookieLines.push(
-      serializeSetCookie("shopify_session", session.id, {
-        httpOnly: true,
-        secure,
-        sameSite: "none",
-        path: "/",
-        maxAge: 60 * 60 * 24 * 30,
-      }),
-      serializeSetCookie("shopify_shop", session.shop, {
-        httpOnly: true,
-        secure,
-        sameSite: "none",
-        path: "/",
-        maxAge: 60 * 60 * 24 * 30,
-      }),
-      serializeSetCookie("shopify_return_to", "", {
-        httpOnly: true,
-        secure,
-        sameSite: "lax",
-        path: "/",
-        maxAge: 0,
-      })
-    );
-
-    const hostParam = request.nextUrl.searchParams.get("host");
-    if (hostParam && EMBEDDED_HOST_PARAM_RE.test(hostParam)) {
-      setCookieLines.push(
-        serializeSetCookie(SHOPIFY_EMBED_HOST_COOKIE, hostParam, {
-          httpOnly: true,
-          secure,
-          sameSite: "lax",
-          path: "/",
-          maxAge: 60 * 60 * 24 * 30,
-        })
-      );
-    }
-
-    const dest = new URL(returnTo, request.url);
-    mergeEmbeddedSearchParams(dest, request.nextUrl.searchParams);
-
-    return redirectWithSetCookies(dest, setCookieLines);
+    return NextResponse.redirect(url);
   } catch (error) {
-    console.error("[api/auth] OAuth callback failed", error);
-    return NextResponse.redirect(
-      new URL("/install?error=oauth_callback_failed", request.url)
-    );
+    console.error("Auth start failed", error);
+    return NextResponse.json({ error: "OAuth initiation failed" }, { status: 500 });
   }
 }

@@ -1,6 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 72" fill="none">
-  <image href="/icon.png" x="0" y="6" width="60" height="60" preserveAspectRatio="xMidYMid meet" />
-  <text x="70" y="47" font-family="var(--font-comfortaa), Comfortaa, Arial, sans-serif" font-size="44" font-weight="600" letter-spacing="-1.8">
-    <tspan fill="#14B8A6">Buy</tspan><tspan fill="#F59E0B">Ease</tspan>
-  </text>
-</svg>

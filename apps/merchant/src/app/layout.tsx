@@ -1,46 +1,27 @@
 import type { Metadata } from "next";
-import { Comfortaa } from "next/font/google";
 import Script from "next/script";
-import "@shopify/polaris/build/esm/styles.css";
-import { EmbeddedSessionBootstrap } from "@/components/merchant/embedded-session-bootstrap";
-import { EmbeddedTopLevelRedirect } from "@/components/merchant/embedded-top-level-redirect";
-import { PersistShopifyEmbedParams } from "@/components/merchant/persist-shopify-embed-params";
+import type { ReactNode } from "react";
 
-const comfortaa = Comfortaa({
-  subsets: ["latin"],
-  variable: "--font-comfortaa",
-  display: "swap",
-});
+import Providers from "@/app/providers";
 
 export const metadata: Metadata = {
-  title: "BuyEase COD Form — Merchant",
-  description: "BuyEase COD Form & Upsells for Shopify merchants.",
-  icons: {
-    icon: "/icon.png",
-  },
+  title: "BuyEase Merchant",
+  description: "BuyEase Shopify merchant app",
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{ children: React.ReactNode }>) {
-  const apiKey = process.env.SHOPIFY_API_KEY ?? "";
+type RootLayoutProps = {
+  children: ReactNode;
+};
 
+export default function RootLayout({ children }: RootLayoutProps): ReactNode {
   return (
-    <html lang="en" className={comfortaa.variable}>
+    <html lang="en">
       <head>
-        {apiKey ? <meta name="shopify-api-key" content={apiKey} /> : null}
+        <meta name="shopify-api-key" content={process.env.NEXT_PUBLIC_SHOPIFY_API_KEY!} />
+        <Script src="https://cdn.shopify.com/shopifycloud/app-bridge.js" strategy="beforeInteractive" />
       </head>
       <body>
-        {apiKey ? (
-          <Script
-            src="https://cdn.shopify.com/shopifycloud/app-bridge.js"
-            strategy="beforeInteractive"
-          />
-        ) : null}
-        <EmbeddedTopLevelRedirect />
-        <PersistShopifyEmbedParams />
-        <EmbeddedSessionBootstrap />
-        {children}
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

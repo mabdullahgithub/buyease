@@ -1,7 +1,21 @@
 import type { NextConfig } from "next";
 
+function devOriginFromAppUrl(): string[] {
+  const raw = process.env.HOST?.trim();
+  if (!raw) {
+    return [];
+  }
+  try {
+    const url = new URL(raw);
+    return url.hostname ? [url.hostname] : [];
+  } catch {
+    return [];
+  }
+}
+
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  allowedDevOrigins: devOriginFromAppUrl(),
   transpilePackages: ["@buyease/db", "@buyease/utils"],
   /**
    * Prevent Polaris / App Bridge from being bundled into the server SSR chunk.
@@ -14,9 +28,6 @@ const nextConfig: NextConfig = {
   serverExternalPackages: [
     "@prisma/client",
     "prisma",
-    "@shopify/polaris",
-    "@shopify/polaris-icons",
-    "@shopify/app-bridge-react",
   ],
   /**
    * Shopify Admin often loads the app origin with `/apps/{client_id}/…` (mirroring the
@@ -37,9 +48,17 @@ const nextConfig: NextConfig = {
       {
         source: "/(.*)",
         headers: [
-          // Do not set X-Frame-Options: DENY — embedded apps load inside Shopify
-          // admin / shop iframes. CSP frame-ancestors is set in `src/proxy.ts` (Next.js proxy).
+          { key: "X-Frame-Options", value: "ALLOWALL" },
           { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          {
+            key: "Content-Security-Policy",
+            value: [
+              "default-src 'self'",
+              "script-src 'self' 'unsafe-inline' https://cdn.shopify.com https://maps.googleapis.com",
+              "frame-ancestors https://*.myshopify.com https://admin.shopify.com",
+            ].join("; "),
+          },
         ],
       },
     ];

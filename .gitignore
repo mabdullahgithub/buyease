@@ -60,3 +60,6 @@ AGENTS.md
 # skills
 skills-lock.json
 .env*.local
+/apps/admin.zip
+/apps/merchant.zip
+/apps/landing.zip

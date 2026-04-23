@@ -45,6 +45,13 @@ model Merchant {
   installedAt DateTime @default(now())
   isActive    Boolean  @default(true)
   uninstalledAt DateTime?
+  accessToken String?
+  refreshToken String?
+  tokenExpiresAt DateTime?
+  scopes      String?
+  planBillingId String?
+  billingCycleStart DateTime @default(now())
+  ordersThisCycle Int @default(0)
 
   planId String?
   plan   Plan?   @relation(fields: [planId], references: [id])

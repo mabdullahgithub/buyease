@@ -1,116 +1,19 @@
-import "@shopify/shopify-api/adapters/web-api";
-import { shopifyApi, LATEST_API_VERSION, Session } from "@shopify/shopify-api";
-import { db } from "@buyease/db";
-import type { DbSession } from "@buyease/db";
+import "@shopify/shopify-api/adapters/node";
+import { ApiVersion, LogSeverity, shopifyApi } from "@shopify/shopify-api";
+import { RedisSessionStorage } from "@shopify/shopify-app-session-storage-redis";
 
-export const shopifySessionStorage = {
-  async storeSession(session: Session): Promise<boolean> {
-    const normalizedShop = session.shop.trim().toLowerCase();
+export const sessionStorage = new RedisSessionStorage(process.env.REDIS_URL!);
 
-    await db.session.upsert({
-      where: { id: session.id },
-      update: {
-        shop: normalizedShop,
-        state: session.state,
-        isOnline: session.isOnline,
-        scope: session.scope,
-        expires: session.expires,
-        accessToken: session.accessToken || "",
-        userId: session.onlineAccessInfo?.associated_user?.id
-          ? BigInt(session.onlineAccessInfo.associated_user.id)
-          : null,
-      },
-      create: {
-        id: session.id,
-        shop: normalizedShop,
-        state: session.state,
-        isOnline: session.isOnline,
-        scope: session.scope,
-        expires: session.expires,
-        accessToken: session.accessToken || "",
-        userId: session.onlineAccessInfo?.associated_user?.id
-          ? BigInt(session.onlineAccessInfo.associated_user.id)
-          : null,
-      },
-    });
-
-    await db.merchant.upsert({
-      where: { shop: normalizedShop },
-      update: {
-        isActive: true,
-        uninstalledAt: null,
-      },
-      create: {
-        shop: normalizedShop,
-        isActive: true,
-      },
-    });
-
-    return true;
+const shopify = shopifyApi({
+  apiKey: process.env.SHOPIFY_API_KEY!,
+  apiSecretKey: process.env.SHOPIFY_API_SECRET!,
+  scopes: process.env.SCOPES!.split(","),
+  hostName: process.env.HOST!.replace(/https?:\/\//, ""),
+  apiVersion: ApiVersion.April26,
+  isEmbeddedApp: true,
+  logger: {
+    level: LogSeverity.Warning,
   },
+});
 
-  async loadSession(id: string): Promise<Session | undefined> {
-    const row = await db.session.findUnique({ where: { id } });
-    if (!row) return undefined;
-
-    const session = new Session({
-      id: row.id,
-      shop: row.shop,
-      state: row.state,
-      isOnline: row.isOnline,
-    });
-    session.scope = row.scope ?? undefined;
-    session.expires = row.expires ?? undefined;
-    session.accessToken = row.accessToken;
-    return session;
-  },
-
-  async deleteSession(id: string): Promise<boolean> {
-    await db.session.deleteMany({ where: { id } });
-    return true;
-  },
-
-  async deleteSessions(ids: string[]): Promise<boolean> {
-    await db.session.deleteMany({ where: { id: { in: ids } } });
-    return true;
-  },
-
-  async findSessionsByShop(shop: string): Promise<Session[]> {
-    const rows: DbSession[] = await db.session.findMany({ where: { shop } });
-    return rows.map((row: DbSession) => {
-      const s = new Session({ id: row.id, shop: row.shop, state: row.state, isOnline: row.isOnline });
-      s.scope = row.scope ?? undefined;
-      s.expires = row.expires ?? undefined;
-      s.accessToken = row.accessToken;
-      return s;
-    });
-  },
-};
-
-let shopifyClient: ReturnType<typeof shopifyApi> | undefined;
-
-/**
- * Lazily constructs the Shopify API client so `next build` can import this module
- * without `SHOPIFY_*` env vars (they are still required at request time).
- */
-export function getShopify(): ReturnType<typeof shopifyApi> {
-  if (shopifyClient) {
-    return shopifyClient;
-  }
-
-  if (!process.env.SHOPIFY_API_KEY) throw new Error("SHOPIFY_API_KEY is required");
-  if (!process.env.SHOPIFY_API_SECRET) throw new Error("SHOPIFY_API_SECRET is required");
-  if (!process.env.SHOPIFY_APP_URL) throw new Error("SHOPIFY_APP_URL is required");
-
-  shopifyClient = shopifyApi({
-    apiKey: process.env.SHOPIFY_API_KEY,
-    apiSecretKey: process.env.SHOPIFY_API_SECRET,
-    scopes: (process.env.SHOPIFY_SCOPES ?? "read_orders,write_orders,read_products").split(","),
-    hostName: process.env.SHOPIFY_APP_URL.replace(/^https?:\/\//, ""),
-    apiVersion: LATEST_API_VERSION,
-    isEmbeddedApp: true,
-    sessionStorage: shopifySessionStorage,
-  });
-
-  return shopifyClient;
-}
+export default shopify;
