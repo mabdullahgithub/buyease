@@ -45,11 +45,9 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       },
     });
 
-    try {
-      await shopify.webhooks.register({ session });
-    } catch (webhookError) {
-      console.error("Webhook registration failed (session still saved)", webhookError);
-    }
+    // Webhooks are declared in shopify.app.toml (Partner / CLI). Runtime
+    // shopify.webhooks.register() calls Admin GraphQL and returns 403 without
+    // webhook-management scopes — TOML subscriptions do not need this call.
 
     const host = req.nextUrl.searchParams.get("host");
     return NextResponse.redirect(

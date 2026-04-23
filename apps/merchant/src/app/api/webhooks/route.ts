@@ -12,11 +12,16 @@ type AppSubscriptionPayload = {
   };
 };
 
+type AppUninstalledPayload = {
+  domain?: string;
+  myshopify_domain?: string;
+};
+
 export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
     const rawBody = await req.text();
     const topic = req.headers.get("x-shopify-topic") ?? "";
-    const shop = req.headers.get("x-shopify-shop-domain") ?? "";
+    const headerShop = (req.headers.get("x-shopify-shop-domain") ?? "").trim().toLowerCase();
     const hmac = req.headers.get("x-shopify-hmac-sha256") ?? "";
 
     if (!hmac) {
@@ -30,10 +35,28 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const payload = JSON.parse(rawBody) as AppSubscriptionPayload;
+    let payload: AppSubscriptionPayload & AppUninstalledPayload = {};
+    if (rawBody.trim()) {
+      try {
+        payload = JSON.parse(rawBody) as AppSubscriptionPayload & AppUninstalledPayload;
+      } catch {
+        console.error("Webhook body is not valid JSON", { topic });
+      }
+    }
 
     switch (topic) {
       case "app/uninstalled": {
+        const bodyShop =
+          typeof payload.myshopify_domain === "string"
+            ? payload.myshopify_domain.trim().toLowerCase()
+            : typeof payload.domain === "string"
+              ? payload.domain.trim().toLowerCase()
+              : "";
+        const shop = headerShop || bodyShop;
+        if (!shop) {
+          console.error("app/uninstalled: missing shop domain (header and body)");
+          break;
+        }
         try {
           const sessions = await sessionStorage.findSessionsByShop(shop);
           if (sessions.length > 0) {
@@ -43,16 +66,24 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
           console.error("Redis session cleanup on uninstall failed", error);
         }
         await prisma.session.deleteMany({ where: { shop } });
-        await prisma.merchant.updateMany({
+        const merchantResult = await prisma.merchant.updateMany({
           where: { shop },
           data: {
             isActive: false,
             uninstalledAt: new Date(),
           },
         });
+        if (merchantResult.count === 0) {
+          console.warn("app/uninstalled: no Merchant row updated", { shop });
+        }
         break;
       }
       case "app_subscriptions/update": {
+        const shop = headerShop;
+        if (!shop) {
+          console.error("app_subscriptions/update: missing x-shopify-shop-domain");
+          break;
+        }
         const status = payload.app_subscription?.status;
         if (status === "ACTIVE") {
           const normalizedPlan = normalizePlanKey(payload.app_subscription?.name ?? "free");
