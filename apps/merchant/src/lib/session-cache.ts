@@ -46,38 +46,43 @@ export async function getCachedSession(sessionId: string): Promise<Session | und
 }
 
 export async function saveSession(session: Session): Promise<void> {
-  await Promise.all([
-    sessionStorage.storeSession(session),
-    prisma.session.upsert({
-      where: { id: session.id },
-      create: {
-        id: session.id,
-        shop: session.shop,
-        state: session.state ?? "",
-        isOnline: session.isOnline,
-        scope: session.scope,
-        expires: session.expires,
-        accessToken: session.accessToken ?? "",
-        firstName: (session as { firstName?: string }).firstName,
-        lastName: (session as { lastName?: string }).lastName,
-        email: (session as { email?: string }).email,
-      },
-      update: {
-        state: session.state ?? "",
-        accessToken: session.accessToken ?? "",
-        scope: session.scope,
-        expires: session.expires,
-      },
-    }),
-  ]);
+  await prisma.session.upsert({
+    where: { id: session.id },
+    create: {
+      id: session.id,
+      shop: session.shop,
+      state: session.state ?? "",
+      isOnline: session.isOnline,
+      scope: session.scope,
+      expires: session.expires,
+      accessToken: session.accessToken ?? "",
+      firstName: (session as { firstName?: string }).firstName,
+      lastName: (session as { lastName?: string }).lastName,
+      email: (session as { email?: string }).email,
+    },
+    update: {
+      state: session.state ?? "",
+      accessToken: session.accessToken ?? "",
+      scope: session.scope,
+      expires: session.expires,
+    },
+  });
+
+  try {
+    await sessionStorage.storeSession(session);
+  } catch (error) {
+    console.error("Redis session store failed; session is in Postgres", error);
+  }
 
   memoryCache.set(session.id, session);
 }
 
 export async function deleteSession(sessionId: string): Promise<void> {
-  await Promise.all([
-    sessionStorage.deleteSession(sessionId),
-    prisma.session.deleteMany({ where: { id: sessionId } }),
-  ]);
+  await prisma.session.deleteMany({ where: { id: sessionId } });
+  try {
+    await sessionStorage.deleteSession(sessionId);
+  } catch (error) {
+    console.error("Redis session delete failed; Postgres row removed", error);
+  }
   memoryCache.delete(sessionId);
 }

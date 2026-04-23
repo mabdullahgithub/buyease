@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { verifyShopifyWebhookHmac } from "@buyease/utils";
 import { prisma } from "@/lib/db";
 import { getPlanRecord, normalizePlanKey } from "@/lib/billing";
+import { sessionStorage } from "@/lib/shopify";
 
 type AppSubscriptionPayload = {
   app_subscription?: {
@@ -32,7 +33,16 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const payload = JSON.parse(rawBody) as AppSubscriptionPayload;
 
     switch (topic) {
-      case "app/uninstalled":
+      case "app/uninstalled": {
+        try {
+          const sessions = await sessionStorage.findSessionsByShop(shop);
+          if (sessions.length > 0) {
+            await sessionStorage.deleteSessions(sessions.map((s) => s.id));
+          }
+        } catch (error) {
+          console.error("Redis session cleanup on uninstall failed", error);
+        }
+        await prisma.session.deleteMany({ where: { shop } });
         await prisma.merchant.updateMany({
           where: { shop },
           data: {
@@ -41,6 +51,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
           },
         });
         break;
+      }
       case "app_subscriptions/update": {
         const status = payload.app_subscription?.status;
         if (status === "ACTIVE") {
