@@ -2,6 +2,7 @@ import { Session } from "@shopify/shopify-api";
 import { NextRequest, NextResponse } from "next/server";
 
 import { getCachedSession } from "@/lib/session-cache";
+import { shopHostnameFromSessionTokenDest } from "@/lib/shop-domain";
 import shopify from "@/lib/shopify";
 
 type SessionHandler = (req: NextRequest, session: Session) => Promise<NextResponse>;
@@ -15,7 +16,11 @@ export function withSessionVerification(handler: SessionHandler) {
 
     try {
       const payload = await shopify.session.decodeSessionToken(bearerToken);
-      const shop = payload.dest.replace("https://", "");
+      const hostname = shopHostnameFromSessionTokenDest(payload.dest);
+      const shop = shopify.utils.sanitizeShop(hostname, true);
+      if (!shop) {
+        return NextResponse.json({ error: "Invalid token", reauth: true }, { status: 401 });
+      }
       const sessionId = shopify.session.getOfflineId(shop);
 
       const session = await getCachedSession(sessionId);
