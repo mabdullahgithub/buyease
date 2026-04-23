@@ -1,13 +1,31 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import {
+  BotActivityDetected,
+  CookieNotFound,
+  InvalidOAuthError,
+  ShopifyError,
+} from "@shopify/shopify-api";
+
 import { prisma } from "@/lib/db";
 import { merchantAppOrigin } from "@/lib/merchant-app-url";
 import { saveSession } from "@/lib/session-cache";
 import shopify from "@/lib/shopify";
+import { toShopifyAuthRequest } from "@/lib/shopify-auth-request";
+
+function oauthErrorCode(error: unknown): string {
+  if (error instanceof CookieNotFound) return "oauth_state_missing";
+  if (error instanceof InvalidOAuthError) return "oauth_invalid";
+  if (error instanceof BotActivityDetected) return "oauth_bot";
+  if (error instanceof ShopifyError) return "shopify_error";
+  return "unknown";
+}
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
   try {
-    const { session } = await shopify.auth.callback({ rawRequest: req });
+    const { session } = await shopify.auth.callback({
+      rawRequest: toShopifyAuthRequest(req),
+    });
 
     await saveSession(session);
 
@@ -27,14 +45,22 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       },
     });
 
-    await shopify.webhooks.register({ session });
+    try {
+      await shopify.webhooks.register({ session });
+    } catch (webhookError) {
+      console.error("Webhook registration failed (session still saved)", webhookError);
+    }
 
     const host = req.nextUrl.searchParams.get("host");
     return NextResponse.redirect(
       `${merchantAppOrigin()}/?shop=${session.shop}&host=${host ?? ""}`,
     );
   } catch (error) {
-    console.error("Auth callback failed", error);
-    return NextResponse.json({ error: "Authentication failed" }, { status: 500 });
+    const code = oauthErrorCode(error);
+    console.error("Auth callback failed", { code, error });
+    return NextResponse.json(
+      { error: "Authentication failed", code },
+      { status: code === "oauth_state_missing" ? 400 : 500 },
+    );
   }
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import shopify from "@/lib/shopify";
+import { toShopifyAuthRequest } from "@/lib/shopify-auth-request";
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
   const shop = req.nextUrl.searchParams.get("shop");
@@ -24,7 +25,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       shop: sanitizedShop,
       callbackPath: "/api/auth/callback",
       isOnline: false,
-      rawRequest: req,
+      rawRequest: toShopifyAuthRequest(req),
     })) as Response;
 
     const location = shopifyRes.headers.get("Location");
