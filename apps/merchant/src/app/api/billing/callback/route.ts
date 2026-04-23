@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { prisma } from "@/lib/db";
 import { getPlanRecord, normalizePlanKey } from "@/lib/billing";
+import { merchantAppOrigin } from "@/lib/merchant-app-url";
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
   const shop = req.nextUrl.searchParams.get("shop");
@@ -47,5 +48,5 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     },
   });
 
-  return NextResponse.redirect(`${process.env.HOST}/billing?shop=${encodeURIComponent(shop)}`);
+  return NextResponse.redirect(`${merchantAppOrigin()}/billing?shop=${encodeURIComponent(shop)}`);
 }

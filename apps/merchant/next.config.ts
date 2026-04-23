@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 function devOriginFromAppUrl(): string[] {
-  const raw = process.env.HOST?.trim();
+  const raw = (process.env.HOST ?? process.env.SHOPIFY_APP_URL)?.trim();
   if (!raw) {
     return [];
   }

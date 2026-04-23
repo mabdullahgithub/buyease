@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 import { PLANS, type PlanKey } from "@/lib/billing";
+import { merchantAppOrigin } from "@/lib/merchant-app-url";
 import { withSessionVerification } from "@/lib/verify-session";
 
 const bodySchema = z.object({
@@ -43,7 +44,7 @@ export const POST = withSessionVerification(async (req: NextRequest, session) =>
         query: APP_SUBSCRIPTION_CREATE,
         variables: {
           name: selectedPlan.name,
-          returnUrl: `${process.env.HOST}/api/billing/callback?shop=${encodeURIComponent(session.shop)}&plan=${plan}`,
+          returnUrl: `${merchantAppOrigin()}/api/billing/callback?shop=${encodeURIComponent(session.shop)}&plan=${plan}`,
           test: testMode,
           lineItems: [
             {
