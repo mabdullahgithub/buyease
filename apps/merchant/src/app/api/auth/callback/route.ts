@@ -45,11 +45,27 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       },
     });
 
-    // Webhooks are declared in shopify.app.toml (Partner / CLI). Runtime
-    // shopify.webhooks.register() calls Admin GraphQL and returns 403 without
-    // webhook-management scopes — TOML subscriptions do not need this call.
+    const webhookResponse = await shopify.webhooks.register({ session });
+    for (const [topic, results] of Object.entries(webhookResponse)) {
+      for (const result of results) {
+        if (!result.success) {
+          console.error("Webhook registration failed", { topic, result });
+        }
+      }
+    }
 
     const host = req.nextUrl.searchParams.get("host");
+
+    if (host) {
+      const sanitizedHost = shopify.utils.sanitizeHost(host);
+      if (sanitizedHost) {
+        const decodedHost = Buffer.from(sanitizedHost, "base64").toString("utf8");
+        return NextResponse.redirect(
+          `https://${decodedHost}/apps/${process.env.SHOPIFY_API_KEY}`,
+        );
+      }
+    }
+
     return NextResponse.redirect(
       `${merchantAppOrigin()}/?shop=${session.shop}&host=${host ?? ""}`,
     );

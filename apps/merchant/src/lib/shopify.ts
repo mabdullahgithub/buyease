@@ -1,5 +1,5 @@
 import "@shopify/shopify-api/adapters/web-api";
-import { ApiVersion, LogSeverity, shopifyApi } from "@shopify/shopify-api";
+import { ApiVersion, DeliveryMethod, LogSeverity, shopifyApi } from "@shopify/shopify-api";
 import { RedisSessionStorage } from "@shopify/shopify-app-session-storage-redis";
 
 import { merchantAppHostname } from "@/lib/merchant-app-url";
@@ -29,6 +29,39 @@ const shopify = shopifyApi({
   isEmbeddedApp: true,
   logger: {
     level: LogSeverity.Warning,
+  },
+});
+
+const WEBHOOK_PATH = "/api/webhooks";
+
+shopify.webhooks.addHandlers({
+  APP_UNINSTALLED: {
+    deliveryMethod: DeliveryMethod.Http,
+    callbackUrl: WEBHOOK_PATH,
+  },
+  APP_SUBSCRIPTIONS_UPDATE: {
+    deliveryMethod: DeliveryMethod.Http,
+    callbackUrl: WEBHOOK_PATH,
+  },
+  ORDERS_CREATE: {
+    deliveryMethod: DeliveryMethod.Http,
+    callbackUrl: WEBHOOK_PATH,
+  },
+  ORDERS_UPDATED: {
+    deliveryMethod: DeliveryMethod.Http,
+    callbackUrl: WEBHOOK_PATH,
+  },
+  CUSTOMERS_DATA_REQUEST: {
+    deliveryMethod: DeliveryMethod.Http,
+    callbackUrl: WEBHOOK_PATH,
+  },
+  CUSTOMERS_REDACT: {
+    deliveryMethod: DeliveryMethod.Http,
+    callbackUrl: WEBHOOK_PATH,
+  },
+  SHOP_REDACT: {
+    deliveryMethod: DeliveryMethod.Http,
+    callbackUrl: WEBHOOK_PATH,
   },
 });
 

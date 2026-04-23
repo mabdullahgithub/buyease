@@ -24,7 +24,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const headerShop = (req.headers.get("x-shopify-shop-domain") ?? "").trim().toLowerCase();
     const hmac = req.headers.get("x-shopify-hmac-sha256") ?? "";
 
+    console.log("Webhook received", { topic, shop: headerShop, hasHmac: !!hmac });
+
     if (!hmac) {
+      console.error("Webhook rejected: missing HMAC", { topic, shop: headerShop });
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -32,6 +35,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const valid = verifyShopifyWebhookHmac(rawBody, secret, hmac);
 
     if (!valid) {
+      console.error("Webhook rejected: invalid HMAC", { topic, shop: headerShop });
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -53,12 +57,14 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
               ? payload.domain.trim().toLowerCase()
               : "";
         const shop = headerShop || bodyShop;
+        console.log("app/uninstalled: processing", { shop, headerShop, bodyShop });
         if (!shop) {
           console.error("app/uninstalled: missing shop domain (header and body)");
           break;
         }
         try {
           const sessions = await sessionStorage.findSessionsByShop(shop);
+          console.log("app/uninstalled: cleaning Redis sessions", { shop, count: sessions.length });
           if (sessions.length > 0) {
             await sessionStorage.deleteSessions(sessions.map((s) => s.id));
           }
@@ -73,6 +79,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
             uninstalledAt: new Date(),
           },
         });
+        console.log("app/uninstalled: merchant deactivated", { shop, rowsUpdated: merchantResult.count });
         if (merchantResult.count === 0) {
           console.warn("app/uninstalled: no Merchant row updated", { shop });
         }
