@@ -20,21 +20,17 @@ export default function RootLayout({ children }: RootLayoutProps): ReactNode {
         {/* App Bridge MUST be the first script, loaded synchronously (no async/defer/module).
             Next.js <Script> adds `async` even with beforeInteractive, so we use a raw tag. */}
         <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
-        {/* Visually hide the nav menu element — App Bridge reads it from the DOM
-            for the admin sidebar, but the raw text must not appear in the iframe. */}
-        <style dangerouslySetInnerHTML={{ __html: "s-app-nav,s-link{display:none!important}" }} />
       </head>
       <body>
         <Providers>
-          {/* Shopify App Bridge NavMenu — drives the admin sidebar navigation */}
-          <s-app-nav>
-            <s-link href="/" rel="home">Home</s-link>
-            <s-link href="/form-builder">Form Builder</s-link>
-            <s-link href="/upsells">Upsells</s-link>
-            <s-link href="/analytics">Analytics</s-link>
-            <s-link href="/settings">Settings</s-link>
-            <s-link href="/billing">Billing Plans</s-link>
-          </s-app-nav>
+          <ui-nav-menu>
+            <a href="/" rel="home">Home</a>
+            <a href="/form-builder">Form Builder</a>
+            <a href="/upsells">Upsells</a>
+            <a href="/analytics">Analytics</a>
+            <a href="/settings">Settings</a>
+            <a href="/billing">Billing Plans</a>
+          </ui-nav-menu>
           {children}
         </Providers>
       </body>
