@@ -22,9 +22,19 @@ export default function RootLayout({ children }: RootLayoutProps): ReactNode {
         <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
       </head>
       <body>
-        <Providers>{children}</Providers>
+        <Providers>
+          {/* Shopify App Bridge NavMenu — renders in the Shopify admin sidebar */}
+          <s-app-nav>
+            <s-link href="/" rel="home">Home</s-link>
+            <s-link href="/form-builder">Form Builder</s-link>
+            <s-link href="/upsells">Upsells</s-link>
+            <s-link href="/analytics">Analytics</s-link>
+            <s-link href="/settings">Settings</s-link>
+            <s-link href="/billing">Billing Plans</s-link>
+          </s-app-nav>
+          {children}
+        </Providers>
       </body>
     </html>
   );
 }
-

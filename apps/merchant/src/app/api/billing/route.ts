@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
-import { PLANS, type PlanKey } from "@/lib/billing";
+import { PLANS, getBillingPrice, type PlanKey, type BillingInterval } from "@/lib/billing";
 import { merchantAppOrigin } from "@/lib/merchant-app-url";
 import { withSessionVerification } from "@/lib/verify-session";
 
 const bodySchema = z.object({
   plan: z.enum(["premium", "enterprise", "unlimited"]),
+  interval: z.enum(["EVERY_30_DAYS", "ANNUAL"]).default("EVERY_30_DAYS"),
 });
 
 const APP_SUBSCRIPTION_CREATE = `
@@ -26,6 +27,7 @@ export const POST = withSessionVerification(async (req: NextRequest, session) =>
     }
 
     const plan = parsed.data.plan as PlanKey;
+    const interval = parsed.data.interval as BillingInterval;
     const selectedPlan = PLANS[plan];
     const testMode = process.env.SHOPIFY_BILLING_TEST === "true";
     const accessToken = session.accessToken ?? "";
@@ -33,6 +35,9 @@ export const POST = withSessionVerification(async (req: NextRequest, session) =>
     if (!accessToken) {
       return NextResponse.json({ error: "Missing access token", reauth: true }, { status: 401 });
     }
+
+    const price = getBillingPrice(selectedPlan, interval);
+    const billingInterval = interval === "ANNUAL" ? "ANNUAL" : "EVERY_30_DAYS";
 
     const response = await fetch(`https://${session.shop}/admin/api/2026-04/graphql.json`, {
       method: "POST",
@@ -51,10 +56,10 @@ export const POST = withSessionVerification(async (req: NextRequest, session) =>
               plan: {
                 appRecurringPricingDetails: {
                   price: {
-                    amount: selectedPlan.amount,
+                    amount: price,
                     currencyCode: selectedPlan.currencyCode,
                   },
-                  interval: selectedPlan.interval,
+                  interval: billingInterval,
                 },
               },
             },
