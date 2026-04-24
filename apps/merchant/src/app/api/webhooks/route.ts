@@ -77,6 +77,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
           data: {
             isActive: false,
             uninstalledAt: new Date(),
+            // Clear token data so stale refresh tokens cannot be replayed.
+            accessToken: null,
+            refreshToken: null,
+            tokenExpiresAt: null,
           },
         });
         console.log("app/uninstalled: merchant deactivated", { shop, rowsUpdated: merchantResult.count });
@@ -85,6 +89,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         }
         break;
       }
+
       case "app_subscriptions/update": {
         const shop = headerShop;
         if (!shop) {

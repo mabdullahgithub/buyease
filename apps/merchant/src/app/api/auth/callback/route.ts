@@ -21,6 +21,13 @@ function oauthErrorCode(error: unknown): string {
   return "unknown";
 }
 
+/**
+ * OAuth callback — fallback route for authorization code grant.
+ *
+ * The primary auth flow uses token exchange (no redirects).
+ * This route exists only as a fallback for edge cases where
+ * Shopify redirects through the traditional OAuth flow.
+ */
 export async function GET(req: NextRequest): Promise<NextResponse> {
   try {
     const { session } = await shopify.auth.callback({
@@ -45,14 +52,10 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       },
     });
 
-    const webhookResponse = await shopify.webhooks.register({ session });
-    for (const [topic, results] of Object.entries(webhookResponse)) {
-      for (const result of results) {
-        if (!result.success) {
-          console.error("Webhook registration failed", { topic, result });
-        }
-      }
-    }
+    // Register webhooks in the background — non-blocking.
+    void shopify.webhooks.register({ session }).catch((error: unknown) => {
+      console.error("Webhook registration failed", { shop: session.shop, error });
+    });
 
     const host = req.nextUrl.searchParams.get("host");
 
@@ -71,7 +74,12 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     );
   } catch (error) {
     const code = oauthErrorCode(error);
-    console.error("Auth callback failed", { code, error });
+    const message = error instanceof Error ? error.message : String(error);
+    console.error("Auth callback failed", {
+      code,
+      message,
+      errorName: error instanceof Error ? error.constructor.name : typeof error,
+    });
     return NextResponse.json(
       { error: "Authentication failed", code },
       { status: code === "oauth_state_missing" ? 400 : 500 },

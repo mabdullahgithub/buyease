@@ -21,6 +21,12 @@ model Session {
   scope       String?
   expires     DateTime?
   accessToken String
+  /// Refresh token for expiring offline tokens (shprt_…)
+  refreshToken            String?
+  /// When the access token expires (null = non-expiring)
+  tokenExpiresAt          DateTime?
+  /// When the refresh token expires (90 days from issue)
+  refreshTokenExpiresAt   DateTime?
   userId      BigInt?
   firstName   String?
   lastName    String?
@@ -46,8 +52,12 @@ model Merchant {
   isActive    Boolean  @default(true)
   uninstalledAt DateTime?
   accessToken String?
+  /// Refresh token for expiring offline tokens (shprt_…)
   refreshToken String?
+  /// When the access token expires (null = non-expiring)
   tokenExpiresAt DateTime?
+  /// When the refresh token expires (90 days from issue)
+  refreshTokenExpiresAt DateTime?
   scopes      String?
   planBillingId String?
   billingCycleStart DateTime @default(now())

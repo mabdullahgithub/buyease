@@ -1,11 +1,10 @@
 import Link from "next/link";
 import type { ReactElement } from "react";
-import { redirect } from "next/navigation";
 
-import { InstallOAuthGate } from "@/app/install-oauth-gate";
 import { getCachedSession } from "@/lib/session-cache";
 import { shopHostnameFromSessionTokenDest } from "@/lib/shop-domain";
 import shopify from "@/lib/shopify";
+import { exchangeSessionToken } from "@/lib/token-exchange";
 
 type HomePageProps = {
   searchParams:
@@ -19,10 +18,72 @@ function firstString(value: string | string[] | undefined): string | undefined {
   return undefined;
 }
 
+/**
+ * Resolves the shop domain from URL params.
+ * Prefers the `shop` param; falls back to decoding the `id_token` JWT.
+ */
+async function resolveShop(
+  shop: string | undefined,
+  idToken: string | undefined,
+): Promise<{ shop: string | null; idToken: string | undefined }> {
+  if (shop) {
+    try {
+      const sanitized = shopify.utils.sanitizeShop(shop, true);
+      return { shop: sanitized, idToken };
+    } catch {
+      return { shop: null, idToken };
+    }
+  }
+
+  if (idToken) {
+    try {
+      const payload = await shopify.session.decodeSessionToken(idToken);
+      const hostname = shopHostnameFromSessionTokenDest(payload.dest);
+      const sanitized = shopify.utils.sanitizeShop(hostname, true);
+      return { shop: sanitized, idToken };
+    } catch {
+      return { shop: null, idToken };
+    }
+  }
+
+  return { shop: null, idToken: undefined };
+}
+
+/**
+ * Gets or creates the offline session for a shop.
+ *
+ * Fast path (95% of requests): session is in LRU memory cache → ~0ms.
+ * Cold path (first load after install): token exchange → ~150ms one-time.
+ */
+async function getOrCreateSession(
+  shop: string,
+  idToken: string | undefined,
+): Promise<boolean> {
+  const sessionId = shopify.session.getOfflineId(shop);
+  const cached = await getCachedSession(sessionId);
+  if (cached) return true;
+
+  // No session — exchange the id_token for an offline access token.
+  if (idToken) {
+    try {
+      await exchangeSessionToken(shop, idToken);
+      return true;
+    } catch (error) {
+      console.error("Token exchange failed on page load", { shop, error });
+      return false;
+    }
+  }
+
+  return false;
+}
+
 export default async function HomePage({ searchParams }: HomePageProps): Promise<ReactElement> {
   const sp = await Promise.resolve(searchParams);
-  const shop = firstString(sp.shop);
+  const rawShop = firstString(sp.shop);
+  const rawIdToken = firstString(sp.id_token);
   const host = firstString(sp.host);
+
+  const { shop, idToken } = await resolveShop(rawShop, rawIdToken);
 
   const embeddedQs = new URLSearchParams();
   if (shop) embeddedQs.set("shop", shop);
@@ -32,47 +93,14 @@ export default async function HomePage({ searchParams }: HomePageProps): Promise
   let connectedShop: string | null = null;
 
   if (shop) {
-    try {
-      const sanitizedShop = shopify.utils.sanitizeShop(shop, true);
-      if (sanitizedShop) {
-        const sessionId = shopify.session.getOfflineId(sanitizedShop);
-        const session = await getCachedSession(sessionId);
-        if (!session) {
-          const auth = new URLSearchParams({ shop: sanitizedShop });
-          if (host) auth.set("host", host);
-          redirect(`/api/auth?${auth.toString()}`);
-        }
-        connectedShop = sanitizedShop;
-      }
-    } catch {
-      // invalid shop — fall through to static shell
-    }
-  } else {
-    const idToken = firstString(sp.id_token);
-    if (idToken) {
-      try {
-        const payload = await shopify.session.decodeSessionToken(idToken);
-        const hostname = shopHostnameFromSessionTokenDest(payload.dest);
-        const sanitizedShop = shopify.utils.sanitizeShop(hostname, true);
-        if (sanitizedShop) {
-          const sessionId = shopify.session.getOfflineId(sanitizedShop);
-          const session = await getCachedSession(sessionId);
-          if (!session) {
-            const auth = new URLSearchParams({ shop: sanitizedShop });
-            if (host) auth.set("host", host);
-            redirect(`/api/auth?${auth.toString()}`);
-          }
-          connectedShop = sanitizedShop;
-        }
-      } catch {
-        // invalid or expired session token
-      }
+    const hasSession = await getOrCreateSession(shop, idToken);
+    if (hasSession) {
+      connectedShop = shop;
     }
   }
 
   return (
     <main style={{ maxWidth: 560 }}>
-      <InstallOAuthGate />
       <h1>COD Form &amp; Upsells</h1>
       {connectedShop ? (
         <>
@@ -95,11 +123,11 @@ export default async function HomePage({ searchParams }: HomePageProps): Promise
       ) : (
         <>
           <p>Phase 1 foundation is configured. Continue setup from Billing and Auth routes.</p>
-          {!shop && !firstString(sp.id_token) ? (
+          {!shop && (
             <p style={{ marginTop: 16, opacity: 0.85 }}>
               Open this app from the Shopify admin so installation can finish and your store is saved.
             </p>
-          ) : null}
+          )}
         </>
       )}
     </main>
