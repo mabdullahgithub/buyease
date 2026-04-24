@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import Link from "next/link";
+
 
 import Providers from "@/app/providers";
 
@@ -33,15 +33,15 @@ export default function RootLayout({ children }: RootLayoutProps): ReactNode {
       </head>
       <body>
         {/* Add hidden so Next.js doesn't render these links on screen */}
-        <ui-nav-menu hidden>
+        <ui-nav-menu>
           {NAV_ITEMS.map((item) => (
-            <Link
+            <a
               key={item.href}
               href={item.href}
               rel={item.href === "/" ? "home" : undefined}
             >
               {item.label}
-            </Link>
+            </a>
           ))}
         </ui-nav-menu>
         <Providers>{children}</Providers>
