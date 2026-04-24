@@ -22,17 +22,15 @@ export default function RootLayout({ children }: RootLayoutProps): ReactNode {
         <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
       </head>
       <body>
-        <Providers>
-          <ui-nav-menu>
-            <a href="/" rel="home">Home</a>
-            <a href="/form-builder">Form Builder</a>
-            <a href="/upsells">Upsells</a>
-            <a href="/analytics">Analytics</a>
-            <a href="/settings">Settings</a>
-            <a href="/billing">Billing Plans</a>
-          </ui-nav-menu>
-          {children}
-        </Providers>
+        <ui-nav-menu>
+          <a href="/" rel="home">Home</a>
+          <a href="/form-builder">Form Builder</a>
+          <a href="/upsells">Upsells</a>
+          <a href="/analytics">Analytics</a>
+          <a href="/settings">Settings</a>
+          <a href="/billing">Billing Plans</a>
+        </ui-nav-menu>
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

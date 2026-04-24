@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { ReactElement } from "react";
 import {
   Badge,
+  Banner,
   BlockStack,
   Box,
   Button,
@@ -13,10 +14,10 @@ import {
   Icon,
   InlineGrid,
   InlineStack,
-  Link,
   Page,
   SkeletonBodyText,
   Text,
+  TextField,
 } from "@shopify/polaris";
 import { CheckCircleIcon } from "@shopify/polaris-icons";
 
@@ -35,6 +36,8 @@ export default function BillingPage(): ReactElement {
   const [currentPlan, setCurrentPlan] = useState<PlanKey | null>(null);
   const [loading, setLoading] = useState(true);
   const [subscribing, setSubscribing] = useState<PlanKey | null>(null);
+  const [discountCode, setDiscountCode] = useState("");
+  const [discountApplied, setDiscountApplied] = useState(false);
 
   useEffect(() => {
     async function fetchCurrentPlan(): Promise<void> {
@@ -54,39 +57,46 @@ export default function BillingPage(): ReactElement {
     void fetchCurrentPlan();
   }, []);
 
-  const handleSelectPlan = useCallback(async (planKey: PlanKey) => {
-    if (planKey === "free") return;
+  const handleSelectPlan = useCallback(
+    async (planKey: PlanKey) => {
+      if (planKey === "free") return;
 
-    setSubscribing(planKey);
-    try {
-      // Extract the Shopify host param from the current URL for callback redirect
-      const urlParams = new URLSearchParams(window.location.search);
-      const host = urlParams.get("host") ?? "";
+      setSubscribing(planKey);
+      try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const host = urlParams.get("host") ?? "";
 
-      const res = await fetch("/api/billing", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan: planKey, interval, host }),
-      });
+        const res = await fetch("/api/billing", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ plan: planKey, interval, host }),
+        });
 
-      if (!res.ok) {
-        const error = (await res.json()) as { error: string };
-        throw new Error(error.error);
+        if (!res.ok) {
+          const error = (await res.json()) as { error: string };
+          throw new Error(error.error);
+        }
+
+        const data = (await res.json()) as { confirmationUrl: string };
+
+        if (data.confirmationUrl) {
+          window.top
+            ? (window.top.location.href = data.confirmationUrl)
+            : (window.location.href = data.confirmationUrl);
+        }
+      } catch (error) {
+        console.error("Plan selection failed", error);
+      } finally {
+        setSubscribing(null);
       }
+    },
+    [interval],
+  );
 
-      const data = (await res.json()) as { confirmationUrl: string };
-
-      if (data.confirmationUrl) {
-        window.top
-          ? (window.top.location.href = data.confirmationUrl)
-          : (window.location.href = data.confirmationUrl);
-      }
-    } catch (error) {
-      console.error("Plan selection failed", error);
-    } finally {
-      setSubscribing(null);
-    }
-  }, [interval]);
+  const handleApplyDiscount = useCallback(() => {
+    if (!discountCode.trim()) return;
+    setDiscountApplied(true);
+  }, [discountCode]);
 
   const isAnnual = interval === "ANNUAL";
 
@@ -94,11 +104,11 @@ export default function BillingPage(): ReactElement {
     <Page title="Billing Plans">
       <BlockStack gap="600">
         <Text as="p" variant="bodyMd" tone="subdued">
-          Change your plan here. If you need help or you have any doubts or questions don&apos;t
-          hesitate to contact us!
+          Change your plan here. If you need help or you have any doubts or
+          questions don&apos;t hesitate to contact us!
         </Text>
 
-        {/* Monthly / Annual toggle — using Polaris ButtonGroup */}
+        {/* Monthly / Annual toggle */}
         <InlineStack align="center" gap="200">
           <ButtonGroup variant="segmented">
             <Button
@@ -111,12 +121,37 @@ export default function BillingPage(): ReactElement {
               pressed={isAnnual}
               onClick={() => setInterval("ANNUAL")}
             >
-              Annual -30%
+              Annual
             </Button>
           </ButtonGroup>
+          {isAnnual && <Badge tone="success">-30%</Badge>}
         </InlineStack>
 
-        {/* Plan cards — responsive 4-column grid */}
+        {/* Discount code */}
+        <InlineStack align="center" gap="200" blockAlign="end">
+          <Box width="240px">
+            <TextField
+              label=""
+              labelHidden
+              placeholder="Enter discount code"
+              value={discountCode}
+              onChange={setDiscountCode}
+              autoComplete="off"
+              connectedRight={
+                <Button onClick={handleApplyDiscount}>Apply</Button>
+              }
+            />
+          </Box>
+        </InlineStack>
+
+        {discountApplied && (
+          <Banner tone="info" onDismiss={() => setDiscountApplied(false)}>
+            Discount codes are applied at Shopify checkout when confirming your
+            subscription.
+          </Banner>
+        )}
+
+        {/* Plan cards */}
         {loading ? (
           <InlineGrid columns={{ xs: 1, sm: 2, lg: 4 }} gap="400">
             {PLAN_KEYS.map((key) => (
@@ -137,27 +172,24 @@ export default function BillingPage(): ReactElement {
               return (
                 <Card key={planKey}>
                   <BlockStack gap="400">
-                    {/* Current plan badge */}
                     {isCurrent && (
                       <Box>
                         <Badge tone="info">YOUR CURRENT PLAN</Badge>
                       </Box>
                     )}
 
-                    {/* Plan name */}
-                    <Text as="h2" variant="headingLg">
+                    <Text as="h2" variant="headingLg" fontWeight="bold">
                       {plan.name}
                     </Text>
 
-                    {/* Price */}
                     {plan.monthlyAmount === 0 ? (
-                      <Text as="p" variant="headingXl">
+                      <Text as="p" variant="headingXl" fontWeight="bold">
                         Free
                       </Text>
                     ) : (
                       <BlockStack gap="100">
                         <InlineStack gap="100" blockAlign="baseline">
-                          <Text as="span" variant="headingXl">
+                          <Text as="span" variant="heading2xl" fontWeight="bold">
                             ${monthlyPrice.toFixed(2)}
                           </Text>
                           <Text as="span" variant="bodyMd" tone="subdued">
@@ -174,10 +206,14 @@ export default function BillingPage(): ReactElement {
 
                     <Divider />
 
-                    {/* Features list */}
                     <BlockStack gap="200">
                       {plan.features.map((feature) => (
-                        <InlineStack key={feature} gap="200" blockAlign="start" wrap={false}>
+                        <InlineStack
+                          key={feature}
+                          gap="200"
+                          blockAlign="start"
+                          wrap={false}
+                        >
                           <Box minWidth="20px">
                             <Icon source={CheckCircleIcon} tone="success" />
                           </Box>
@@ -188,9 +224,21 @@ export default function BillingPage(): ReactElement {
                       ))}
                     </BlockStack>
 
-                    {/* Select button */}
-                    {!isCurrent && planKey !== "free" && (
-                      <Box paddingBlockStart="200">
+                    <Box paddingBlockStart="200">
+                      {isCurrent ? (
+                        <Button fullWidth disabled>
+                          Current plan
+                        </Button>
+                      ) : planKey === "free" ? (
+                        currentPlan !== "free" ? (
+                          <Button
+                            fullWidth
+                            onClick={() => void handleSelectPlan(planKey)}
+                          >
+                            Downgrade to Free
+                          </Button>
+                        ) : null
+                      ) : (
                         <Button
                           variant="primary"
                           fullWidth
@@ -199,16 +247,8 @@ export default function BillingPage(): ReactElement {
                         >
                           Select plan
                         </Button>
-                      </Box>
-                    )}
-
-                    {isCurrent && planKey !== "free" && (
-                      <Box paddingBlockStart="200">
-                        <Button fullWidth disabled>
-                          Current plan
-                        </Button>
-                      </Box>
-                    )}
+                      )}
+                    </Box>
                   </BlockStack>
                 </Card>
               );
@@ -217,29 +257,27 @@ export default function BillingPage(): ReactElement {
         )}
 
         {/* Footer disclaimer */}
-        <Card>
-          <BlockStack gap="200">
-            <Text as="p" variant="bodyMd">
-              All charges are handled securely via Shopify Billing. If you choose a paid plan, you&apos;ll
-              be redirected to confirm the charge.{" "}
-              <Text as="span" variant="bodyMd" fontWeight="semibold">
-                Switching plans won&apos;t reset your order count—orders already used this month will
-                count toward your new plan&apos;s limit.
-              </Text>
+        <BlockStack gap="200">
+          <Text as="p" variant="bodyMd">
+            All charges are handled securely via Shopify Billing. If you choose
+            a paid plan, you&apos;ll be redirected to confirm the charge.{" "}
+            <Text as="span" variant="bodyMd" fontWeight="semibold">
+              Switching plans won&apos;t reset your order count—orders already
+              used this month will count toward your new plan&apos;s limit.
             </Text>
-            <Text as="p" variant="bodyMd">
-              You can cancel your subscription at any time by changing to the free plan or by
-              uninstalling this app.
-            </Text>
-            <Text as="p" variant="bodyMd">
-              For more details about our refund policy, please visit our{" "}
-              <Link url="https://buyease.dev/refund-policy" external>
-                Refund Policy
-              </Link>
-              .
-            </Text>
-          </BlockStack>
-        </Card>
+          </Text>
+          <Text as="p" variant="bodyMd">
+            You can cancel your subscription at any time by changing to the free
+            plan or by uninstalling this app.
+          </Text>
+          <Text as="p" variant="bodyMd">
+            For more details about our refund policy, please visit our{" "}
+            <Button variant="plain" url="https://buyease.dev/refund-policy" external>
+              Refund Policy
+            </Button>
+            .
+          </Text>
+        </BlockStack>
       </BlockStack>
     </Page>
   );
