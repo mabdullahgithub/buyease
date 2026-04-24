@@ -1,10 +1,11 @@
-import Link from "next/link";
 import type { ReactElement } from "react";
 
 import { getCachedSession } from "@/lib/session-cache";
 import { shopHostnameFromSessionTokenDest } from "@/lib/shop-domain";
 import shopify from "@/lib/shopify";
 import { exchangeSessionToken } from "@/lib/token-exchange";
+
+import { ComingSoonPage } from "@/components/ComingSoonPage";
 
 type HomePageProps = {
   searchParams:
@@ -63,7 +64,6 @@ async function getOrCreateSession(
   const cached = await getCachedSession(sessionId);
   if (cached) return true;
 
-  // No session — exchange the id_token for an offline access token.
   if (idToken) {
     try {
       await exchangeSessionToken(shop, idToken);
@@ -81,55 +81,12 @@ export default async function HomePage({ searchParams }: HomePageProps): Promise
   const sp = await Promise.resolve(searchParams);
   const rawShop = firstString(sp.shop);
   const rawIdToken = firstString(sp.id_token);
-  const host = firstString(sp.host);
 
   const { shop, idToken } = await resolveShop(rawShop, rawIdToken);
 
-  const embeddedQs = new URLSearchParams();
-  if (shop) embeddedQs.set("shop", shop);
-  if (host) embeddedQs.set("host", host);
-  const embeddedSuffix = embeddedQs.toString() ? `?${embeddedQs.toString()}` : "";
-
-  let connectedShop: string | null = null;
-
   if (shop) {
-    const hasSession = await getOrCreateSession(shop, idToken);
-    if (hasSession) {
-      connectedShop = shop;
-    }
+    await getOrCreateSession(shop, idToken);
   }
 
-  return (
-    <main style={{ maxWidth: 560 }}>
-      <h1>COD Form &amp; Upsells</h1>
-      {connectedShop ? (
-        <>
-          <p>
-            <strong>{connectedShop}</strong> is connected. Use the sections below from the Shopify admin
-            (embedded links keep <code>shop</code> and <code>host</code> in the URL).
-          </p>
-          <ul>
-            <li>
-              <Link href={`/form-builder${embeddedSuffix}`}>Form builder</Link>
-            </li>
-            <li>
-              <Link href={`/billing${embeddedSuffix}`}>Billing</Link>
-            </li>
-            <li>
-              <Link href={`/settings${embeddedSuffix}`}>Settings</Link>
-            </li>
-          </ul>
-        </>
-      ) : (
-        <>
-          <p>Phase 1 foundation is configured. Continue setup from Billing and Auth routes.</p>
-          {!shop && (
-            <p style={{ marginTop: 16, opacity: 0.85 }}>
-              Open this app from the Shopify admin so installation can finish and your store is saved.
-            </p>
-          )}
-        </>
-      )}
-    </main>
-  );
+  return <ComingSoonPage title="Home" />;
 }

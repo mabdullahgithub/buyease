@@ -20,6 +20,8 @@ export default function RootLayout({ children }: RootLayoutProps): ReactNode {
         {/* App Bridge MUST be the first script, loaded synchronously (no async/defer/module).
             Next.js <Script> adds `async` even with beforeInteractive, so we use a raw tag. */}
         <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
+        {/* Hide App Bridge nav menu web components from rendering visible text */}
+        <style dangerouslySetInnerHTML={{ __html: "s-app-nav{display:none!important}" }} />
       </head>
       <body>
         <Providers>
