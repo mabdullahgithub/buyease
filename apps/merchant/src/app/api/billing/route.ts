@@ -8,6 +8,7 @@ import { withSessionVerification } from "@/lib/verify-session";
 const bodySchema = z.object({
   plan: z.enum(["premium", "enterprise", "unlimited"]),
   interval: z.enum(["EVERY_30_DAYS", "ANNUAL"]).default("EVERY_30_DAYS"),
+  host: z.string().optional(),
 });
 
 const APP_SUBSCRIPTION_CREATE = `
@@ -28,6 +29,7 @@ export const POST = withSessionVerification(async (req: NextRequest, session) =>
 
     const plan = parsed.data.plan as PlanKey;
     const interval = parsed.data.interval as BillingInterval;
+    const hostParam = parsed.data.host ?? "";
     const selectedPlan = PLANS[plan];
     const testMode = process.env.SHOPIFY_BILLING_TEST === "true";
     const accessToken = session.accessToken ?? "";
@@ -39,6 +41,12 @@ export const POST = withSessionVerification(async (req: NextRequest, session) =>
     const price = getBillingPrice(selectedPlan, interval);
     const billingInterval = interval === "ANNUAL" ? "ANNUAL" : "EVERY_30_DAYS";
 
+    const callbackParams = new URLSearchParams({
+      shop: session.shop,
+      plan,
+      ...(hostParam ? { host: hostParam } : {}),
+    });
+
     const response = await fetch(`https://${session.shop}/admin/api/2026-04/graphql.json`, {
       method: "POST",
       headers: {
@@ -49,7 +57,7 @@ export const POST = withSessionVerification(async (req: NextRequest, session) =>
         query: APP_SUBSCRIPTION_CREATE,
         variables: {
           name: selectedPlan.name,
-          returnUrl: `${merchantAppOrigin()}/api/billing/callback?shop=${encodeURIComponent(session.shop)}&plan=${plan}`,
+          returnUrl: `${merchantAppOrigin()}/api/billing/callback?${callbackParams.toString()}`,
           test: testMode,
           lineItems: [
             {

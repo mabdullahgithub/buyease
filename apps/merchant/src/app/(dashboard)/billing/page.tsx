@@ -7,6 +7,7 @@ import {
   BlockStack,
   Box,
   Button,
+  ButtonGroup,
   Card,
   Divider,
   Icon,
@@ -58,10 +59,14 @@ export default function BillingPage(): ReactElement {
 
     setSubscribing(planKey);
     try {
+      // Extract the Shopify host param from the current URL for callback redirect
+      const urlParams = new URLSearchParams(window.location.search);
+      const host = urlParams.get("host") ?? "";
+
       const res = await fetch("/api/billing", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan: planKey, interval }),
+        body: JSON.stringify({ plan: planKey, interval, host }),
       });
 
       if (!res.ok) {
@@ -93,67 +98,35 @@ export default function BillingPage(): ReactElement {
           hesitate to contact us!
         </Text>
 
-        {/* Monthly / Annual toggle */}
+        {/* Monthly / Annual toggle — using Polaris ButtonGroup */}
         <InlineStack align="center" gap="200">
-          <div style={{ display: "inline-flex", borderRadius: 8, overflow: "hidden", border: "1px solid var(--p-color-border)" }}>
-            <button
-              type="button"
+          <ButtonGroup variant="segmented">
+            <Button
+              pressed={!isAnnual}
               onClick={() => setInterval("EVERY_30_DAYS")}
-              style={{
-                padding: "8px 20px",
-                border: "none",
-                cursor: "pointer",
-                fontWeight: 600,
-                fontSize: 13,
-                background: !isAnnual ? "var(--p-color-bg-fill-brand)" : "var(--p-color-bg-surface)",
-                color: !isAnnual ? "var(--p-color-text-brand-on-bg-fill)" : "var(--p-color-text)",
-              }}
             >
               Monthly
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
+              pressed={isAnnual}
               onClick={() => setInterval("ANNUAL")}
-              style={{
-                padding: "8px 20px",
-                border: "none",
-                borderLeft: "1px solid var(--p-color-border)",
-                cursor: "pointer",
-                fontWeight: 600,
-                fontSize: 13,
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 6,
-                background: isAnnual ? "var(--p-color-bg-fill-brand)" : "var(--p-color-bg-surface)",
-                color: isAnnual ? "var(--p-color-text-brand-on-bg-fill)" : "var(--p-color-text)",
-              }}
             >
-              Annual
-              <span style={{
-                background: isAnnual ? "rgba(255,255,255,0.25)" : "#e3f1df",
-                color: isAnnual ? "#fff" : "#1a7e36",
-                padding: "2px 8px",
-                borderRadius: 10,
-                fontSize: 11,
-                fontWeight: 700,
-              }}>
-                -30%
-              </span>
-            </button>
-          </div>
+              Annual -30%
+            </Button>
+          </ButtonGroup>
         </InlineStack>
 
-        {/* Plan cards — 4 columns */}
+        {/* Plan cards — responsive 4-column grid */}
         {loading ? (
-          <InlineGrid columns={4} gap="400">
+          <InlineGrid columns={{ xs: 1, sm: 2, lg: 4 }} gap="400">
             {PLAN_KEYS.map((key) => (
               <Card key={key}>
-                <SkeletonBodyText lines={8} />
+                <SkeletonBodyText lines={10} />
               </Card>
             ))}
           </InlineGrid>
         ) : (
-          <InlineGrid columns={4} gap="400">
+          <InlineGrid columns={{ xs: 1, sm: 2, lg: 4 }} gap="400">
             {PLAN_KEYS.map((planKey) => {
               const plan = PLANS[planKey];
               const isCurrent = currentPlan === planKey;
@@ -162,91 +135,82 @@ export default function BillingPage(): ReactElement {
               const isSubscribing = subscribing === planKey;
 
               return (
-                <div
-                  key={planKey}
-                  style={{
-                    borderRadius: 12,
-                    border: isCurrent ? "2px solid var(--p-color-border-brand)" : "1px solid var(--p-color-border)",
-                    position: "relative",
-                  }}
-                >
-                  <Card>
-                    <BlockStack gap="400">
-                      {/* Current plan badge */}
-                      {isCurrent && (
-                        <Box>
-                          <Badge tone="info">YOUR CURRENT PLAN</Badge>
-                        </Box>
-                      )}
+                <Card key={planKey}>
+                  <BlockStack gap="400">
+                    {/* Current plan badge */}
+                    {isCurrent && (
+                      <Box>
+                        <Badge tone="info">YOUR CURRENT PLAN</Badge>
+                      </Box>
+                    )}
 
-                      {/* Plan name */}
-                      <Text as="h2" variant="headingLg">
-                        {plan.name}
+                    {/* Plan name */}
+                    <Text as="h2" variant="headingLg">
+                      {plan.name}
+                    </Text>
+
+                    {/* Price */}
+                    {plan.monthlyAmount === 0 ? (
+                      <Text as="p" variant="headingXl">
+                        Free
                       </Text>
-
-                      {/* Price */}
-                      {plan.monthlyAmount === 0 ? (
-                        <Text as="p" variant="headingXl">
-                          Free
-                        </Text>
-                      ) : (
-                        <BlockStack gap="100">
-                          <InlineStack gap="100" blockAlign="baseline">
-                            <Text as="span" variant="headingXl">
-                              ${monthlyPrice.toFixed(2)}
-                            </Text>
-                            <Text as="span" variant="bodyMd" tone="subdued">
-                              / month
-                            </Text>
-                          </InlineStack>
-                          {isAnnual && (
-                            <Text as="p" variant="bodySm" tone="subdued">
-                              billed at ${annualTotal.toFixed(2)} once per year
-                            </Text>
-                          )}
-                        </BlockStack>
-                      )}
-
-                      <Divider />
-
-                      {/* Features list */}
-                      <BlockStack gap="200">
-                        {plan.features.map((feature) => (
-                          <InlineStack key={feature} gap="200" blockAlign="start" wrap={false}>
-                            <Box>
-                              <Icon source={CheckCircleIcon} tone="success" />
-                            </Box>
-                            <Text as="span" variant="bodyMd">
-                              {feature}
-                            </Text>
-                          </InlineStack>
-                        ))}
+                    ) : (
+                      <BlockStack gap="100">
+                        <InlineStack gap="100" blockAlign="baseline">
+                          <Text as="span" variant="headingXl">
+                            ${monthlyPrice.toFixed(2)}
+                          </Text>
+                          <Text as="span" variant="bodyMd" tone="subdued">
+                            / month
+                          </Text>
+                        </InlineStack>
+                        {isAnnual && (
+                          <Text as="p" variant="bodySm" tone="subdued">
+                            billed at ${annualTotal.toFixed(2)} once per year
+                          </Text>
+                        )}
                       </BlockStack>
+                    )}
 
-                      {/* Select button */}
-                      {!isCurrent && planKey !== "free" && (
-                        <Box paddingBlockStart="200">
-                          <Button
-                            variant="primary"
-                            fullWidth
-                            loading={isSubscribing}
-                            onClick={() => void handleSelectPlan(planKey)}
-                          >
-                            Select plan
-                          </Button>
-                        </Box>
-                      )}
+                    <Divider />
 
-                      {isCurrent && planKey !== "free" && (
-                        <Box paddingBlockStart="200">
-                          <Button fullWidth disabled>
-                            Current plan
-                          </Button>
-                        </Box>
-                      )}
+                    {/* Features list */}
+                    <BlockStack gap="200">
+                      {plan.features.map((feature) => (
+                        <InlineStack key={feature} gap="200" blockAlign="start" wrap={false}>
+                          <Box minWidth="20px">
+                            <Icon source={CheckCircleIcon} tone="success" />
+                          </Box>
+                          <Text as="span" variant="bodyMd">
+                            {feature}
+                          </Text>
+                        </InlineStack>
+                      ))}
                     </BlockStack>
-                  </Card>
-                </div>
+
+                    {/* Select button */}
+                    {!isCurrent && planKey !== "free" && (
+                      <Box paddingBlockStart="200">
+                        <Button
+                          variant="primary"
+                          fullWidth
+                          loading={isSubscribing}
+                          onClick={() => void handleSelectPlan(planKey)}
+                        >
+                          Select plan
+                        </Button>
+                      </Box>
+                    )}
+
+                    {isCurrent && planKey !== "free" && (
+                      <Box paddingBlockStart="200">
+                        <Button fullWidth disabled>
+                          Current plan
+                        </Button>
+                      </Box>
+                    )}
+                  </BlockStack>
+                </Card>
               );
             })}
           </InlineGrid>
