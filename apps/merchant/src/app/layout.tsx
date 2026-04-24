@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Script from "next/script";
 import type { ReactNode } from "react";
 
 import Providers from "@/app/providers";
@@ -18,7 +17,9 @@ export default function RootLayout({ children }: RootLayoutProps): ReactNode {
     <html lang="en">
       <head>
         <meta name="shopify-api-key" content={process.env.NEXT_PUBLIC_SHOPIFY_API_KEY!} />
-        <Script src="https://cdn.shopify.com/shopifycloud/app-bridge.js" strategy="beforeInteractive" />
+        {/* App Bridge MUST be the first script, loaded synchronously (no async/defer/module).
+            Next.js <Script> adds `async` even with beforeInteractive, so we use a raw tag. */}
+        <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
       </head>
       <body>
         <Providers>{children}</Providers>
@@ -26,3 +27,4 @@ export default function RootLayout({ children }: RootLayoutProps): ReactNode {
     </html>
   );
 }
+
