@@ -56,6 +56,8 @@ const nextConfig: NextConfig = {
             value: [
               "default-src 'self'",
               "script-src 'self' 'unsafe-inline' https://cdn.shopify.com https://maps.googleapis.com",
+              "style-src 'self' 'unsafe-inline' https://cdn.shopify.com",
+              "font-src 'self' https://cdn.shopify.com data:",
               "frame-ancestors https://*.myshopify.com https://admin.shopify.com",
             ].join("; "),
           },
