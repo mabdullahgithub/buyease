@@ -101,13 +101,11 @@ export default function BillingPage(): ReactElement {
   const isAnnual = interval === "ANNUAL";
 
   return (
-    <Page title="Billing Plans">
+    <Page
+      title="Billing Plans"
+      subtitle="Change your plan here. If you need help or you have any doubts or questions don't hesitate to contact us!"
+    >
       <BlockStack gap="600">
-        <Text as="p" variant="bodyMd" tone="subdued">
-          Change your plan here. If you need help or you have any doubts or
-          questions don&apos;t hesitate to contact us!
-        </Text>
-
         {/* Monthly / Annual toggle */}
         <InlineStack align="center" gap="200">
           <ButtonGroup variant="segmented">
@@ -170,39 +168,41 @@ export default function BillingPage(): ReactElement {
               const isSubscribing = subscribing === planKey;
 
               return (
-                <Card key={planKey}>
+                <Card key={planKey} roundedAbove="sm">
                   <BlockStack gap="400">
-                    {isCurrent && (
-                      <Box>
-                        <Badge tone="info">YOUR CURRENT PLAN</Badge>
-                      </Box>
-                    )}
+                    <BlockStack gap="200">
+                      {isCurrent && (
+                        <Box>
+                          <Badge tone="info">YOUR CURRENT PLAN</Badge>
+                        </Box>
+                      )}
 
-                    <Text as="h2" variant="headingLg" fontWeight="bold">
-                      {plan.name}
-                    </Text>
-
-                    {plan.monthlyAmount === 0 ? (
-                      <Text as="p" variant="headingXl" fontWeight="bold">
-                        Free
+                      <Text as="p" variant="bodyMd" fontWeight="semibold">
+                        {plan.name}
                       </Text>
-                    ) : (
-                      <BlockStack gap="100">
-                        <InlineStack gap="100" blockAlign="baseline">
-                          <Text as="span" variant="heading2xl" fontWeight="bold">
-                            ${monthlyPrice.toFixed(2)}
-                          </Text>
-                          <Text as="span" variant="bodyMd" tone="subdued">
-                            / month
-                          </Text>
-                        </InlineStack>
-                        {isAnnual && (
-                          <Text as="p" variant="bodySm" tone="subdued">
-                            billed at ${annualTotal.toFixed(2)} once per year
-                          </Text>
-                        )}
-                      </BlockStack>
-                    )}
+
+                      {plan.monthlyAmount === 0 ? (
+                        <Text as="p" variant="headingXl" fontWeight="bold">
+                          Free
+                        </Text>
+                      ) : (
+                        <BlockStack gap="100">
+                          <InlineStack gap="100" blockAlign="baseline">
+                            <Text as="span" variant="heading2xl" fontWeight="bold">
+                              ${monthlyPrice.toFixed(2)}
+                            </Text>
+                            <Text as="span" variant="bodyMd" tone="subdued">
+                              / month
+                            </Text>
+                          </InlineStack>
+                          {isAnnual && (
+                            <Text as="p" variant="bodySm" tone="subdued">
+                              billed at ${annualTotal.toFixed(2)} once per year
+                            </Text>
+                          )}
+                        </BlockStack>
+                      )}
+                    </BlockStack>
 
                     <Divider />
 
@@ -256,28 +256,30 @@ export default function BillingPage(): ReactElement {
           </InlineGrid>
         )}
 
-        {/* Footer disclaimer */}
-        <BlockStack gap="200">
-          <Text as="p" variant="bodyMd">
-            All charges are handled securely via Shopify Billing. If you choose
-            a paid plan, you&apos;ll be redirected to confirm the charge.{" "}
-            <Text as="span" variant="bodyMd" fontWeight="semibold">
-              Switching plans won&apos;t reset your order count—orders already
-              used this month will count toward your new plan&apos;s limit.
+        {/* Footer disclaimer — wrapped in Card to match reference design */}
+        <Card roundedAbove="sm">
+          <BlockStack gap="200">
+            <Text as="p" variant="bodyMd">
+              All charges are handled securely via Shopify Billing. If you choose
+              a paid plan, you&apos;ll be redirected to confirm the charge.{" "}
+              <Text as="span" variant="bodyMd" fontWeight="bold">
+                Switching plans won&apos;t reset your order count—orders already
+                used this month will count toward your new plan&apos;s limit.
+              </Text>
             </Text>
-          </Text>
-          <Text as="p" variant="bodyMd">
-            You can cancel your subscription at any time by changing to the free
-            plan or by uninstalling this app.
-          </Text>
-          <Text as="p" variant="bodyMd">
-            For more details about our refund policy, please visit our{" "}
-            <Button variant="plain" url="https://buyease.dev/refund-policy" external>
-              Refund Policy
-            </Button>
-            .
-          </Text>
-        </BlockStack>
+            <Text as="p" variant="bodyMd">
+              You can cancel your subscription at any time by changing to the free
+              plan or by uninstalling this app.
+            </Text>
+            <Text as="p" variant="bodyMd">
+              For more details about our refund policy, please visit our{" "}
+              <Button variant="plain" url="https://buyease.dev/refund-policy" external>
+                Refund Policy
+              </Button>
+              .
+            </Text>
+          </BlockStack>
+        </Card>
       </BlockStack>
     </Page>
   );
