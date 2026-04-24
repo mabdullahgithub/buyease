@@ -9,15 +9,6 @@ export const metadata: Metadata = {
   description: "BuyEase Shopify merchant app",
 };
 
-const NAV_ITEMS = [
-  { href: "/", label: "Home" },
-  { href: "/form-builder", label: "Form Builder" },
-  { href: "/upsells", label: "Upsells" },
-  { href: "/analytics", label: "Analytics" },
-  { href: "/settings", label: "Settings" },
-  { href: "/billing", label: "Billing Plans" },
-];
-
 type RootLayoutProps = {
   children: ReactNode;
 };
@@ -32,18 +23,6 @@ export default function RootLayout({ children }: RootLayoutProps): ReactNode {
         <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
       </head>
       <body>
-        {/* Add hidden so Next.js doesn't render these links on screen */}
-        <ui-nav-menu>
-          {NAV_ITEMS.map((item) => (
-            <a
-              key={item.href}
-              href={item.href}
-              rel={item.href === "/" ? "home" : undefined}
-            >
-              {item.label}
-            </a>
-          ))}
-        </ui-nav-menu>
         <Providers>{children}</Providers>
       </body>
     </html>
