@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
+import Link from "next/link";
 
 import Providers from "@/app/providers";
 
@@ -7,6 +8,15 @@ export const metadata: Metadata = {
   title: "BuyEase Merchant",
   description: "BuyEase Shopify merchant app",
 };
+
+const NAV_ITEMS = [
+  { href: "/", label: "Home" },
+  { href: "/form-builder", label: "Form Builder" },
+  { href: "/upsells", label: "Upsells" },
+  { href: "/analytics", label: "Analytics" },
+  { href: "/settings", label: "Settings" },
+  { href: "/billing", label: "Billing Plans" },
+];
 
 type RootLayoutProps = {
   children: ReactNode;
@@ -22,13 +32,17 @@ export default function RootLayout({ children }: RootLayoutProps): ReactNode {
         <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
       </head>
       <body>
-        <ui-nav-menu>
-          <a href="/" rel="home">Home</a>
-          <a href="/form-builder">Form Builder</a>
-          <a href="/upsells">Upsells</a>
-          <a href="/analytics">Analytics</a>
-          <a href="/settings">Settings</a>
-          <a href="/billing">Billing Plans</a>
+        {/* Add hidden so Next.js doesn't render these links on screen */}
+        <ui-nav-menu hidden>
+          {NAV_ITEMS.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              rel={item.href === "/" ? "home" : undefined}
+            >
+              {item.label}
+            </Link>
+          ))}
         </ui-nav-menu>
         <Providers>{children}</Providers>
       </body>
