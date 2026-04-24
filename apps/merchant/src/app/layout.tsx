@@ -33,7 +33,7 @@ export default function RootLayout({ children }: RootLayoutProps): ReactNode {
         <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
       </head>
       <body>
-        <ui-nav-menu>
+        <ui-nav-menu style={{ display: "none" }}>
           {NAV_ITEMS.map((item) => (
             <Link
               key={item.href}
