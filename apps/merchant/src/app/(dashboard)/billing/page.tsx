@@ -209,15 +209,21 @@ export default function BillingPage(): ReactElement {
                   <div
                     style={{
                       position: "absolute",
-                      top: "-11px",
+                      top: "-12px",
                       left: "50%",
                       transform: "translateX(-50%)",
                       zIndex: 1,
-                      background: "var(--p-color-bg-surface)",
-                      padding: "0 8px",
+                      background: "#1a1a1a",
+                      color: "#fff",
+                      padding: "3px 12px",
+                      borderRadius: "6px",
+                      fontSize: "11px",
+                      fontWeight: 600,
+                      letterSpacing: "0.5px",
+                      whiteSpace: "nowrap",
                     }}
                   >
-                    <Badge tone="info">YOUR CURRENT PLAN</Badge>
+                    YOUR CURRENT PLAN
                   </div>
                 )}
 
