@@ -1,3 +1,5 @@
+"use client";
+
 import {
   BlockStack,
   Box,
@@ -7,8 +9,9 @@ import {
   SkeletonBodyText,
   SkeletonDisplayText,
 } from "@shopify/polaris";
+import type { ReactElement } from "react";
 
-export default function HomeLoading(): React.ReactElement {
+export default function HomeLoading(): ReactElement {
   return (
     <Page>
       <BlockStack gap="400">
