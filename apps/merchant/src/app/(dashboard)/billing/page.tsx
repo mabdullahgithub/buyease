@@ -39,7 +39,6 @@ type CurrentPlanResponse = {
 function BillingPageSkeleton(): ReactElement {
   return (
     <Page title="Billing Plans" narrowWidth={false}>
-      <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
       <BlockStack gap="600">
         <InlineStack align="center" gap="200">
           <Box width="200px">
@@ -66,7 +65,6 @@ function BillingPageSkeleton(): ReactElement {
           <SkeletonBodyText lines={3} />
         </Card>
       </BlockStack>
-      </div>
     </Page>
   );
 }
@@ -167,7 +165,6 @@ export default function BillingPage(): ReactElement {
       subtitle="Change your plan here. If you need help or you have any doubts or questions don't hesitate to contact us!"
       narrowWidth={false}
     >
-      <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
       <BlockStack gap="600">
         {error && (
           <Banner tone="critical" onDismiss={() => setError(null)}>
@@ -373,7 +370,6 @@ export default function BillingPage(): ReactElement {
           </Text>
         </Box>
       </BlockStack>
-      </div>
     </Page>
   );
 }
