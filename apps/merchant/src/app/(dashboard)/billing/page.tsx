@@ -38,33 +38,35 @@ type CurrentPlanResponse = {
 
 function BillingPageSkeleton(): ReactElement {
   return (
-    <Page title="Billing Plans" narrowWidth={false}>
-      <BlockStack gap="600">
-        <InlineStack align="center" gap="200">
-          <Box width="200px">
-            <SkeletonDisplayText size="small" />
-          </Box>
-        </InlineStack>
-        <InlineGrid columns={{ xs: 1, sm: 2, lg: 4 }} gap="400">
-          {PLAN_KEYS.map((key) => (
-            <Card key={key} roundedAbove="sm">
-              <BlockStack gap="400">
-                <SkeletonDisplayText size="small" />
-                <SkeletonDisplayText size="medium" />
-                <Box borderBlockStartWidth="025" borderColor="border" paddingBlockStart="400">
-                  <BlockStack gap="300">
-                    <SkeletonBodyText lines={6} />
-                  </BlockStack>
-                </Box>
-                <SkeletonDisplayText size="small" />
-              </BlockStack>
-            </Card>
-          ))}
-        </InlineGrid>
-        <Card roundedAbove="sm">
-          <SkeletonBodyText lines={3} />
-        </Card>
-      </BlockStack>
+    <Page title="Billing Plans" fullWidth>
+      <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
+        <BlockStack gap="600">
+          <InlineStack align="center" gap="200">
+            <Box width="200px">
+              <SkeletonDisplayText size="small" />
+            </Box>
+          </InlineStack>
+          <InlineGrid columns={{ xs: 1, sm: 2, lg: 4 }} gap="500">
+            {PLAN_KEYS.map((key) => (
+              <Card key={key} roundedAbove="sm">
+                <BlockStack gap="400">
+                  <SkeletonDisplayText size="small" />
+                  <SkeletonDisplayText size="medium" />
+                  <Box borderBlockStartWidth="025" borderColor="border" paddingBlockStart="400">
+                    <BlockStack gap="300">
+                      <SkeletonBodyText lines={6} />
+                    </BlockStack>
+                  </Box>
+                  <SkeletonDisplayText size="small" />
+                </BlockStack>
+              </Card>
+            ))}
+          </InlineGrid>
+          <Card roundedAbove="sm">
+            <SkeletonBodyText lines={3} />
+          </Card>
+        </BlockStack>
+      </div>
     </Page>
   );
 }
@@ -163,8 +165,9 @@ export default function BillingPage(): ReactElement {
     <Page
       title="Billing Plans"
       subtitle="Change your plan here. If you need help or you have any doubts or questions don't hesitate to contact us!"
-      narrowWidth={false}
+      fullWidth
     >
+      <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
       <BlockStack gap="600">
         {error && (
           <Banner tone="critical" onDismiss={() => setError(null)}>
@@ -184,7 +187,7 @@ export default function BillingPage(): ReactElement {
           {isAnnual && <Badge tone="success">-30%</Badge>}
         </InlineStack>
 
-        <InlineGrid columns={{ xs: 1, sm: 2, lg: 4 }} gap="400">
+        <InlineGrid columns={{ xs: 1, sm: 2, lg: 4 }} gap="500">
           {PLAN_KEYS.map((planKey) => {
             const plan = PLANS[planKey];
             const isCurrent = currentPlan === planKey;
@@ -376,6 +379,7 @@ export default function BillingPage(): ReactElement {
           </Text>
         </Box>
       </BlockStack>
+      </div>
     </Page>
   );
 }
