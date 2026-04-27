@@ -38,7 +38,8 @@ type CurrentPlanResponse = {
 
 function BillingPageSkeleton(): ReactElement {
   return (
-    <Page title="Billing Plans">
+    <Page title="Billing Plans" narrowWidth={false}>
+      <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
       <BlockStack gap="600">
         <InlineStack align="center" gap="200">
           <Box width="200px">
@@ -65,6 +66,7 @@ function BillingPageSkeleton(): ReactElement {
           <SkeletonBodyText lines={3} />
         </Card>
       </BlockStack>
+      </div>
     </Page>
   );
 }
@@ -163,7 +165,9 @@ export default function BillingPage(): ReactElement {
     <Page
       title="Billing Plans"
       subtitle="Change your plan here. If you need help or you have any doubts or questions don't hesitate to contact us!"
+      narrowWidth={false}
     >
+      <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
       <BlockStack gap="600">
         {error && (
           <Banner tone="critical" onDismiss={() => setError(null)}>
@@ -197,22 +201,23 @@ export default function BillingPage(): ReactElement {
                 key={planKey}
                 style={{
                   borderRadius: "12px",
-                  border: isCurrent ? "2px solid var(--p-color-border-emphasis)" : "1px solid var(--p-color-border)",
+                  border: isCurrent ? "2.5px solid #1a1a1a" : "1px solid var(--p-color-border)",
                   background: "var(--p-color-bg-surface)",
                   display: "flex",
                   flexDirection: "column",
                   position: "relative",
-                  overflow: "hidden",
                 }}
               >
                 {isCurrent && (
                   <div
                     style={{
                       position: "absolute",
-                      top: "12px",
+                      top: "-11px",
                       left: "50%",
                       transform: "translateX(-50%)",
                       zIndex: 1,
+                      background: "var(--p-color-bg-surface)",
+                      padding: "0 8px",
                     }}
                   >
                     <Badge tone="info">YOUR CURRENT PLAN</Badge>
@@ -222,7 +227,7 @@ export default function BillingPage(): ReactElement {
                 <div
                   style={{
                     padding: "20px",
-                    paddingTop: isCurrent ? "44px" : "20px",
+                    paddingTop: isCurrent ? "24px" : "20px",
                     display: "flex",
                     flexDirection: "column",
                     flex: 1,
@@ -309,25 +314,19 @@ export default function BillingPage(): ReactElement {
 
                   <div style={{ marginTop: "20px" }}>
                     {isCurrent ? (
-                      currentPlan !== "free" ? (
-                        <Button fullWidth disabled tone="success">
-                          Current plan
-                        </Button>
-                      ) : (
-                        <Button fullWidth disabled tone="success">
-                          Current plan
-                        </Button>
-                      )
+                      <Button fullWidth disabled variant="primary">
+                        Current plan
+                      </Button>
                     ) : planKey === "free" && hasActiveSubscription ? (
                       <Button
                         fullWidth
-                        variant="secondary"
+                        variant="primary"
                         loading={cancelling}
                         onClick={() => void handleCancelSubscription()}
                       >
-                        Downgrade to Free
+                        Select plan
                       </Button>
-                    ) : !isFree ? (
+                    ) : (
                       <Button
                         fullWidth
                         variant="primary"
@@ -336,7 +335,7 @@ export default function BillingPage(): ReactElement {
                       >
                         Select plan
                       </Button>
-                    ) : null}
+                    )}
                   </div>
                 </div>
               </div>
@@ -367,7 +366,14 @@ export default function BillingPage(): ReactElement {
             </Text>
           </BlockStack>
         </Card>
+
+        <Box paddingBlockStart="200" paddingBlockEnd="400">
+          <Text as="p" variant="bodySm" tone="subdued" alignment="center">
+            &copy; BuyEase 2026
+          </Text>
+        </Box>
       </BlockStack>
+      </div>
     </Page>
   );
 }
