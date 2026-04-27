@@ -10,14 +10,13 @@ import {
   Button,
   ButtonGroup,
   Card,
-  Divider,
   Icon,
   InlineGrid,
   InlineStack,
   Page,
   SkeletonBodyText,
+  SkeletonDisplayText,
   Text,
-  TextField,
 } from "@shopify/polaris";
 import { CheckCircleIcon } from "@shopify/polaris-icons";
 
@@ -31,21 +30,62 @@ import {
 
 const PLAN_KEYS: PlanKey[] = ["free", "premium", "enterprise", "unlimited"];
 
+type CurrentPlanResponse = {
+  plan: string;
+  hasActiveSubscription: boolean;
+  interval: string;
+};
+
+function BillingPageSkeleton(): ReactElement {
+  return (
+    <Page title="Billing Plans">
+      <BlockStack gap="600">
+        <InlineStack align="center" gap="200">
+          <Box width="200px">
+            <SkeletonDisplayText size="small" />
+          </Box>
+        </InlineStack>
+        <InlineGrid columns={{ xs: 1, sm: 2, lg: 4 }} gap="400">
+          {PLAN_KEYS.map((key) => (
+            <Card key={key} roundedAbove="sm">
+              <BlockStack gap="400">
+                <SkeletonDisplayText size="small" />
+                <SkeletonDisplayText size="medium" />
+                <Box borderBlockStartWidth="025" borderColor="border" paddingBlockStart="400">
+                  <BlockStack gap="300">
+                    <SkeletonBodyText lines={6} />
+                  </BlockStack>
+                </Box>
+                <SkeletonDisplayText size="small" />
+              </BlockStack>
+            </Card>
+          ))}
+        </InlineGrid>
+        <Card roundedAbove="sm">
+          <SkeletonBodyText lines={3} />
+        </Card>
+      </BlockStack>
+    </Page>
+  );
+}
+
 export default function BillingPage(): ReactElement {
   const [interval, setInterval] = useState<BillingInterval>("EVERY_30_DAYS");
   const [currentPlan, setCurrentPlan] = useState<PlanKey | null>(null);
+  const [hasActiveSubscription, setHasActiveSubscription] = useState(false);
   const [loading, setLoading] = useState(true);
   const [subscribing, setSubscribing] = useState<PlanKey | null>(null);
-  const [discountCode, setDiscountCode] = useState("");
-  const [discountApplied, setDiscountApplied] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchCurrentPlan(): Promise<void> {
       try {
         const res = await fetch("/api/billing/current");
         if (res.ok) {
-          const data = (await res.json()) as { plan: string };
+          const data = (await res.json()) as CurrentPlanResponse;
           setCurrentPlan(data.plan as PlanKey);
+          setHasActiveSubscription(data.hasActiveSubscription);
         }
       } catch {
         setCurrentPlan("free");
@@ -59,9 +99,10 @@ export default function BillingPage(): ReactElement {
 
   const handleSelectPlan = useCallback(
     async (planKey: PlanKey) => {
-      if (planKey === "free") return;
-
+      if (planKey === currentPlan) return;
+      setError(null);
       setSubscribing(planKey);
+
       try {
         const urlParams = new URLSearchParams(window.location.search);
         const host = urlParams.get("host") ?? "";
@@ -73,32 +114,50 @@ export default function BillingPage(): ReactElement {
         });
 
         if (!res.ok) {
-          const error = (await res.json()) as { error: string };
-          throw new Error(error.error);
+          const errData = (await res.json()) as { error: string };
+          throw new Error(errData.error);
         }
 
         const data = (await res.json()) as { confirmationUrl: string };
-
         if (data.confirmationUrl) {
           window.top
             ? (window.top.location.href = data.confirmationUrl)
             : (window.location.href = data.confirmationUrl);
         }
-      } catch (error) {
-        console.error("Plan selection failed", error);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to select plan. Please try again.");
       } finally {
         setSubscribing(null);
       }
     },
-    [interval],
+    [interval, currentPlan],
   );
 
-  const handleApplyDiscount = useCallback(() => {
-    if (!discountCode.trim()) return;
-    setDiscountApplied(true);
-  }, [discountCode]);
+  const handleCancelSubscription = useCallback(async () => {
+    setError(null);
+    setCancelling(true);
+
+    try {
+      const res = await fetch("/api/billing/cancel", { method: "POST" });
+      if (!res.ok) {
+        const errData = (await res.json()) as { error: string };
+        throw new Error(errData.error);
+      }
+
+      setCurrentPlan("free");
+      setHasActiveSubscription(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to cancel subscription.");
+    } finally {
+      setCancelling(false);
+    }
+  }, []);
 
   const isAnnual = interval === "ANNUAL";
+
+  if (loading) {
+    return <BillingPageSkeleton />;
+  }
 
   return (
     <Page
@@ -106,170 +165,198 @@ export default function BillingPage(): ReactElement {
       subtitle="Change your plan here. If you need help or you have any doubts or questions don't hesitate to contact us!"
     >
       <BlockStack gap="600">
-        {/* Monthly / Annual toggle */}
+        {error && (
+          <Banner tone="critical" onDismiss={() => setError(null)}>
+            {error}
+          </Banner>
+        )}
+
         <InlineStack align="center" gap="200">
           <ButtonGroup variant="segmented">
-            <Button
-              pressed={!isAnnual}
-              onClick={() => setInterval("EVERY_30_DAYS")}
-            >
+            <Button pressed={!isAnnual} onClick={() => setInterval("EVERY_30_DAYS")}>
               Monthly
             </Button>
-            <Button
-              pressed={isAnnual}
-              onClick={() => setInterval("ANNUAL")}
-            >
+            <Button pressed={isAnnual} onClick={() => setInterval("ANNUAL")}>
               Annual
             </Button>
           </ButtonGroup>
           {isAnnual && <Badge tone="success">-30%</Badge>}
         </InlineStack>
 
-        {/* Discount code */}
-        <InlineStack align="center" gap="200" blockAlign="end">
-          <Box width="240px">
-            <TextField
-              label=""
-              labelHidden
-              placeholder="Enter discount code"
-              value={discountCode}
-              onChange={setDiscountCode}
-              autoComplete="off"
-              connectedRight={
-                <Button onClick={handleApplyDiscount}>Apply</Button>
-              }
-            />
-          </Box>
-        </InlineStack>
+        <InlineGrid columns={{ xs: 1, sm: 2, lg: 4 }} gap="400">
+          {PLAN_KEYS.map((planKey) => {
+            const plan = PLANS[planKey];
+            const isCurrent = currentPlan === planKey;
+            const monthlyPrice = getEffectiveMonthlyPrice(plan, interval);
+            const annualTotal = getAnnualTotal(plan);
+            const isSubscribing = subscribing === planKey;
+            const isFree = plan.monthlyAmount === 0;
 
-        {discountApplied && (
-          <Banner tone="info" onDismiss={() => setDiscountApplied(false)}>
-            Discount codes are applied at Shopify checkout when confirming your
-            subscription.
-          </Banner>
-        )}
+            return (
+              <div
+                key={planKey}
+                style={{
+                  borderRadius: "12px",
+                  border: isCurrent ? "2px solid var(--p-color-border-emphasis)" : "1px solid var(--p-color-border)",
+                  background: "var(--p-color-bg-surface)",
+                  display: "flex",
+                  flexDirection: "column",
+                  position: "relative",
+                  overflow: "hidden",
+                }}
+              >
+                {isCurrent && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: "12px",
+                      left: "50%",
+                      transform: "translateX(-50%)",
+                      zIndex: 1,
+                    }}
+                  >
+                    <Badge tone="info">YOUR CURRENT PLAN</Badge>
+                  </div>
+                )}
 
-        {/* Plan cards */}
-        {loading ? (
-          <InlineGrid columns={{ xs: 1, sm: 2, lg: 4 }} gap="400">
-            {PLAN_KEYS.map((key) => (
-              <Card key={key}>
-                <SkeletonBodyText lines={10} />
-              </Card>
-            ))}
-          </InlineGrid>
-        ) : (
-          <InlineGrid columns={{ xs: 1, sm: 2, lg: 4 }} gap="400">
-            {PLAN_KEYS.map((planKey) => {
-              const plan = PLANS[planKey];
-              const isCurrent = currentPlan === planKey;
-              const monthlyPrice = getEffectiveMonthlyPrice(plan, interval);
-              const annualTotal = getAnnualTotal(plan);
-              const isSubscribing = subscribing === planKey;
+                <div
+                  style={{
+                    padding: "20px",
+                    paddingTop: isCurrent ? "44px" : "20px",
+                    display: "flex",
+                    flexDirection: "column",
+                    flex: 1,
+                  }}
+                >
+                  <BlockStack gap="200">
+                    <Text as="h3" variant="headingSm" fontWeight="bold">
+                      {plan.name}
+                    </Text>
 
-              return (
-                <Card key={planKey} roundedAbove="sm">
-                  <BlockStack gap="400">
-                    <BlockStack gap="200">
-                      {isCurrent && (
-                        <Box>
-                          <Badge tone="info">YOUR CURRENT PLAN</Badge>
-                        </Box>
-                      )}
-
-                      <Text as="p" variant="bodyMd" fontWeight="semibold">
-                        {plan.name}
+                    {isFree ? (
+                      <Text as="p" variant="heading2xl" fontWeight="bold">
+                        Free
                       </Text>
-
-                      {plan.monthlyAmount === 0 ? (
-                        <Text as="p" variant="headingXl" fontWeight="bold">
-                          Free
-                        </Text>
-                      ) : (
-                        <BlockStack gap="100">
-                          <InlineStack gap="100" blockAlign="baseline">
-                            <Text as="span" variant="heading2xl" fontWeight="bold">
-                              ${monthlyPrice.toFixed(2)}
-                            </Text>
-                            <Text as="span" variant="bodyMd" tone="subdued">
-                              / month
-                            </Text>
-                          </InlineStack>
-                          {isAnnual && (
-                            <Text as="p" variant="bodySm" tone="subdued">
-                              billed at ${annualTotal.toFixed(2)} once per year
-                            </Text>
-                          )}
-                        </BlockStack>
-                      )}
-                    </BlockStack>
-
-                    <Divider />
-
-                    <BlockStack gap="200">
-                      {plan.features.map((feature) => (
-                        <InlineStack
-                          key={feature}
-                          gap="200"
-                          blockAlign="start"
-                          wrap={false}
-                        >
-                          <Box minWidth="20px">
-                            <Icon source={CheckCircleIcon} tone="success" />
-                          </Box>
-                          <Text as="span" variant="bodyMd">
-                            {feature}
+                    ) : (
+                      <BlockStack gap="050">
+                        <InlineStack gap="100" blockAlign="baseline">
+                          <Text as="span" variant="heading2xl" fontWeight="bold">
+                            ${monthlyPrice.toFixed(2)}
+                          </Text>
+                          <Text as="span" variant="bodySm" tone="subdued">
+                            / month
                           </Text>
                         </InlineStack>
-                      ))}
-                    </BlockStack>
+                        {isAnnual && (
+                          <Text as="p" variant="bodySm" tone="subdued">
+                            billed at ${annualTotal.toFixed(2)} once per year
+                          </Text>
+                        )}
+                      </BlockStack>
+                    )}
+                  </BlockStack>
 
-                    <Box paddingBlockStart="200">
-                      {isCurrent ? (
-                        <Button fullWidth disabled>
+                  <div
+                    style={{
+                      borderTop: "1px solid var(--p-color-border)",
+                      marginTop: "16px",
+                      paddingTop: "16px",
+                      flex: 1,
+                    }}
+                  >
+                    <BlockStack gap="200">
+                      {plan.features.map((feature) => {
+                        const boldMatch = feature.match(/^(\d[\d,]*)\s/);
+                        const unlimitedMatch = feature.toLowerCase().startsWith("unlimited");
+                        const allMatch = feature.startsWith("ALL ");
+
+                        return (
+                          <InlineStack key={feature} gap="200" blockAlign="start" wrap={false}>
+                            <Box minWidth="20px">
+                              <Icon source={CheckCircleIcon} tone="success" />
+                            </Box>
+                            <Text as="span" variant="bodyMd">
+                              {boldMatch ? (
+                                <>
+                                  <Text as="span" variant="bodyMd" fontWeight="bold">
+                                    {boldMatch[1]}
+                                  </Text>
+                                  {feature.slice(boldMatch[1]!.length)}
+                                </>
+                              ) : unlimitedMatch ? (
+                                <>
+                                  <Text as="span" variant="bodyMd" fontWeight="bold">
+                                    Unlimited
+                                  </Text>
+                                  {feature.slice(9)}
+                                </>
+                              ) : allMatch ? (
+                                <>
+                                  <Text as="span" variant="bodyMd" fontWeight="bold">
+                                    ALL
+                                  </Text>
+                                  {feature.slice(3)}
+                                </>
+                              ) : (
+                                feature
+                              )}
+                            </Text>
+                          </InlineStack>
+                        );
+                      })}
+                    </BlockStack>
+                  </div>
+
+                  <div style={{ marginTop: "20px" }}>
+                    {isCurrent ? (
+                      currentPlan !== "free" ? (
+                        <Button fullWidth disabled tone="success">
                           Current plan
                         </Button>
-                      ) : planKey === "free" ? (
-                        currentPlan !== "free" ? (
-                          <Button
-                            fullWidth
-                            onClick={() => void handleSelectPlan(planKey)}
-                          >
-                            Downgrade to Free
-                          </Button>
-                        ) : null
                       ) : (
-                        <Button
-                          variant="primary"
-                          fullWidth
-                          loading={isSubscribing}
-                          onClick={() => void handleSelectPlan(planKey)}
-                        >
-                          Select plan
+                        <Button fullWidth disabled tone="success">
+                          Current plan
                         </Button>
-                      )}
-                    </Box>
-                  </BlockStack>
-                </Card>
-              );
-            })}
-          </InlineGrid>
-        )}
+                      )
+                    ) : planKey === "free" && hasActiveSubscription ? (
+                      <Button
+                        fullWidth
+                        variant="secondary"
+                        loading={cancelling}
+                        onClick={() => void handleCancelSubscription()}
+                      >
+                        Downgrade to Free
+                      </Button>
+                    ) : !isFree ? (
+                      <Button
+                        fullWidth
+                        variant="primary"
+                        loading={isSubscribing}
+                        onClick={() => void handleSelectPlan(planKey)}
+                      >
+                        Select plan
+                      </Button>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </InlineGrid>
 
-        {/* Footer disclaimer — wrapped in Card to match reference design */}
         <Card roundedAbove="sm">
           <BlockStack gap="200">
             <Text as="p" variant="bodyMd">
-              All charges are handled securely via Shopify Billing. If you choose
-              a paid plan, you&apos;ll be redirected to confirm the charge.{" "}
+              All charges are handled securely via Shopify Billing. If you choose a paid plan,
+              you&apos;ll be redirected to confirm the charge.{" "}
               <Text as="span" variant="bodyMd" fontWeight="bold">
-                Switching plans won&apos;t reset your order count—orders already
-                used this month will count toward your new plan&apos;s limit.
+                Switching plans won&apos;t reset your order count—orders already used this month
+                will count toward your new plan&apos;s limit.
               </Text>
             </Text>
             <Text as="p" variant="bodyMd">
-              You can cancel your subscription at any time by changing to the free
-              plan or by uninstalling this app.
+              You can cancel your subscription at any time by changing to the free plan or by
+              uninstalling this app.
             </Text>
             <Text as="p" variant="bodyMd">
               For more details about our refund policy, please visit our{" "}

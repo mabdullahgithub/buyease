@@ -28,7 +28,10 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   }
 
   const exists = await existsForSanitizedShop(sanitized);
-  return NextResponse.json({ exists, shop: sanitized });
+  return NextResponse.json(
+    { exists, shop: sanitized },
+    { headers: { "Cache-Control": "private, no-store" } },
+  );
 }
 
 /**

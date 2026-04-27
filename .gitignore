@@ -54,6 +54,7 @@ prisma/migrations/
 .agents
 .vscode
 .cursor
+.claude
 CLAUDE.md
 AGENTS.md
 

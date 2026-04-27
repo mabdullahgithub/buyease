@@ -1,13 +1,15 @@
 import { Redis } from "ioredis";
 
+import { PLANS, type PlanKey } from "@/lib/billing";
+
 const redis = new Redis(process.env.REDIS_URL!);
 
-const PLAN_LIMITS: Record<string, number> = {
-  free: 60,
-  premium: 200,
-  enterprise: 10000,
-  unlimited: Number.POSITIVE_INFINITY,
-};
+const PLAN_LIMITS: Record<string, number> = Object.fromEntries(
+  (Object.keys(PLANS) as PlanKey[]).map((key) => [
+    key,
+    Number.isFinite(PLANS[key].orderLimit) ? PLANS[key].orderLimit : Number.POSITIVE_INFINITY,
+  ]),
+);
 
 export async function checkAndIncrementOrderCount(
   shopDomain: string,

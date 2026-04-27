@@ -119,6 +119,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
             },
           });
 
+          const existingMerchant = await prisma.merchant.findUnique({
+            where: { shop },
+            select: { planId: true },
+          });
+          const isNewSubscription = !existingMerchant?.planId || existingMerchant.planId !== dbPlan.id;
+
           await prisma.merchant.upsert({
             where: { shop },
             create: {
@@ -131,7 +137,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
               isActive: true,
               uninstalledAt: null,
               planId: dbPlan.id,
-              billingCycleStart: new Date(),
+              ...(isNewSubscription ? { billingCycleStart: new Date() } : {}),
             },
           });
         } else if (status === "CANCELLED" || status === "DECLINED") {
@@ -155,7 +161,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
           });
           await prisma.merchant.updateMany({
             where: { shop },
-            data: { planId: dbPlan.id },
+            data: { planId: dbPlan.id, planBillingId: null },
           });
         }
         break;
