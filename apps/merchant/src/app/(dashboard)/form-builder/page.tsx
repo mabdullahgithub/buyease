@@ -1,7 +1,7 @@
 import type { ReactElement } from "react";
 
-import { ComingSoonPage } from "@/components/ComingSoonPage";
+import { FormBuilderPageContent } from "@/components/FormBuilderPageContent";
 
 export default function FormBuilderPage(): ReactElement {
-  return <ComingSoonPage title="Form Builder" />;
+  return <FormBuilderPageContent />;
 }
