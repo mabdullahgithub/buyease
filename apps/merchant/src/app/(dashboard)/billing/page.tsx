@@ -30,6 +30,8 @@ import {
 
 const PLAN_KEYS: PlanKey[] = ["free", "premium", "enterprise", "unlimited"];
 
+const LANDING_SITE_URL = "https://buyease-landing.vercel.app/";
+
 type CurrentPlanResponse = {
   plan: string;
   hasActiveSubscription: boolean;
@@ -379,7 +381,12 @@ export default function BillingPage(): ReactElement {
             </Text>
             <Text as="p" variant="bodyMd">
               For more details about our refund policy, please visit our{" "}
-              <Button variant="plain" url="https://buyease.dev/refund-policy" external>
+              <Button
+                variant="plain"
+                url={LANDING_SITE_URL}
+                external
+                target="_blank"
+              >
                 Refund Policy
               </Button>
               .
