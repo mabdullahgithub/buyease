@@ -228,18 +228,18 @@ export default function BillingPage(): ReactElement {
                   <div
                     style={{
                       position: "absolute",
-                      top: "-9px",
+                      top: "-10px",
                       left: "50%",
                       transform: "translateX(-50%)",
                       zIndex: 1,
                       background: "#1a1a1a",
                       color: "#fff",
-                      padding: "2px 7px",
-                      borderRadius: "4px",
-                      fontSize: "9px",
+                      padding: "3px 9px",
+                      borderRadius: "5px",
+                      fontSize: "10px",
                       fontWeight: 600,
-                      letterSpacing: "0.35px",
-                      lineHeight: 1.25,
+                      letterSpacing: "0.42px",
+                      lineHeight: 1.3,
                       whiteSpace: "nowrap",
                     }}
                   >
