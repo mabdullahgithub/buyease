@@ -36,11 +36,20 @@ type CurrentPlanResponse = {
   interval: string;
 };
 
+const BILLING_PAGE_SUBTITLE =
+  "Change your plan here. If you need help or you have any doubts or questions don't hesitate to contact us!";
+
 function BillingPageSkeleton(): ReactElement {
   return (
-    <Page title="Billing Plans" fullWidth>
+    <Page fullWidth>
       <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
         <BlockStack gap="600">
+          <BlockStack gap="100">
+            <Box maxWidth="18ch">
+              <SkeletonDisplayText maxWidth="100%" />
+            </Box>
+            <SkeletonBodyText lines={1} />
+          </BlockStack>
           <InlineStack align="center" gap="200">
             <Box width="200px">
               <SkeletonDisplayText size="small" />
@@ -162,13 +171,18 @@ export default function BillingPage(): ReactElement {
   }
 
   return (
-    <Page
-      title="Billing Plans"
-      subtitle="Change your plan here. If you need help or you have any doubts or questions don't hesitate to contact us!"
-      fullWidth
-    >
+    <Page fullWidth>
       <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
       <BlockStack gap="600">
+        <BlockStack gap="100">
+          <Text as="h1" variant="headingXl">
+            Billing Plans
+          </Text>
+          <Text as="p" variant="bodyMd" tone="subdued">
+            {BILLING_PAGE_SUBTITLE}
+          </Text>
+        </BlockStack>
+
         {error && (
           <Banner tone="critical" onDismiss={() => setError(null)}>
             {error}
@@ -212,17 +226,18 @@ export default function BillingPage(): ReactElement {
                   <div
                     style={{
                       position: "absolute",
-                      top: "-12px",
+                      top: "-9px",
                       left: "50%",
                       transform: "translateX(-50%)",
                       zIndex: 1,
                       background: "#1a1a1a",
                       color: "#fff",
-                      padding: "3px 12px",
-                      borderRadius: "6px",
-                      fontSize: "11px",
+                      padding: "2px 7px",
+                      borderRadius: "4px",
+                      fontSize: "9px",
                       fontWeight: 600,
-                      letterSpacing: "0.5px",
+                      letterSpacing: "0.35px",
+                      lineHeight: 1.25,
                       whiteSpace: "nowrap",
                     }}
                   >
@@ -233,7 +248,6 @@ export default function BillingPage(): ReactElement {
                 <div
                   style={{
                     padding: "20px",
-                    paddingTop: isCurrent ? "24px" : "20px",
                     display: "flex",
                     flexDirection: "column",
                     flex: 1,
