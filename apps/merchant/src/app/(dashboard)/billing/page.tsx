@@ -401,7 +401,7 @@ export default function BillingPage(): ReactElement {
 
         <Box paddingBlockStart="200" paddingBlockEnd="400">
           <Text as="p" variant="bodySm" tone="subdued" alignment="center">
-            &copy; BuyEase 2026
+            &copy; BuyEase 2026 🇵🇰
           </Text>
         </Box>
       </BlockStack>
