@@ -2,13 +2,20 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { verifyShopifyWebhookHmac } from "@buyease/utils";
 import { prisma } from "@/lib/db";
-import { getPlanRecord, normalizePlanKey } from "@/lib/billing";
+import {
+  getPlanRecord,
+  isShopifySubscriptionGraphqlActive,
+  normalizePlanKey,
+  planDbIntervalFromShopifyWebhookInterval,
+} from "@/lib/billing";
 import { sessionStorage } from "@/lib/shopify";
 
 type AppSubscriptionPayload = {
   app_subscription?: {
     status?: string;
     name?: string;
+    admin_graphql_api_id?: string;
+    interval?: string;
   };
 };
 
@@ -96,23 +103,28 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
           console.error("app_subscriptions/update: missing x-shopify-shop-domain");
           break;
         }
-        const status = payload.app_subscription?.status;
-        if (status === "ACTIVE") {
+        const status = payload.app_subscription?.status ?? "";
+        const subscriptionActive = isShopifySubscriptionGraphqlActive(status);
+        if (subscriptionActive) {
           const normalizedPlan = normalizePlanKey(payload.app_subscription?.name ?? "free");
           const planRecord = getPlanRecord(normalizedPlan);
+          const dbInterval = planDbIntervalFromShopifyWebhookInterval(
+            payload.app_subscription?.interval,
+          );
 
           const dbPlan = await prisma.plan.upsert({
             where: { name: planRecord.name },
             create: {
               name: planRecord.name,
               price: planRecord.price,
-              interval: "MONTHLY",
+              interval: dbInterval,
               features: planRecord.features,
               limits: planRecord.limits,
               isActive: true,
             },
             update: {
               price: planRecord.price,
+              interval: dbInterval,
               features: planRecord.features,
               limits: planRecord.limits,
               isActive: true,
@@ -125,6 +137,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
           });
           const isNewSubscription = !existingMerchant?.planId || existingMerchant.planId !== dbPlan.id;
 
+          const gid = payload.app_subscription?.admin_graphql_api_id;
+          const billingNumeric =
+            typeof gid === "string" && gid.startsWith("gid://shopify/AppSubscription/")
+              ? gid.replace("gid://shopify/AppSubscription/", "")
+              : undefined;
+
           await prisma.merchant.upsert({
             where: { shop },
             create: {
@@ -132,15 +150,17 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
               isActive: true,
               planId: dbPlan.id,
               billingCycleStart: new Date(),
+              ...(billingNumeric ? { planBillingId: billingNumeric } : {}),
             },
             update: {
               isActive: true,
               uninstalledAt: null,
               planId: dbPlan.id,
               ...(isNewSubscription ? { billingCycleStart: new Date() } : {}),
+              ...(billingNumeric ? { planBillingId: billingNumeric } : {}),
             },
           });
-        } else if (status === "CANCELLED" || status === "DECLINED") {
+        } else if (["CANCELLED", "DECLINED"].includes(status.trim().toUpperCase())) {
           const freePlan = getPlanRecord("free");
           const dbPlan = await prisma.plan.upsert({
             where: { name: freePlan.name },

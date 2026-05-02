@@ -99,6 +99,11 @@ export default function BillingPage(): ReactElement {
           const data = (await res.json()) as CurrentPlanResponse;
           setCurrentPlan(data.plan as PlanKey);
           setHasActiveSubscription(data.hasActiveSubscription);
+          if (data.interval === "ANNUAL") {
+            setInterval("ANNUAL");
+          } else {
+            setInterval("EVERY_30_DAYS");
+          }
         }
       } catch {
         setCurrentPlan("free");

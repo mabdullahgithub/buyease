@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { prisma } from "@/lib/db";
-import { getPlanRecord } from "@/lib/billing";
+import { getPlanRecord, isShopifySubscriptionGraphqlActive } from "@/lib/billing";
 import { withSessionVerification } from "@/lib/verify-session";
 
 const ACTIVE_SUBSCRIPTIONS_QUERY = `
@@ -51,8 +51,8 @@ export const POST = withSessionVerification(async (_req: NextRequest, session) =
   };
 
   const activeSubs =
-    subsPayload.data?.currentAppInstallation?.activeSubscriptions?.filter(
-      (s) => s.status === "ACTIVE",
+    subsPayload.data?.currentAppInstallation?.activeSubscriptions?.filter((s) =>
+      isShopifySubscriptionGraphqlActive(s.status),
     ) ?? [];
 
   if (activeSubs.length === 0) {

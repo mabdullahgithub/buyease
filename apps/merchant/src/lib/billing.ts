@@ -112,12 +112,57 @@ export function getBillingPrice(plan: PlanDefinition, interval: BillingInterval)
   return plan.monthlyAmount;
 }
 
+/**
+ * Maps Shopify recurring subscription display names → internal plan keys.
+ * Names are not guaranteed to equal `PLANS[key].name` exactly (marketing copy,
+ * test-charge prefixes, etc.), so match by stable substrings — most specific first.
+ */
 export function normalizePlanKey(value: string): PlanKey {
-  const lowered = value.toLowerCase();
-  if (lowered === "premium" || lowered === "enterprise" || lowered === "unlimited") {
-    return lowered;
+  const lowered = value.trim().toLowerCase();
+  if (lowered.length === 0) return "free";
+  if (lowered.includes("unlimited")) return "unlimited";
+  if (lowered.includes("enterprise")) return "enterprise";
+  if (lowered.includes("premium")) return "premium";
+  if (lowered === "free") return "free";
+  return "free";
+}
+
+/**
+ * Prefer parsing Shopify's subscription name; if still "free", fall back to the
+ * `plan` query param from the billing return URL (trusted only after caller verifies ACTIVE).
+ */
+export function resolvePlanKeyFromBillingSources(
+  shopifySubscriptionName: string | undefined | null,
+  approvedPlanQueryParam: string | null | undefined,
+): PlanKey {
+  const fromShopify = normalizePlanKey(shopifySubscriptionName ?? "");
+  if (fromShopify !== "free") {
+    return fromShopify;
+  }
+  const rawParam =
+    typeof approvedPlanQueryParam === "string" && approvedPlanQueryParam.trim().length > 0
+      ? approvedPlanQueryParam.trim()
+      : null;
+  if (rawParam !== null) {
+    const fromParam = normalizePlanKey(rawParam);
+    if (fromParam !== "free") {
+      return fromParam;
+    }
   }
   return "free";
+}
+
+/** GraphQL enum is usually `ACTIVE`; defensively accept any casing / whitespace */
+export function isShopifySubscriptionGraphqlActive(status: string): boolean {
+  return status.trim().toUpperCase() === "ACTIVE";
+}
+
+/** Shopify REST webhook payloads use lowercase snake interval strings */
+export function planDbIntervalFromShopifyWebhookInterval(raw: string | undefined | null): "MONTHLY" | "ANNUAL" {
+  if (!raw || typeof raw !== "string") return "MONTHLY";
+  const u = raw.trim().toLowerCase();
+  if (u.includes("annual") || u.includes("year") || u.includes("365")) return "ANNUAL";
+  return "MONTHLY";
 }
 
 export function getPlanRecord(planKey: PlanKey): {

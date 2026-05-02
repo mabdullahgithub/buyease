@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { prisma } from "@/lib/db";
+import { normalizePlanKey } from "@/lib/billing";
 import { withSessionVerification } from "@/lib/verify-session";
 
 export const GET = withSessionVerification(async (_req: NextRequest, session) => {
@@ -12,12 +13,14 @@ export const GET = withSessionVerification(async (_req: NextRequest, session) =>
     },
   });
 
-  const currentPlan = merchant?.plan?.name?.toLowerCase() ?? "free";
-  const hasActiveSubscription = !!merchant?.planBillingId;
+  const currentPlanRaw = merchant?.plan?.name ?? "free";
+  const currentPlan = normalizePlanKey(currentPlanRaw);
+  /** Paid Shopify tier and/or lingering subscription id — drives cancel/downgrade UX */
+  const hasActiveSubscription = !!merchant?.planBillingId || currentPlan !== "free";
   const interval = merchant?.plan?.interval ?? "MONTHLY";
 
   return NextResponse.json(
     { plan: currentPlan, hasActiveSubscription, interval },
-    { headers: { "Cache-Control": "private, max-age=30, stale-while-revalidate=60" } },
+    { headers: { "Cache-Control": "private, no-store" } },
   );
 });
