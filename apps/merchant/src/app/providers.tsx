@@ -26,6 +26,7 @@ export default function Providers({ children }: { children: ReactNode }): ReactE
         <a href="/form-builder">Form Builder</a>
         <a href="/upsells">Upsells</a>
         <a href="/analytics">Analytics</a>
+        <a href="/fraud-protection">Fraud Protection</a>
         <a href="/settings">Settings</a>
         <a href="/billing">Billing Plans</a>
       </NavMenu>
