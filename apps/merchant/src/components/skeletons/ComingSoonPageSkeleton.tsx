@@ -7,6 +7,7 @@ import {
   Page,
   SkeletonBodyText,
   SkeletonDisplayText,
+  SkeletonThumbnail,
 } from "@shopify/polaris";
 
 /**
@@ -17,12 +18,7 @@ export function ComingSoonPageSkeleton(): ReactElement {
     <Page>
       <Box paddingBlockStart="1600" paddingBlockEnd="1600">
         <BlockStack gap="400" align="center" inlineAlign="center">
-          <Box
-            minHeight="48px"
-            minWidth="48px"
-            borderRadius="full"
-            background="bg-surface-secondary"
-          />
+          <SkeletonThumbnail size="large" />
           <Box maxWidth="16ch">
             <SkeletonDisplayText maxWidth="100%" size="medium" />
           </Box>
