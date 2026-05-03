@@ -138,9 +138,11 @@ export default function BillingPage(): ReactElement {
 
         const data = (await res.json()) as { confirmationUrl: string };
         if (data.confirmationUrl) {
-          window.top
-            ? (window.top.location.href = data.confirmationUrl)
-            : (window.location.href = data.confirmationUrl);
+          if (window.top) {
+            window.top.location.href = data.confirmationUrl;
+          } else {
+            window.location.href = data.confirmationUrl;
+          }
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to select plan. Please try again.");

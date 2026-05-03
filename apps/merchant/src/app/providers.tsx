@@ -22,12 +22,14 @@ export default function Providers({ children }: { children: ReactNode }): ReactE
   return (
     <AppProvider i18n={translations} linkComponent={NextPolarisLink}>
       <NavMenu>
-        <a href="/" rel="home">Home</a>
-        <a href="/form-builder">Form Builder</a>
-        <a href="/upsells">Upsells</a>
-        <a href="/analytics">Analytics</a>
-        <a href="/settings">Settings</a>
-        <a href="/billing">Billing Plans</a>
+        <Link href="/" rel="home">
+          Home
+        </Link>
+        <Link href="/form-builder">Form Builder</Link>
+        <Link href="/upsells">Upsells</Link>
+        <Link href="/analytics">Analytics</Link>
+        <Link href="/settings">Settings</Link>
+        <Link href="/billing">Billing Plans</Link>
       </NavMenu>
 
       {children}

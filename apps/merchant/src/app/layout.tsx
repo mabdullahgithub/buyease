@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import Link from "next/link";
+import Script from "next/script";
 
 import Providers from "@/app/providers";
 import "./globals.css";
@@ -22,8 +22,11 @@ export default function RootLayout({ children }: RootLayoutProps): ReactNode {
     <html lang="en">
       <head>
         <meta name="shopify-api-key" content={apiKey} />
-        {/* App Bridge MUST be the first script, loaded synchronously (no async/defer/module). */}
-        <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
+        {/* App Bridge must load before hydration; beforeInteractive matches Shopify’s sync requirement. */}
+        <Script
+          src="https://cdn.shopify.com/shopifycloud/app-bridge.js"
+          strategy="beforeInteractive"
+        />
       </head>
       <body>
         <Providers>{children}</Providers>

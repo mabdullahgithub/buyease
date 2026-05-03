@@ -25,6 +25,8 @@ import {
   TabletIcon,
 } from "@shopify/polaris-icons";
 
+import { BuyButtonDesignerWorkspace } from "@/components/form-builder/BuyButtonDesignerWorkspace";
+
 /** Official Polaris empty-state illustration (decorative); required by `EmptyState`. */
 const FORM_BUILDER_EMPTY_ILLUSTRATION =
   "https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png";
@@ -86,7 +88,21 @@ export function FormBuilderPageContent(): ReactElement {
   const tabSelectedIndex = selectedIndex >= 0 ? selectedIndex : 0;
 
   return (
-    <Page title="Form Builder" titleMetadata={<Badge tone="info">Coming soon</Badge>}>
+    <Page
+      title="Form Builder"
+      subtitle={
+        mode === "buy-button"
+          ? "Design your COD buy button and preview it before publishing to your storefront."
+          : undefined
+      }
+      titleMetadata={
+        mode === "buy-button" ? (
+          <Badge tone="success">New</Badge>
+        ) : (
+          <Badge tone="info">Coming soon</Badge>
+        )
+      }
+    >
       <BlockStack gap="400">
         <LegacyTabs
           fitted
@@ -110,78 +126,82 @@ export function FormBuilderPageContent(): ReactElement {
           }}
         />
 
-        <InlineGrid
-          columns={{
-            xs: 1,
-            md: ["twoThirds", "oneThird"],
-          }}
-          gap="400"
-          alignItems="start"
-        >
-          <Card roundedAbove="sm">
-            <BlockStack gap="0">
-              <EmptyState
-                image={FORM_BUILDER_EMPTY_ILLUSTRATION}
-                imageContained
-                heading={active.emptyHeading}
-                secondaryAction={{
-                  content: "Learn more about BuyEase",
-                  url: BUYEASE_MARKETING_URL,
-                  external: true,
-                }}
-              >
-                <BlockStack gap="200">
-                  <Text as="p" variant="bodyMd">
-                    {active.description}
+        {mode === "buy-button" ? (
+          <BuyButtonDesignerWorkspace />
+        ) : (
+          <InlineGrid
+            columns={{
+              xs: 1,
+              md: ["twoThirds", "oneThird"],
+            }}
+            gap="400"
+            alignItems="start"
+          >
+            <Card roundedAbove="sm">
+              <BlockStack gap="0">
+                <EmptyState
+                  image={FORM_BUILDER_EMPTY_ILLUSTRATION}
+                  imageContained
+                  heading={active.emptyHeading}
+                  secondaryAction={{
+                    content: "Learn more about BuyEase",
+                    url: BUYEASE_MARKETING_URL,
+                    external: true,
+                  }}
+                >
+                  <BlockStack gap="200">
+                    <Text as="p" variant="bodyMd">
+                      {active.description}
+                    </Text>
+                    <Text as="p" variant="bodySm" tone="subdued">
+                      This editor is not available yet. You can move between workspaces now; settings
+                      will save here once each flow ships.
+                    </Text>
+                  </BlockStack>
+                </EmptyState>
+                <Divider />
+                <Box paddingBlockStart="400" paddingBlockEnd="100" paddingInline="500">
+                  <Text as="p" variant="bodySm" tone="subdued">
+                    Tip: keep one goal per tab—button visibility, form questions, then delivery—so
+                    shoppers get a consistent COD experience.
+                  </Text>
+                </Box>
+              </BlockStack>
+            </Card>
+
+            <Card roundedAbove="sm">
+              <BlockStack gap="400">
+                <BlockStack gap="100">
+                  <Text as="h2" variant="headingSm">
+                    Live preview
                   </Text>
                   <Text as="p" variant="bodySm" tone="subdued">
-                    This editor is not available yet. You can move between workspaces now; settings
-                    will save here once each flow ships.
+                    Storefront preview for this workspace—updates when you publish changes here.
+                    Coming soon for {active.label}.
                   </Text>
                 </BlockStack>
-              </EmptyState>
-              <Divider />
-              <Box paddingBlockStart="400" paddingBlockEnd="100" paddingInline="500">
-                <Text as="p" variant="bodySm" tone="subdued">
-                  Tip: keep one goal per tab—button visibility, form questions, then delivery—so
-                  shoppers get a consistent COD experience.
-                </Text>
-              </Box>
-            </BlockStack>
-          </Card>
-
-          <Card roundedAbove="sm">
-            <BlockStack gap="400">
-              <BlockStack gap="100">
-                <Text as="h2" variant="headingSm">
-                  Live preview
-                </Text>
-                <Text as="p" variant="bodySm" tone="subdued">
-                  Storefront preview for this workspace—updates when you publish changes here.
-                  Coming soon for {active.label}.
-                </Text>
+                <Box
+                  background="bg-surface-secondary"
+                  borderWidth="025"
+                  borderColor="border"
+                  borderRadius="300"
+                  padding="400"
+                  minHeight="320px"
+                >
+                  <BlockStack gap="300" inlineAlign="center">
+                    <Icon source={TabletIcon} tone="subdued" />
+                    <Box width="100%">
+                      <SkeletonBodyText lines={6} />
+                    </Box>
+                    <Text as="p" variant="bodySm" tone="subdued" alignment="center">
+                      Preview placeholder
+                    </Text>
+                  </BlockStack>
+                </Box>
               </BlockStack>
-              <Box
-                background="bg-surface-secondary"
-                borderWidth="025"
-                borderColor="border"
-                borderRadius="300"
-                padding="400"
-                minHeight="320px"
-              >
-                <BlockStack gap="300" inlineAlign="center">
-                  <Icon source={TabletIcon} tone="subdued" />
-                  <Box width="100%">
-                    <SkeletonBodyText lines={6} />
-                  </Box>
-                  <Text as="p" variant="bodySm" tone="subdued" alignment="center">
-                    Preview placeholder
-                  </Text>
-                </BlockStack>
-              </Box>
-            </BlockStack>
-          </Card>
-        </InlineGrid>
+            </Card>
+          </InlineGrid>
+        )}
       </BlockStack>
     </Page>
   );
