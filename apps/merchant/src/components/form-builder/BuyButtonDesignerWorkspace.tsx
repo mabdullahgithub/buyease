@@ -680,8 +680,10 @@ export function BuyButtonDesignerWorkspace(): ReactElement {
                   label="Text size"
                   value={String(fontSizePx)}
                   autoComplete="off"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
+                  type="number"
+                  min={FONT_MIN_PX}
+                  max={FONT_MAX_PX}
+                  step={1}
                   suffix="px"
                   onChange={(value): void => handleFontSizeChange(value)}
                 />
