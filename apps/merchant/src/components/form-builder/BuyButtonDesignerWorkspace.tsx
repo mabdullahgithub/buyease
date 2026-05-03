@@ -576,36 +576,39 @@ function BuyButtonIconSwatch({
       onMouseEnter={onHoverStart}
       onMouseLeave={onHoverEnd}
     >
-      <Box
-        padding="150"
-        minHeight="40px"
-        background={
-          selected
-            ? "bg-surface-tertiary"
+      <span
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          width: "52px",
+          height: "52px",
+          borderRadius: "10px",
+          border: selected
+            ? "2px solid var(--p-color-border-emphasis)"
+            : "1.5px solid var(--p-color-border-secondary)",
+          background: selected
+            ? "var(--p-color-bg-surface-selected)"
             : interactiveHover
-              ? "bg-surface-secondary"
-              : "bg-surface"
-        }
-        borderRadius="300"
-        borderWidth="025"
-        borderColor="border"
+              ? "var(--p-color-bg-surface-hover)"
+              : "var(--p-color-bg-surface)",
+          transition: "background 120ms ease, border-color 120ms ease",
+          cursor: "pointer",
+        }}
       >
-        <Box width="100%" minHeight="28px">
-          <InlineStack align="center" blockAlign="center" wrap={false}>
-            <span
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                transform: "scale(1.2)",
-                transformOrigin: "center center",
-              }}
-            >
-              <Icon source={entry.source} tone="base" />
-            </span>
-          </InlineStack>
-        </Box>
-      </Box>
+        <span
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            transform: "scale(1.25)",
+            transformOrigin: "center center",
+            filter: selected ? "brightness(0) saturate(100%)" : undefined,
+          }}
+        >
+          <Icon source={entry.source} tone={selected ? "emphasis" : "base"} />
+        </span>
+      </span>
     </UnstyledButton>
   );
 }
@@ -765,12 +768,10 @@ export function BuyButtonDesignerWorkspace(): ReactElement {
                       onClose={(): void => setIconPickerOpen(false)}
                     >
                     <Box
-                      maxWidth="min(100vw - 32px, 440px)"
+                      maxWidth="min(100vw - 32px, 460px)"
                       borderRadius="300"
                       background="bg-surface"
-                      borderWidth="025"
-                      borderColor="border"
-                      shadow="300"
+                      shadow="400"
                     >
                       <Box paddingInline="300" paddingBlockStart="300" paddingBlockEnd="200">
                         <InlineStack align="space-between" blockAlign="center" wrap={false} gap="200">
@@ -804,8 +805,14 @@ export function BuyButtonDesignerWorkspace(): ReactElement {
 
                       <Divider />
 
-                      <Box padding="300" background="bg-surface-secondary">
-                        <InlineGrid columns={{ xs: 6, sm: 9 }} gap="150">
+                      <Box padding="300" background="bg-surface">
+                        <div
+                          style={{
+                            display: "grid",
+                            gridTemplateColumns: "repeat(auto-fill, minmax(52px, 1fr))",
+                            gap: "8px",
+                          }}
+                        >
                           {BUY_BUTTON_STORE_ICONS.map((entry) => (
                             <BuyButtonIconSwatch
                               key={entry.id}
@@ -820,7 +827,7 @@ export function BuyButtonDesignerWorkspace(): ReactElement {
                               }}
                             />
                           ))}
-                        </InlineGrid>
+                        </div>
                       </Box>
                     </Box>
                   </Popover>
