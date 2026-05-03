@@ -26,6 +26,7 @@ import {
 } from "@shopify/polaris-icons";
 
 import { BuyButtonDesignerWorkspace } from "@/components/form-builder/BuyButtonDesignerWorkspace";
+import { FormDesignerWorkspace } from "@/components/form-builder/FormDesignerWorkspace";
 import { ShippingRatesWorkspace } from "@/components/form-builder/ShippingRatesWorkspace";
 
 /** Official Polaris empty-state illustration (decorative); required by `EmptyState`. */
@@ -130,6 +131,8 @@ export function FormBuilderPageContent(): ReactElement {
 
         {mode === "buy-button" ? (
           <BuyButtonDesignerWorkspace />
+        ) : mode === "form-designer" ? (
+          <FormDesignerWorkspace onNavigateToBuyButton={() => setMode("buy-button")} />
         ) : mode === "shipping-rates" ? (
           <ShippingRatesWorkspace />
         ) : (
