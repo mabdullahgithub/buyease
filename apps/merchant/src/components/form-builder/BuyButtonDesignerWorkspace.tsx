@@ -729,41 +729,46 @@ export function BuyButtonDesignerWorkspace(): ReactElement {
                 </Box>
                 <Box minWidth="0" width="100%">
                   <Labelled id="buy-button-style" label="Style">
-                    <ButtonGroup variant="segmented" fullWidth>
-                      <Button
-                        pressed={textBold}
-                        onClick={(): void => setTextBold((previous) => !previous)}
-                        accessibilityLabel="Bold"
-                      >
-                        B
-                      </Button>
-                      <Button
-                        pressed={textItalic}
-                        onClick={(): void => setTextItalic((previous) => !previous)}
-                        accessibilityLabel="Italic"
-                      >
-                        I
-                      </Button>
-                    </ButtonGroup>
+                    <div style={{ height: "36px", display: "flex", alignItems: "stretch" }}>
+                      <ButtonGroup variant="segmented" fullWidth>
+                        <Button
+                          pressed={textBold}
+                          onClick={(): void => setTextBold((previous) => !previous)}
+                          accessibilityLabel="Bold"
+                        >
+                          B
+                        </Button>
+                        <Button
+                          pressed={textItalic}
+                          onClick={(): void => setTextItalic((previous) => !previous)}
+                          accessibilityLabel="Italic"
+                        >
+                          I
+                        </Button>
+                      </ButtonGroup>
+                    </div>
                   </Labelled>
                 </Box>
                 <Box minWidth="0" width="100%">
                   <Labelled id="buy-button-icon" label="Button icon">
+                    <div style={{ height: "36px", display: "flex", alignItems: "stretch" }}>
                     <Popover
                       active={iconPickerOpen}
                       autofocusTarget="first-node"
                       preferredPosition="below"
                       preferredAlignment="left"
                       activator={
-                        <Button
-                          fullWidth
-                          textAlign="left"
-                          icon={iconActivatorSource ?? BlankIcon}
-                          disclosure={iconPickerOpen ? "up" : "down"}
-                          onClick={(): void => setIconPickerOpen((active) => !active)}
-                        >
-                          Change icon
-                        </Button>
+                        <div style={{ height: "36px", display: "flex", alignItems: "stretch", width: "100%" }}>
+                          <Button
+                            fullWidth
+                            textAlign="left"
+                            icon={iconActivatorSource ?? BlankIcon}
+                            disclosure={iconPickerOpen ? "up" : "down"}
+                            onClick={(): void => setIconPickerOpen((active) => !active)}
+                          >
+                            Change icon
+                          </Button>
+                        </div>
                       }
                       onClose={(): void => setIconPickerOpen(false)}
                     >
@@ -831,7 +836,8 @@ export function BuyButtonDesignerWorkspace(): ReactElement {
                       </Box>
                     </Box>
                   </Popover>
-                </Labelled>
+                    </div>
+                  </Labelled>
                 </Box>
               </InlineGrid>
 
