@@ -4,7 +4,6 @@ import { useCallback, useId, useMemo, useState } from "react";
 import type { ReactElement, ReactNode } from "react";
 import type { HSBAColor } from "@shopify/polaris";
 import {
-  Badge,
   Banner,
   BlockStack,
   Box,
@@ -27,7 +26,14 @@ import {
   hsbToRgb,
   rgbaString,
 } from "@shopify/polaris";
-import { ChatIcon, TextAlignLeftIcon, TextAlignRightIcon } from "@shopify/polaris-icons";
+import {
+  BlankIcon,
+  ChatIcon,
+  ChevronDownIcon,
+  DeleteIcon,
+  TextAlignLeftIcon,
+  TextAlignRightIcon,
+} from "@shopify/polaris-icons";
 
 import type { BuyButtonIconDefinition, BuyButtonIconId, SvgPathSpec } from "@/components/form-builder/buy-button-icon-registry";
 import { BUY_BUTTON_STORE_ICONS, getBuyButtonIconDefinition } from "@/components/form-builder/buy-button-icon-registry";
@@ -115,6 +121,8 @@ type BuyButtonPreviewSvgProps = {
   shadowStrength: number;
   fontBold: boolean;
   fontItalic: boolean;
+  /** When true, the SVG viewBox is cropped to the button only (no side canvas padding). */
+  cropToButton?: boolean;
 };
 
 function PreviewMotionWrapper({
@@ -222,6 +230,7 @@ function BuyButtonPreviewSvg({
   shadowStrength,
   fontBold,
   fontItalic,
+  cropToButton = false,
 }: BuyButtonPreviewSvgProps): ReactElement {
   const bgFill = hsbaToRgbaString(bg);
   const textFill = hsbaToRgbaString(fg);
@@ -255,6 +264,10 @@ function BuyButtonPreviewSvg({
 
   const originX = PRODUCT_PREVIEW_SIDE_PAD;
   const originY = 8;
+
+  const viewBoxRect = cropToButton
+    ? `${originX} ${originY} ${btnWidth} ${btnHeight}`
+    : `0 0 ${PRODUCT_PREVIEW_VIEW_WIDTH} ${viewHeight}`;
 
   const labelBaseline =
     subtitleTrim.length > 0 ? padY + fontSizePx * 0.82 : btnHeight / 2;
@@ -360,14 +373,14 @@ function BuyButtonPreviewSvg({
 
   return (
     <svg
-      viewBox={`0 0 ${PRODUCT_PREVIEW_VIEW_WIDTH} ${viewHeight}`}
+      viewBox={viewBoxRect}
       width="100%"
       height="auto"
       preserveAspectRatio="xMidYMid meet"
       role="img"
-      aria-label="Live preview of the COD buy button on a product page"
+      aria-label="Preview of the COD buy button"
     >
-      <title>Product page buy button preview</title>
+      <title>Buy button preview</title>
       <defs>
         <filter id={filterId} x="-40%" y="-40%" width="180%" height="180%">
           <feGaussianBlur in="SourceAlpha" stdDeviation={blur} result="blur" />
@@ -410,18 +423,18 @@ function BuyButtonIconSwatch({
       onMouseLeave={onHoverEnd}
     >
       <Box
-        padding="200"
-        minHeight="44px"
+        padding="150"
+        minHeight="40px"
         background={
           selected
-            ? "bg-surface"
+            ? "bg-surface-tertiary"
             : interactiveHover
-              ? "bg-surface-tertiary"
-              : "bg-surface-secondary"
+              ? "bg-surface-secondary"
+              : "bg-surface"
         }
         borderRadius="200"
-        borderWidth={selected ? "050" : "025"}
-        borderColor={selected ? "border-focus" : "border"}
+        borderWidth="025"
+        borderColor="border"
       >
         <Box width="100%" minHeight="28px">
           <InlineStack align="center" blockAlign="center" wrap={false}>
@@ -585,7 +598,7 @@ export function BuyButtonDesignerWorkspace(): ReactElement {
                     </Box>
                     <Box minWidth="0">
                       <Text as="p" variant="bodyMd" fontWeight="semibold">
-                        Button icon
+                        Button Icon
                       </Text>
                       <Box paddingBlockStart="200">
                         <Popover
@@ -593,20 +606,56 @@ export function BuyButtonDesignerWorkspace(): ReactElement {
                           autofocusTarget="first-node"
                           preferredPosition="below"
                           activator={
-                            <Button
-                              disclosure="down"
-                              variant="secondary"
-                              icon={iconActivatorSource}
-                              fullWidth
-                              textAlign="start"
+                            <UnstyledButton
+                              type="button"
+                              accessibilityLabel="Change button icon"
                               onClick={(): void => setIconPickerOpen((active) => !active)}
+                              style={{ display: "block", width: "100%" }}
                             >
-                              Change icon
-                            </Button>
+                              <Box
+                                width="100%"
+                                paddingInline="300"
+                                paddingBlock="200"
+                                background="bg-surface"
+                                borderWidth="025"
+                                borderColor="border"
+                                borderRadius="200"
+                                shadow={iconPickerOpen ? "200" : undefined}
+                              >
+                                <InlineStack
+                                  align="space-between"
+                                  blockAlign="center"
+                                  wrap={false}
+                                  gap="200"
+                                >
+                                  <InlineStack gap="300" blockAlign="center" wrap={false}>
+                                    <Box width="20px">
+                                      <InlineStack align="center" blockAlign="center">
+                                        {iconActivatorSource ? (
+                                          <Icon source={iconActivatorSource} tone="base" />
+                                        ) : (
+                                          <Icon source={BlankIcon} tone="subdued" />
+                                        )}
+                                      </InlineStack>
+                                    </Box>
+                                    <Text as="span" variant="bodyMd">
+                                      Change icon
+                                    </Text>
+                                  </InlineStack>
+                                  <Icon source={ChevronDownIcon} tone="subdued" />
+                                </InlineStack>
+                              </Box>
+                            </UnstyledButton>
                           }
                           onClose={(): void => setIconPickerOpen(false)}
                         >
-                          <Box padding="300" maxWidth="440px">
+                          <Box
+                            padding="300"
+                            maxWidth="min(100vw - 32px, 440px)"
+                            background="bg-surface"
+                            borderRadius="300"
+                            shadow="400"
+                          >
                             <BlockStack gap="300">
                               <InlineStack align="space-between" blockAlign="center" wrap={false}>
                                 <ButtonGroup variant="segmented">
@@ -625,7 +674,8 @@ export function BuyButtonDesignerWorkspace(): ReactElement {
                                 </ButtonGroup>
                                 <Button
                                   tone="critical"
-                                  variant="tertiary"
+                                  variant="plain"
+                                  icon={DeleteIcon}
                                   onClick={(): void => {
                                     setButtonIconId("none");
                                     setIconPickerOpen(false);
@@ -635,45 +685,9 @@ export function BuyButtonDesignerWorkspace(): ReactElement {
                                 </Button>
                               </InlineStack>
 
-                              <InlineStack gap="300" blockAlign="center" wrap={false}>
-                                <Box
-                                  padding="200"
-                                  background="bg-surface-secondary"
-                                  borderWidth="025"
-                                  borderColor="border"
-                                  borderRadius="200"
-                                  minWidth="48px"
-                                  minHeight="48px"
-                                >
-                                  <InlineStack align="center" blockAlign="center">
-                                    {iconActivatorSource ? (
-                                      <span
-                                        style={{
-                                          display: "inline-flex",
-                                          transform: "scale(1.45)",
-                                          transformOrigin: "center center",
-                                        }}
-                                      >
-                                        <Icon source={iconActivatorSource} tone="base" />
-                                      </span>
-                                    ) : (
-                                      <Text as="span" variant="bodyMd" tone="subdued">
-                                        —
-                                      </Text>
-                                    )}
-                                  </InlineStack>
-                                </Box>
-                                <BlockStack gap="050">
-                                  <Text as="p" variant="bodySm" fontWeight="semibold">
-                                    {activeIcon ? activeIcon.label : "No icon"}
-                                  </Text>
-                                  <Text as="p" variant="bodySm" tone="subdued">
-                                    Matches your button preview.
-                                  </Text>
-                                </BlockStack>
-                              </InlineStack>
+                              <Divider />
 
-                              <InlineGrid columns={{ xs: 4, sm: 5 }} gap="150">
+                              <InlineGrid columns={{ xs: 6, sm: 9 }} gap="150">
                                 {BUY_BUTTON_STORE_ICONS.map((entry) => (
                                   <BuyButtonIconSwatch
                                     key={entry.id}
@@ -822,105 +836,26 @@ export function BuyButtonDesignerWorkspace(): ReactElement {
         </Card>
 
         <Box position="sticky" insetBlockStart="400" zIndex="400" width="100%">
-          <Card roundedAbove="sm">
-            <BlockStack gap="500">
-              <InlineStack
-                align="space-between"
-                blockAlign="start"
-                gap="300"
-                wrap
-              >
-                <BlockStack gap="150">
-                  <Text as="h2" variant="headingLg">
-                    Live preview
-                  </Text>
-                  <Box maxWidth="420px">
-                    <Text as="p" variant="bodySm" tone="subdued">
-                      Sample product page—your COD button is the full-width primary action. Live typography
-                      follows the theme; colors, weight, and size match these controls.
-                    </Text>
-                  </Box>
-                </BlockStack>
-                <Badge tone="info">Product page</Badge>
-              </InlineStack>
-
-              <Box
-                background="bg-surface-secondary"
-                borderRadius="400"
-                padding="300"
-                borderWidth="025"
-                borderColor="border"
-              >
-                <Box
-                  background="bg-surface"
-                  borderRadius="300"
-                  overflowX="hidden"
-                  overflowY="hidden"
-                  shadow="200"
-                  width="100%"
-                >
-                  <BlockStack gap="0">
-                    <Box padding="500" paddingBlockEnd="400">
-                      <BlockStack gap="300">
-                        <Text
-                          as="p"
-                          variant="bodySm"
-                          tone="subdued"
-                        >
-                          <span
-                            style={{
-                              letterSpacing: "0.04em",
-                              textTransform: "lowercase",
-                              fontSize: "0.8125rem",
-                            }}
-                          >
-                            storename.com
-                          </span>
-                        </Text>
-                        <Text as="h3" variant="headingLg">
-                          Sample product
-                        </Text>
-                        <InlineStack align="space-between" blockAlign="center" wrap={false} gap="300">
-                          <Badge tone="success">In stock</Badge>
-                          <Text as="p" variant="headingLg" fontWeight="bold">
-                            <span style={{ fontVariantNumeric: "tabular-nums" }}>$29.99</span>
-                          </Text>
-                        </InlineStack>
-                        <Text as="p" variant="bodySm" tone="subdued">
-                          Shown with sample title and price. Your catalog appears on the storefront.
-                        </Text>
-                      </BlockStack>
-                    </Box>
-                    <Divider />
-                    <Box
-                      background="bg-surface-secondary"
-                      padding="400"
-                      paddingBlockStart="400"
-                      width="100%"
-                    >
-                      <BuyButtonPreviewSvg
-                        filterId={previewFilterId}
-                        label={buttonText}
-                        subtitle={buttonSubtitle}
-                        previewPaths={previewPaths}
-                        iconAlign={iconAlign}
-                        animation={animation}
-                        bg={bgColor}
-                        fg={textColor}
-                        border={borderColor}
-                        fontSizePx={fontSizePx}
-                        borderRadiusPx={borderRadiusPx}
-                        borderWidthPx={borderWidthPx}
-                        shadowStrength={shadowStrength}
-                        fontBold={textBold}
-                        fontItalic={textItalic}
-                      />
-                    </Box>
-                  </BlockStack>
-                </Box>
-              </Box>
-            </BlockStack>
-          </Card>
+          <Box paddingBlockStart="100" width="100%">
+            <BuyButtonPreviewSvg
+              filterId={previewFilterId}
+              label={buttonText}
+              subtitle={buttonSubtitle}
+              previewPaths={previewPaths}
+              iconAlign={iconAlign}
+              animation={animation}
+              bg={bgColor}
+              fg={textColor}
+              border={borderColor}
+              fontSizePx={fontSizePx}
+              borderRadiusPx={borderRadiusPx}
+              borderWidthPx={borderWidthPx}
+              shadowStrength={shadowStrength}
+              fontBold={textBold}
+              fontItalic={textItalic}
+              cropToButton
+            />
+          </Box>
         </Box>
       </InlineGrid>
     </BlockStack>
