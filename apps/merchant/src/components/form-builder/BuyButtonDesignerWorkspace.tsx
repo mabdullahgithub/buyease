@@ -4,14 +4,17 @@ import { useCallback, useId, useMemo, useState } from "react";
 import type { ReactElement } from "react";
 import type { HSBAColor } from "@shopify/polaris";
 import {
+  Badge,
   Banner,
   BlockStack,
   Box,
   Card,
   Checkbox,
   ColorPicker,
+  Divider,
   FormLayout,
   InlineGrid,
+  InlineStack,
   RangeSlider,
   Select,
   Text,
@@ -83,6 +86,10 @@ function truncatePreviewLabel(text: string, maxChars: number): string {
   return `${trimmed.slice(0, Math.max(0, maxChars - 1))}…`;
 }
 
+/** Preview canvas width — button spans nearly full width like Dawn product form CTAs. */
+const PRODUCT_PREVIEW_VIEW_WIDTH = 400;
+const PRODUCT_PREVIEW_SIDE_PAD = 16;
+
 type ButtonIconOption = "none" | "cart" | "button-icon";
 
 type BuyButtonPreviewSvgProps = {
@@ -117,24 +124,23 @@ function BuyButtonPreviewSvg({
   const bgFill = hsbaToRgbaString(bg);
   const textFill = hsbaToRgbaString(fg);
   const borderStroke = hsbaToRgbaString(border);
-  const safeLabel = truncatePreviewLabel(label.length > 0 ? label : "Buy with Cash on Delivery", 42);
+  const safeLabel = truncatePreviewLabel(label.length > 0 ? label : "Buy with Cash on Delivery", 48);
   const subtitleTrim = subtitle.trim();
   const iconGap = 8;
-  const iconSize = icon === "none" ? 0 : Math.min(22, Math.round(fontSizePx * 1.1));
+  const iconSize = icon === "none" ? 0 : Math.min(24, Math.round(fontSizePx * 1.15));
   const charEstimate = 0.52 * fontSizePx;
   const textWidthEstimate = safeLabel.length * charEstimate;
-  const padX = Math.round(fontSizePx * 0.85);
+  const padX = Math.round(fontSizePx * 0.75);
   const padY = Math.round(fontSizePx * 0.55);
   const subFontSize = Math.max(11, Math.round(fontSizePx * 0.78));
   const lineGap = 6;
   const iconSlot = icon === "none" ? 0 : iconSize + iconGap;
-  const innerTextWidth = textWidthEstimate;
-  const btnWidth = Math.min(
-    320,
-    Math.max(120, Math.ceil(padX * 2 + iconSlot + innerTextWidth)),
-  );
-  const mainBlockHeight = subtitleTrim.length > 0 ? fontSizePx + lineGap + subFontSize : fontSizePx;
-  const btnHeight = padY * 2 + mainBlockHeight;
+
+  const btnWidth = PRODUCT_PREVIEW_VIEW_WIDTH - PRODUCT_PREVIEW_SIDE_PAD * 2;
+  const mainBlockHeight =
+    subtitleTrim.length > 0 ? fontSizePx + lineGap + subFontSize : fontSizePx;
+  const btnHeight = Math.max(52, padY * 2 + mainBlockHeight);
+  const viewHeight = btnHeight + 16;
   const blur = Math.min(14, Math.max(0, shadowStrength / 2));
 
   const pulseAnimation = animation === "pulse";
@@ -147,25 +153,28 @@ function BuyButtonPreviewSvg({
     iconPath = POINTER_ICON_PATH;
   }
 
-  const centerX = 360 / 2;
-  const centerY = 220 / 2;
-  const originX = centerX - btnWidth / 2;
-  const originY = centerY - btnHeight / 2;
+  const originX = PRODUCT_PREVIEW_SIDE_PAD;
+  const originY = 8;
 
-  const labelBaseline = padY + fontSizePx * 0.82;
+  const textPartWidth = Math.min(textWidthEstimate, btnWidth - padX * 2 - iconSlot);
+  const clusterWidth = iconSlot + textPartWidth;
+  const rowStartX = Math.max(padX, (btnWidth - clusterWidth) / 2);
+
+  const labelBaseline =
+    subtitleTrim.length > 0 ? padY + fontSizePx * 0.82 : btnHeight / 2;
   const subtitleBaseline =
     subtitleTrim.length > 0 ? padY + fontSizePx + lineGap + subFontSize * 0.82 : labelBaseline;
 
   return (
     <svg
-      viewBox="0 0 360 220"
+      viewBox={`0 0 ${PRODUCT_PREVIEW_VIEW_WIDTH} ${viewHeight}`}
       width="100%"
-      height="220"
+      height="auto"
       preserveAspectRatio="xMidYMid meet"
       role="img"
-      aria-label="Live preview of the COD buy button"
+      aria-label="Live preview of the COD buy button on a product page"
     >
-      <title>Buy button preview</title>
+      <title>Product page buy button preview</title>
       <defs>
         <filter id={filterId} x="-40%" y="-40%" width="180%" height="180%">
           <feGaussianBlur in="SourceAlpha" stdDeviation={blur} result="blur" />
@@ -198,12 +207,18 @@ function BuyButtonPreviewSvg({
           ) : null}
         </rect>
         {iconPath !== null ? (
-          <g transform={`translate(${padX}, ${padY + (mainBlockHeight - iconSize) / 2})`}>
+          <g
+            transform={`translate(${rowStartX}, ${
+              subtitleTrim.length > 0
+                ? padY + fontSizePx * 0.42 - iconSize / 2
+                : padY + (mainBlockHeight - iconSize) / 2
+            })`}
+          >
             <path d={iconPath} fill={textFill} transform={`scale(${iconSize / 24})`} />
           </g>
         ) : null}
         <text
-          x={iconPath === null ? btnWidth / 2 : padX + iconSlot}
+          x={iconPath === null ? btnWidth / 2 : rowStartX + iconSlot}
           y={subtitleTrim.length > 0 ? padY + fontSizePx * 0.82 : btnHeight / 2}
           dominantBaseline={subtitleTrim.length > 0 ? undefined : "middle"}
           textAnchor={iconPath === null ? "middle" : "start"}
@@ -224,7 +239,7 @@ function BuyButtonPreviewSvg({
             fontFamily="system-ui, -apple-system, sans-serif"
             opacity={0.92}
           >
-            {truncatePreviewLabel(subtitleTrim, 48)}
+            {truncatePreviewLabel(subtitleTrim, 52)}
           </text>
         ) : null}
       </g>
@@ -464,40 +479,73 @@ export function BuyButtonDesignerWorkspace(): ReactElement {
           </BlockStack>
         </Card>
 
-        <Card roundedAbove="sm">
-          <BlockStack gap="400">
-            <BlockStack gap="100">
-              <Text as="h2" variant="headingSm">
-                Live preview
-              </Text>
-              <Text as="p" variant="bodySm" tone="subdued">
-                Approximate rendering in admin. The storefront button uses your theme typography; colors
-                and sizing match what you set here.
-              </Text>
+        <Box position="sticky" insetBlockStart="400" zIndex="400" width="100%">
+          <Card roundedAbove="sm">
+            <BlockStack gap="400">
+              <BlockStack gap="100">
+                <Text as="h2" variant="headingSm">
+                  Live preview
+                </Text>
+                <Text as="p" variant="bodySm" tone="subdued">
+                  Sample product page—your COD button appears as a full-width primary action, like on
+                  Online Store 2.0 themes. Typography on the live store follows the theme; colors and
+                  scale match your settings here.
+                </Text>
+              </BlockStack>
+              <Box
+                background="bg-surface"
+                borderWidth="025"
+                borderColor="border"
+                borderRadius="300"
+                padding="400"
+                width="100%"
+              >
+                <BlockStack gap="400">
+                  <BlockStack gap="200">
+                    <Text as="p" variant="bodySm" tone="subdued">
+                      storename.com
+                    </Text>
+                    <Text as="h3" variant="headingLg">
+                      Sample product
+                    </Text>
+                    <InlineStack align="space-between" blockAlign="center" wrap={false} gap="200">
+                      <Badge tone="success">In stock</Badge>
+                      <Text as="p" variant="headingLg">
+                        $29.99
+                      </Text>
+                    </InlineStack>
+                    <Text as="p" variant="bodySm" tone="subdued">
+                      Shown with sample title and price. Your real product data appears on the
+                      storefront.
+                    </Text>
+                  </BlockStack>
+                  <Divider />
+                  <Box
+                    background="bg-surface-secondary"
+                    borderRadius="200"
+                    padding="300"
+                    width="100%"
+                  >
+                    <BuyButtonPreviewSvg
+                      filterId={previewFilterId}
+                      label={buttonText}
+                      subtitle={buttonSubtitle}
+                      icon={icon}
+                      animation={animation}
+                      bg={bgColor}
+                      fg={textColor}
+                      border={borderColor}
+                      fontSizePx={fontSizePx}
+                      borderRadiusPx={borderRadiusPx}
+                      borderWidthPx={borderWidthPx}
+                      shadowStrength={shadowStrength}
+                    />
+                  </Box>
+                </BlockStack>
+              </Box>
             </BlockStack>
-            <Box
-              background="bg-surface-secondary"
-              borderRadius="300"
-              padding="400"
-              width="100%"
-            >
-              <BuyButtonPreviewSvg
-                filterId={previewFilterId}
-                label={buttonText}
-                subtitle={buttonSubtitle}
-                icon={icon}
-                animation={animation}
-                bg={bgColor}
-                fg={textColor}
-                border={borderColor}
-                fontSizePx={fontSizePx}
-                borderRadiusPx={borderRadiusPx}
-                borderWidthPx={borderWidthPx}
-                shadowStrength={shadowStrength}
-              />
-            </Box>
-          </BlockStack>
-        </Card>
+          </Card>
+        </Box>
       </InlineGrid>
     </BlockStack>
   );

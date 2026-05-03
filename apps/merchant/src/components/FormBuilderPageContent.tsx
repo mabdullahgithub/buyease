@@ -7,13 +7,13 @@ import {
   Badge,
   BlockStack,
   Box,
+  Button,
+  ButtonGroup,
   Card,
   Divider,
   EmptyState,
   Icon,
   InlineGrid,
-  InlineStack,
-  LegacyTabs,
   Page,
   SkeletonBodyText,
   Text,
@@ -84,9 +84,6 @@ export function FormBuilderPageContent(): ReactElement {
 
   const active = MODES.find((m) => m.id === mode) ?? MODES[0]!;
 
-  const selectedIndex = MODES.findIndex((m) => m.id === mode);
-  const tabSelectedIndex = selectedIndex >= 0 ? selectedIndex : 0;
-
   return (
     <Page
       title="Form Builder"
@@ -104,27 +101,29 @@ export function FormBuilderPageContent(): ReactElement {
       }
     >
       <BlockStack gap="400">
-        <LegacyTabs
-          fitted
-          selected={tabSelectedIndex}
-          tabs={MODES.map((item) => ({
-            id: item.id,
-            content: (
-              <InlineStack gap="200" blockAlign="center" wrap={false}>
-                <Icon source={item.icon} tone="subdued" />
-                <Text as="span" variant="bodyMd">
-                  {item.label}
-                </Text>
-              </InlineStack>
-            ),
-          }))}
-          onSelect={(index): void => {
-            const next = MODES[index];
-            if (next) {
-              handleModeChange(next.id);
-            }
-          }}
-        />
+        <Box
+          padding="100"
+          background="bg-surface"
+          borderWidth="025"
+          borderColor="border"
+          borderRadius="300"
+          shadow="100"
+          width="100%"
+        >
+          <ButtonGroup variant="segmented" fullWidth>
+            {MODES.map((item) => (
+              <Button
+                key={item.id}
+                icon={item.icon}
+                pressed={mode === item.id}
+                fullWidth
+                onClick={() => handleModeChange(item.id)}
+              >
+                {item.label}
+              </Button>
+            ))}
+          </ButtonGroup>
+        </Box>
 
         {mode === "buy-button" ? (
           <BuyButtonDesignerWorkspace />
@@ -169,37 +168,39 @@ export function FormBuilderPageContent(): ReactElement {
               </BlockStack>
             </Card>
 
-            <Card roundedAbove="sm">
-              <BlockStack gap="400">
-                <BlockStack gap="100">
-                  <Text as="h2" variant="headingSm">
-                    Live preview
-                  </Text>
-                  <Text as="p" variant="bodySm" tone="subdued">
-                    Storefront preview for this workspace—updates when you publish changes here.
-                    Coming soon for {active.label}.
-                  </Text>
-                </BlockStack>
-                <Box
-                  background="bg-surface-secondary"
-                  borderWidth="025"
-                  borderColor="border"
-                  borderRadius="300"
-                  padding="400"
-                  minHeight="320px"
-                >
-                  <BlockStack gap="300" inlineAlign="center">
-                    <Icon source={TabletIcon} tone="subdued" />
-                    <Box width="100%">
-                      <SkeletonBodyText lines={6} />
-                    </Box>
-                    <Text as="p" variant="bodySm" tone="subdued" alignment="center">
-                      Preview placeholder
+            <Box position="sticky" insetBlockStart="400" zIndex="400" width="100%">
+              <Card roundedAbove="sm">
+                <BlockStack gap="400">
+                  <BlockStack gap="100">
+                    <Text as="h2" variant="headingSm">
+                      Live preview
+                    </Text>
+                    <Text as="p" variant="bodySm" tone="subdued">
+                      Storefront preview for this workspace—updates when you publish changes here.
+                      Coming soon for {active.label}.
                     </Text>
                   </BlockStack>
-                </Box>
-              </BlockStack>
-            </Card>
+                  <Box
+                    background="bg-surface-secondary"
+                    borderWidth="025"
+                    borderColor="border"
+                    borderRadius="300"
+                    padding="400"
+                    minHeight="320px"
+                  >
+                    <BlockStack gap="300" inlineAlign="center">
+                      <Icon source={TabletIcon} tone="subdued" />
+                      <Box width="100%">
+                        <SkeletonBodyText lines={6} />
+                      </Box>
+                      <Text as="p" variant="bodySm" tone="subdued" alignment="center">
+                        Preview placeholder
+                      </Text>
+                    </BlockStack>
+                  </Box>
+                </BlockStack>
+              </Card>
+            </Box>
           </InlineGrid>
         )}
       </BlockStack>
