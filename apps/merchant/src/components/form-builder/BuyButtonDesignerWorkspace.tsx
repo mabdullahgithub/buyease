@@ -285,22 +285,20 @@ function BuyButtonPreviewSvg({
   let labelAnchor: "start" | "middle" = "middle";
 
   if (hasIcon && previewPaths) {
+    const iconYNoSubtitle = btnHeight / 2 - iconSize / 2;
+    const iconYWithSubtitle = padY + fontSizePx * 0.42 - iconSize / 2;
+    const iconYResolved = subtitleTrim.length > 0 ? iconYWithSubtitle : iconYNoSubtitle;
+
     if (iconAlign === "start") {
       iconX = rowStartX;
-      iconY =
-        subtitleTrim.length > 0
-          ? padY + fontSizePx * 0.42 - iconSize / 2
-          : padY + (mainBlockHeight - iconSize) / 2;
+      iconY = iconYResolved;
       labelX = rowStartX + iconSlot;
       labelAnchor = "start";
     } else {
       labelX = rowStartX;
       labelAnchor = "start";
       iconX = rowStartX + textPartWidth + iconGap;
-      iconY =
-        subtitleTrim.length > 0
-          ? padY + fontSizePx * 0.42 - iconSize / 2
-          : padY + (mainBlockHeight - iconSize) / 2;
+      iconY = iconYResolved;
     }
   }
 
@@ -423,20 +421,34 @@ function BuyButtonIconSwatch({
       onMouseLeave={onHoverEnd}
     >
       <Box
-        padding="200"
-        minHeight="36px"
+        padding="150"
+        minHeight="40px"
         background={
           selected
-            ? "bg-surface-secondary-active"
+            ? "bg-surface-tertiary"
             : interactiveHover
-              ? "bg-surface-secondary-hover"
+              ? "bg-surface-secondary"
               : "bg-surface"
         }
         borderRadius="200"
+        borderWidth="025"
+        borderColor="border"
       >
-        <InlineStack align="center" blockAlign="center" wrap={false}>
-          <Icon source={entry.source} tone={selected ? "base" : "subdued"} />
-        </InlineStack>
+        <Box width="100%" minHeight="28px">
+          <InlineStack align="center" blockAlign="center" wrap={false}>
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                transform: "scale(1.2)",
+                transformOrigin: "center center",
+              }}
+            >
+              <Icon source={entry.source} tone="base" />
+            </span>
+          </InlineStack>
+        </Box>
       </Box>
     </UnstyledButton>
   );
