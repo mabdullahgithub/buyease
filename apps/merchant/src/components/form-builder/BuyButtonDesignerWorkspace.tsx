@@ -399,26 +399,21 @@ function BuyButtonPreviewSvg({
 
   let iconX = 0;
   let iconY = 0;
-  let labelX = btnWidth / 2;
-  let labelAnchor: "start" | "middle" = "middle";
-
-  const clusterInnerStart = padX + Math.max(0, (innerContentWidth - titleClusterWidthPx) / 2);
+  // Title text is always centered at the button midpoint so it looks
+  // pixel-perfect regardless of font-metric estimation variance.
+  const labelX = btnWidth / 2;
+  const labelAnchor: "start" | "middle" = "middle";
 
   if (hasIcon && previewPaths) {
     iconY = titleVisualMidY - iconSize / 2;
-    const textStripePx = Math.min(titleColumnWidth, widestTitlePx);
+    // Estimate half-width of the widest title line and offset the icon
+    // from the text centre so the icon+text cluster is balanced.
+    const halfTextPx = Math.min(titleColumnWidth / 2, widestTitlePx / 2);
     if (iconAlign === "start") {
-      iconX = clusterInnerStart;
-      labelX = clusterInnerStart + iconSlot;
-      labelAnchor = "start";
+      iconX = Math.max(padX, btnWidth / 2 - halfTextPx - iconGap - iconSize);
     } else {
-      labelX = clusterInnerStart;
-      labelAnchor = "start";
-      iconX = clusterInnerStart + textStripePx + iconGap;
+      iconX = Math.min(btnWidth - padX - iconSize, btnWidth / 2 + halfTextPx + iconGap);
     }
-  } else {
-    labelX = btnWidth / 2;
-    labelAnchor = "middle";
   }
 
   const viewHeight = btnHeight + 16;
@@ -581,18 +576,16 @@ function BuyButtonIconSwatch({
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          width: "52px",
-          height: "52px",
-          borderRadius: "10px",
-          border: selected
-            ? "2px solid var(--p-color-border-emphasis)"
-            : "1.5px solid var(--p-color-border-secondary)",
+          width: "38px",
+          height: "38px",
+          borderRadius: "8px",
+          border: "none",
           background: selected
-            ? "var(--p-color-bg-surface-selected)"
+            ? "rgba(0,0,0,0.82)"
             : interactiveHover
-              ? "var(--p-color-bg-surface-hover)"
-              : "var(--p-color-bg-surface)",
-          transition: "background 120ms ease, border-color 120ms ease",
+              ? "rgba(0,0,0,0.06)"
+              : "transparent",
+          transition: "background 100ms ease",
           cursor: "pointer",
         }}
       >
@@ -601,12 +594,10 @@ function BuyButtonIconSwatch({
             display: "inline-flex",
             alignItems: "center",
             justifyContent: "center",
-            transform: "scale(1.25)",
-            transformOrigin: "center center",
-            filter: selected ? "brightness(0) saturate(100%)" : undefined,
+            filter: selected ? "invert(1)" : undefined,
           }}
         >
-          <Icon source={entry.source} tone={selected ? "emphasis" : "base"} />
+          <Icon source={entry.source} tone="base" />
         </span>
       </span>
     </UnstyledButton>
@@ -814,8 +805,8 @@ export function BuyButtonDesignerWorkspace(): ReactElement {
                         <div
                           style={{
                             display: "grid",
-                            gridTemplateColumns: "repeat(auto-fill, minmax(52px, 1fr))",
-                            gap: "8px",
+                            gridTemplateColumns: "repeat(auto-fill, minmax(38px, 1fr))",
+                            gap: "4px",
                           }}
                         >
                           {BUY_BUTTON_STORE_ICONS.map((entry) => (
