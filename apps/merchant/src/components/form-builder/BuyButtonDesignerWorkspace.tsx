@@ -87,12 +87,108 @@ function hsbaToRgbaString(color: HSBAColor): string {
   return rgbaString(hsbToRgb(color));
 }
 
-function truncatePreviewLabel(text: string, maxChars: number): string {
-  const trimmed = text.trim();
-  if (trimmed.length <= maxChars) {
-    return trimmed;
+const PREVIEW_LABEL_MAX_LINES = 8;
+const PREVIEW_SUBTITLE_MAX_LINES = 4;
+const PREVIEW_CHAR_WIDTH_RATIO = 0.52;
+
+function estimateTextWidthPx(text: string, fontSizePx: number): number {
+  return text.length * fontSizePx * PREVIEW_CHAR_WIDTH_RATIO;
+}
+
+function ellipsizeLastLine(lines: string[], maxLines: number): string[] {
+  const clipped = lines.slice(0, maxLines);
+  if (clipped.length === 0) {
+    return ["…"];
   }
-  return `${trimmed.slice(0, Math.max(0, maxChars - 1))}…`;
+  const idx = clipped.length - 1;
+  let tail = clipped[idx]!;
+  if (!tail.endsWith("…")) {
+    tail = tail.length > 1 ? `${tail.slice(0, Math.max(0, tail.length - 1))}…` : "…";
+  }
+  clipped[idx] = tail;
+  return clipped;
+}
+
+/** Greedy word-wrap for SVG (`tspan`); breaks long tokens; ellipsizes only when exceeding `maxLines`. */
+function wrapTextToLines(
+  raw: string,
+  maxWidthPx: number,
+  fontSizePx: number,
+  maxLines: number,
+  emptyFallback: string,
+): string[] {
+  if (maxWidthPx <= fontSizePx * 0.5) {
+    return [raw.trim().length > 0 ? raw.trim() : emptyFallback];
+  }
+
+  const source = raw.trim().length > 0 ? raw.trim() : emptyFallback;
+
+  const breakLongWord = (word: string): string[] => {
+    const parts: string[] = [];
+    let rest = word;
+    while (rest.length > 0) {
+      if (estimateTextWidthPx(rest, fontSizePx) <= maxWidthPx) {
+        parts.push(rest);
+        break;
+      }
+      let low = 1;
+      let high = rest.length;
+      let fit = 1;
+      while (low <= high) {
+        const mid = Math.floor((low + high) / 2);
+        if (estimateTextWidthPx(rest.slice(0, mid), fontSizePx) <= maxWidthPx) {
+          fit = mid;
+          low = mid + 1;
+        } else {
+          high = mid - 1;
+        }
+      }
+      fit = Math.max(1, fit);
+      parts.push(rest.slice(0, fit));
+      rest = rest.slice(fit);
+    }
+    return parts;
+  };
+
+  const words = source.split(/\s+/).filter(Boolean);
+  const out: string[] = [];
+  let line = "";
+
+  const flushLine = (): void => {
+    if (line.length > 0) {
+      out.push(line);
+      line = "";
+    }
+  };
+
+  for (const word of words) {
+    const chunks =
+      estimateTextWidthPx(word, fontSizePx) <= maxWidthPx ? [word] : breakLongWord(word);
+    for (const chunk of chunks) {
+      if (out.length >= maxLines) {
+        return ellipsizeLastLine(out, maxLines);
+      }
+      const candidate = line.length === 0 ? chunk : `${line} ${chunk}`;
+      if (line.length === 0 || estimateTextWidthPx(candidate, fontSizePx) <= maxWidthPx) {
+        line = candidate;
+      } else {
+        flushLine();
+        if (out.length >= maxLines) {
+          return ellipsizeLastLine(out, maxLines);
+        }
+        line = chunk;
+      }
+    }
+  }
+  flushLine();
+
+  if (out.length === 0) {
+    return [emptyFallback];
+  }
+  if (out.length > maxLines) {
+    return ellipsizeLastLine(out, maxLines);
+  }
+  return out;
 }
 
 function clampFontSizePx(value: number): number {
@@ -102,6 +198,7 @@ function clampFontSizePx(value: number): number {
 /** Preview canvas width — button spans nearly full width like Dawn product form CTAs. */
 const PRODUCT_PREVIEW_VIEW_WIDTH = 400;
 const PRODUCT_PREVIEW_SIDE_PAD = 16;
+const PREVIEW_LABEL_FALLBACK = "Buy with Cash on Delivery";
 
 type IconTextAlign = "start" | "end";
 
@@ -235,33 +332,92 @@ function BuyButtonPreviewSvg({
   const bgFill = hsbaToRgbaString(bg);
   const textFill = hsbaToRgbaString(fg);
   const borderStroke = hsbaToRgbaString(border);
-  const safeLabel = truncatePreviewLabel(label.length > 0 ? label : "Buy with Cash on Delivery", 48);
-  const subtitleTrim = subtitle.trim();
+
   const iconGap = 8;
   const hasIcon = Boolean(previewPaths && previewPaths.length > 0);
   const iconSize = hasIcon ? Math.min(28, Math.round(fontSizePx * 1.3)) : 0;
-  const charEstimate = 0.52 * fontSizePx;
-  const textWidthEstimate = safeLabel.length * charEstimate;
+  const iconSlot = hasIcon ? iconSize + iconGap : 0;
+
   const padX = Math.round(fontSizePx * 0.75);
   const padY = Math.round(fontSizePx * 0.55);
   const subFontSize = Math.max(11, Math.round(fontSizePx * 0.78));
   const lineGap = 6;
-  const iconSlot = hasIcon ? iconSize + iconGap : 0;
 
   const btnWidth = PRODUCT_PREVIEW_VIEW_WIDTH - PRODUCT_PREVIEW_SIDE_PAD * 2;
-  const textPartWidth = Math.min(textWidthEstimate, btnWidth - padX * 2 - iconSlot);
-  const clusterWidth = iconSlot + textPartWidth;
-  const rowStartX = Math.max(padX, (btnWidth - clusterWidth) / 2);
+  const innerContentWidth = Math.max(8, btnWidth - padX * 2);
 
-  const mainBlockHeight =
-    subtitleTrim.length > 0 ? fontSizePx + lineGap + subFontSize : fontSizePx;
-  const btnHeight = Math.max(52, padY * 2 + mainBlockHeight);
+  const subtitleTrim = subtitle.trim();
+  const hasSubtitle = subtitleTrim.length > 0;
+
+  const titleColumnWidth = Math.max(8, innerContentWidth - (hasIcon ? iconSlot : 0));
+
+  const labelLines = wrapTextToLines(
+    label.trim().length > 0 ? label : PREVIEW_LABEL_FALLBACK,
+    titleColumnWidth,
+    fontSizePx,
+    PREVIEW_LABEL_MAX_LINES,
+    PREVIEW_LABEL_FALLBACK,
+  );
+  const subtitleLines = hasSubtitle
+    ? wrapTextToLines(subtitleTrim, innerContentWidth, subFontSize, PREVIEW_SUBTITLE_MAX_LINES, subtitleTrim)
+    : [];
+
+  const titleLineWidthsPx = labelLines.map((ln) => estimateTextWidthPx(ln, fontSizePx));
+  const widestTitlePx = Math.max(...titleLineWidthsPx, fontSizePx);
+  const titleClusterWidthPx = iconSlot + Math.min(titleColumnWidth, widestTitlePx);
+
+  const titleLineAdvance = Math.round(fontSizePx * 1.2);
+  const subtitleLineAdvance = Math.round(subFontSize * 1.2);
+
+  const firstTitleBaseline = padY + Math.round(fontSizePx * 0.92);
+  const lastTitleBaseline =
+    labelLines.length > 0
+      ? firstTitleBaseline + Math.max(0, labelLines.length - 1) * titleLineAdvance
+      : firstTitleBaseline;
+
+  const firstSubtitleBaseline =
+    subtitleLines.length > 0 ? lastTitleBaseline + lineGap + Math.round(subFontSize * 0.92) : 0;
+
+  const lastSubtitleBaseline =
+    subtitleLines.length > 0
+      ? firstSubtitleBaseline + Math.max(0, subtitleLines.length - 1) * subtitleLineAdvance
+      : firstTitleBaseline;
+
+  const titleDescent = Math.round(fontSizePx * 0.28);
+  const subDescent = Math.round(subFontSize * 0.28);
+  const lastVisualBottom = hasSubtitle ? lastSubtitleBaseline + subDescent : lastTitleBaseline + titleDescent;
+  const btnHeight = Math.max(52, lastVisualBottom + padY);
+
+  const iconMidY = (firstTitleBaseline + lastTitleBaseline) / 2;
+
+  let iconX = 0;
+  let iconY = 0;
+  let labelX = btnWidth / 2;
+  let labelAnchor: "start" | "middle" = "middle";
+
+  const clusterInnerStart = padX + Math.max(0, (innerContentWidth - titleClusterWidthPx) / 2);
+
+  if (hasIcon && previewPaths) {
+    iconY = iconMidY - iconSize / 2;
+    const textStripePx = Math.min(titleColumnWidth, widestTitlePx);
+    if (iconAlign === "start") {
+      iconX = clusterInnerStart;
+      labelX = clusterInnerStart + iconSlot;
+      labelAnchor = "start";
+    } else {
+      labelX = clusterInnerStart;
+      labelAnchor = "start";
+      iconX = clusterInnerStart + textStripePx + iconGap;
+    }
+  } else {
+    labelX = btnWidth / 2;
+    labelAnchor = "middle";
+  }
+
   const viewHeight = btnHeight + 16;
   const blur = Math.min(14, Math.max(0, shadowStrength / 2));
-
   const pulseLayer = animation === "pulse";
   const glowLayer = animation === "fanfare";
-
   const originX = PRODUCT_PREVIEW_SIDE_PAD;
   const originY = 8;
 
@@ -269,38 +425,29 @@ function BuyButtonPreviewSvg({
     ? `${originX} ${originY} ${btnWidth} ${btnHeight}`
     : `0 0 ${PRODUCT_PREVIEW_VIEW_WIDTH} ${viewHeight}`;
 
-  const labelBaseline =
-    subtitleTrim.length > 0 ? padY + fontSizePx * 0.82 : btnHeight / 2;
-  const subtitleBaseline =
-    subtitleTrim.length > 0 ? padY + fontSizePx + lineGap + subFontSize * 0.82 : labelBaseline;
-
   const fontWeightAttr = fontBold ? "700" : "600";
   const fontStyleAttr = fontItalic ? "italic" : "normal";
-
   const iconScale = iconSize / ICON_VIEWBOX;
 
-  let iconX = 0;
-  let iconY = 0;
-  let labelX = btnWidth / 2;
-  let labelAnchor: "start" | "middle" = "middle";
+  const titleTspanElements = labelLines.map((titleLine, lineIndex) => (
+    <tspan
+      key={`buy-btn-title-line-${lineIndex}`}
+      x={labelX}
+      dy={lineIndex === 0 ? "0em" : `${titleLineAdvance}px`}
+    >
+      {titleLine}
+    </tspan>
+  ));
 
-  if (hasIcon && previewPaths) {
-    const iconYNoSubtitle = btnHeight / 2 - iconSize / 2;
-    const iconYWithSubtitle = padY + fontSizePx * 0.42 - iconSize / 2;
-    const iconYResolved = subtitleTrim.length > 0 ? iconYWithSubtitle : iconYNoSubtitle;
-
-    if (iconAlign === "start") {
-      iconX = rowStartX;
-      iconY = iconYResolved;
-      labelX = rowStartX + iconSlot;
-      labelAnchor = "start";
-    } else {
-      labelX = rowStartX;
-      labelAnchor = "start";
-      iconX = rowStartX + textPartWidth + iconGap;
-      iconY = iconYResolved;
-    }
-  }
+  const subtitleTspanElements = subtitleLines.map((subLine, lineIndex) => (
+    <tspan
+      key={`buy-btn-sub-line-${lineIndex}`}
+      x={btnWidth / 2}
+      dy={lineIndex === 0 ? "0em" : `${subtitleLineAdvance}px`}
+    >
+      {subLine}
+    </tspan>
+  ));
 
   const buttonInner = (
     <g transform={`translate(${originX}, ${originY})`}>
@@ -340,30 +487,31 @@ function BuyButtonPreviewSvg({
       ) : null}
       <text
         x={labelX}
-        y={subtitleTrim.length > 0 ? padY + fontSizePx * 0.82 : btnHeight / 2}
-        dominantBaseline={subtitleTrim.length > 0 ? undefined : "middle"}
+        y={firstTitleBaseline}
         textAnchor={labelAnchor}
+        dominantBaseline="alphabetic"
         fill={textFill}
         fontSize={fontSizePx}
-        fontFamily="system-ui, -apple-system, sans-serif"
+        fontFamily="system-ui, -apple-system, Segoe UI, sans-serif"
         fontWeight={fontWeightAttr}
         fontStyle={fontStyleAttr}
       >
-        {safeLabel}
+        {titleTspanElements}
       </text>
-      {subtitleTrim.length > 0 ? (
+      {subtitleLines.length > 0 ? (
         <text
           x={btnWidth / 2}
-          y={subtitleBaseline}
+          y={firstSubtitleBaseline}
           textAnchor="middle"
+          dominantBaseline="alphabetic"
           fill={textFill}
           fontSize={subFontSize}
-          fontFamily="system-ui, -apple-system, sans-serif"
+          fontFamily="system-ui, -apple-system, Segoe UI, sans-serif"
           fontWeight={fontBold ? "600" : "500"}
           fontStyle={fontItalic ? "italic" : "normal"}
           opacity={0.92}
         >
-          {truncatePreviewLabel(subtitleTrim, 52)}
+          {subtitleTspanElements}
         </text>
       ) : null}
     </g>
@@ -375,12 +523,13 @@ function BuyButtonPreviewSvg({
       width="100%"
       height="auto"
       preserveAspectRatio="xMidYMid meet"
+      overflow="visible"
       role="img"
       aria-label="Preview of the COD buy button"
     >
       <title>Buy button preview</title>
       <defs>
-        <filter id={filterId} x="-40%" y="-40%" width="180%" height="180%">
+        <filter id={filterId} x="-60%" y="-60%" width="220%" height="220%">
           <feGaussianBlur in="SourceAlpha" stdDeviation={blur} result="blur" />
           <feOffset in="blur" dy={Math.min(6, blur / 2)} result="offsetBlur" />
           <feMerge>
@@ -430,7 +579,7 @@ function BuyButtonIconSwatch({
               ? "bg-surface-secondary"
               : "bg-surface"
         }
-        borderRadius="200"
+        borderRadius="300"
         borderWidth="025"
         borderColor="border"
       >
@@ -555,7 +704,7 @@ export function BuyButtonDesignerWorkspace(): ReactElement {
                 />
               </FormLayout.Group>
 
-              <InlineGrid columns={{ xs: 1, sm: 3 }} gap="400">
+              <InlineGrid columns={{ xs: 1, sm: 3 }} gap="400" alignItems="end">
                 <TextField
                   id="buy-button-text-size"
                   label="Text size"
@@ -568,49 +717,72 @@ export function BuyButtonDesignerWorkspace(): ReactElement {
                   onChange={(value): void => handleFontSizeChange(value)}
                 />
                 <Labelled id="buy-button-style" label="Style">
-                  <ButtonGroup variant="segmented" fullWidth>
-                    <Button
-                      pressed={textBold}
-                      onClick={(): void => setTextBold((previous) => !previous)}
-                      accessibilityLabel="Bold"
-                    >
-                      B
-                    </Button>
-                    <Button
-                      pressed={textItalic}
-                      onClick={(): void => setTextItalic((previous) => !previous)}
-                      accessibilityLabel="Italic"
-                    >
-                      I
-                    </Button>
-                  </ButtonGroup>
+                  <div
+                    style={{
+                      display: "flex",
+                      width: "100%",
+                      minHeight: "var(--pg-control-height)",
+                      alignItems: "stretch",
+                    }}
+                  >
+                    <ButtonGroup variant="segmented" fullWidth>
+                      <Button
+                        pressed={textBold}
+                        onClick={(): void => setTextBold((previous) => !previous)}
+                        accessibilityLabel="Bold"
+                      >
+                        B
+                      </Button>
+                      <Button
+                        pressed={textItalic}
+                        onClick={(): void => setTextItalic((previous) => !previous)}
+                        accessibilityLabel="Italic"
+                      >
+                        I
+                      </Button>
+                    </ButtonGroup>
+                  </div>
                 </Labelled>
                 <Labelled id="buy-button-icon" label="Button icon">
                   <Popover
                     active={iconPickerOpen}
                     autofocusTarget="first-node"
                     preferredPosition="below"
+                    preferredAlignment="left"
                     activator={
-                      <Button
-                        fullWidth
-                        textAlign="left"
-                        icon={iconActivatorSource ?? BlankIcon}
-                        disclosure={iconPickerOpen ? "up" : "down"}
-                        onClick={(): void => setIconPickerOpen((active) => !active)}
+                      <div
+                        style={{
+                          display: "flex",
+                          width: "100%",
+                          minHeight: "var(--pg-control-height)",
+                          alignItems: "stretch",
+                        }}
                       >
-                        Change icon
-                      </Button>
+                        <Box width="100%">
+                          <Button
+                            fullWidth
+                            textAlign="left"
+                            icon={iconActivatorSource ?? BlankIcon}
+                            disclosure={iconPickerOpen ? "up" : "down"}
+                            onClick={(): void => setIconPickerOpen((active) => !active)}
+                          >
+                            Change icon
+                          </Button>
+                        </Box>
+                      </div>
                     }
                     onClose={(): void => setIconPickerOpen(false)}
                   >
                     <Box
-                      padding="300"
                       maxWidth="min(100vw - 32px, 440px)"
-                      background="bg-surface"
                       borderRadius="300"
+                      background="bg-surface"
+                      borderWidth="025"
+                      borderColor="border"
+                      shadow="300"
                     >
-                      <BlockStack gap="300">
-                        <InlineStack align="space-between" blockAlign="center" wrap={false}>
+                      <Box paddingInline="300" paddingBlockStart="300" paddingBlockEnd="200">
+                        <InlineStack align="space-between" blockAlign="center" wrap={false} gap="200">
                           <ButtonGroup variant="segmented">
                             <Button
                               pressed={iconAlign === "start"}
@@ -637,9 +809,11 @@ export function BuyButtonDesignerWorkspace(): ReactElement {
                             Remove
                           </Button>
                         </InlineStack>
+                      </Box>
 
-                        <Divider />
+                      <Divider />
 
+                      <Box padding="300" background="bg-surface-secondary">
                         <InlineGrid columns={{ xs: 6, sm: 9 }} gap="150">
                           {BUY_BUTTON_STORE_ICONS.map((entry) => (
                             <BuyButtonIconSwatch
@@ -656,7 +830,7 @@ export function BuyButtonDesignerWorkspace(): ReactElement {
                             />
                           ))}
                         </InlineGrid>
-                      </BlockStack>
+                      </Box>
                     </Box>
                   </Popover>
                 </Labelled>
@@ -801,7 +975,13 @@ export function BuyButtonDesignerWorkspace(): ReactElement {
             </InlineStack>
 
             <Card padding="400">
-              <Box paddingBlock="100">
+              <Box
+                padding="400"
+                background="bg-surface-secondary"
+                borderRadius="300"
+                borderWidth="025"
+                borderColor="border"
+              >
                 <BuyButtonPreviewSvg
                   filterId={previewFilterId}
                   label={buttonText}
