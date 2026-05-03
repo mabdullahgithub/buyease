@@ -410,32 +410,31 @@ function BuyButtonIconSwatch({
       onMouseLeave={onHoverEnd}
     >
       <Box
-        padding="300"
-        minHeight="48px"
+        padding="200"
+        minHeight="44px"
         background={
           selected
-            ? "bg-surface-selected"
+            ? "bg-surface"
             : interactiveHover
               ? "bg-surface-tertiary"
               : "bg-surface-secondary"
         }
         borderRadius="200"
         borderWidth={selected ? "050" : "025"}
-        borderColor={selected ? "border-emphasis" : "border"}
-        shadow={selected ? "100" : undefined}
+        borderColor={selected ? "border-focus" : "border"}
       >
-        <Box width="100%" minHeight="36px">
+        <Box width="100%" minHeight="28px">
           <InlineStack align="center" blockAlign="center" wrap={false}>
             <span
               style={{
                 display: "inline-flex",
                 alignItems: "center",
                 justifyContent: "center",
-                transform: "scale(1.32)",
+                transform: "scale(1.2)",
                 transformOrigin: "center center",
               }}
             >
-              <Icon source={entry.source} tone={selected ? "emphasis" : "base"} />
+              <Icon source={entry.source} tone="base" />
             </span>
           </InlineStack>
         </Box>
@@ -607,8 +606,8 @@ export function BuyButtonDesignerWorkspace(): ReactElement {
                           }
                           onClose={(): void => setIconPickerOpen(false)}
                         >
-                          <Box padding="400" maxWidth="496px">
-                            <BlockStack gap="400">
+                          <Box padding="300" maxWidth="440px">
+                            <BlockStack gap="300">
                               <InlineStack align="space-between" blockAlign="center" wrap={false}>
                                 <ButtonGroup variant="segmented">
                                   <Button
@@ -636,50 +635,45 @@ export function BuyButtonDesignerWorkspace(): ReactElement {
                                 </Button>
                               </InlineStack>
 
-                              <Divider />
-
                               <InlineStack gap="300" blockAlign="center" wrap={false}>
                                 <Box
-                                  padding="300"
+                                  padding="200"
                                   background="bg-surface-secondary"
                                   borderWidth="025"
                                   borderColor="border"
                                   borderRadius="200"
-                                  minWidth="56px"
-                                  minHeight="56px"
+                                  minWidth="48px"
+                                  minHeight="48px"
                                 >
                                   <InlineStack align="center" blockAlign="center">
                                     {iconActivatorSource ? (
                                       <span
                                         style={{
                                           display: "inline-flex",
-                                          transform: "scale(1.65)",
+                                          transform: "scale(1.45)",
                                           transformOrigin: "center center",
                                         }}
                                       >
                                         <Icon source={iconActivatorSource} tone="base" />
                                       </span>
                                     ) : (
-                                      <Text as="span" variant="bodyLg" tone="subdued">
+                                      <Text as="span" variant="bodyMd" tone="subdued">
                                         —
                                       </Text>
                                     )}
                                   </InlineStack>
                                 </Box>
-                                <BlockStack gap="100">
+                                <BlockStack gap="050">
                                   <Text as="p" variant="bodySm" fontWeight="semibold">
                                     {activeIcon ? activeIcon.label : "No icon"}
                                   </Text>
                                   <Text as="p" variant="bodySm" tone="subdued">
-                                    How the icon appears on your live preview and storefront.
+                                    Matches your button preview.
                                   </Text>
                                 </BlockStack>
                               </InlineStack>
 
-                              <Text as="h3" variant="headingSm">
-                                All icons
-                              </Text>
-                              <InlineGrid columns={{ xs: 4, sm: 5 }} gap="200">
+                              <InlineGrid columns={{ xs: 4, sm: 5 }} gap="150">
                                 {BUY_BUTTON_STORE_ICONS.map((entry) => (
                                   <BuyButtonIconSwatch
                                     key={entry.id}
