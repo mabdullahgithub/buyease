@@ -1,2 +1,3 @@
-/* App-local overrides only. Do not hide `s-app-nav` (or legacy `ui-nav-menu`):
-   App Bridge needs the element in the tree so Admin can register app navigation. */
+ui-nav-menu {
+  display: none !important;
+}
