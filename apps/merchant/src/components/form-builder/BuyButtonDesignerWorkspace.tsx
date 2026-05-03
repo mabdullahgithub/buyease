@@ -728,55 +728,22 @@ export function BuyButtonDesignerWorkspace(): ReactElement {
 
                 {/* Column 2: Style B / I */}
                 <Labelled id="buy-button-style" label="Style">
-                  <div
-                    style={{
-                      display: "flex",
-                      width: "100%",
-                      height: "36px",
-                      borderRadius: "var(--p-border-radius-200)",
-                      border: "1px solid var(--p-color-border)",
-                      overflow: "hidden",
-                      background: "var(--p-color-bg-surface)",
-                    }}
-                  >
-                    <button
-                      type="button"
-                      aria-label="Bold"
-                      aria-pressed={textBold}
+                  <ButtonGroup variant="segmented" fullWidth>
+                    <Button
+                      pressed={textBold}
                       onClick={(): void => setTextBold((p) => !p)}
-                      style={{
-                        flex: 1,
-                        border: "none",
-                        borderRight: "1px solid var(--p-color-border)",
-                        background: textBold ? "var(--p-color-bg-surface-active)" : "transparent",
-                        fontWeight: 700,
-                        fontSize: "var(--p-font-size-325)",
-                        color: "var(--p-color-text)",
-                        cursor: "pointer",
-                        fontFamily: "inherit",
-                      }}
+                      accessibilityLabel="Bold"
                     >
                       B
-                    </button>
-                    <button
-                      type="button"
-                      aria-label="Italic"
-                      aria-pressed={textItalic}
+                    </Button>
+                    <Button
+                      pressed={textItalic}
                       onClick={(): void => setTextItalic((p) => !p)}
-                      style={{
-                        flex: 1,
-                        border: "none",
-                        background: textItalic ? "var(--p-color-bg-surface-active)" : "transparent",
-                        fontStyle: "italic",
-                        fontSize: "var(--p-font-size-325)",
-                        color: "var(--p-color-text)",
-                        cursor: "pointer",
-                        fontFamily: "inherit",
-                      }}
+                      accessibilityLabel="Italic"
                     >
                       I
-                    </button>
-                  </div>
+                    </Button>
+                  </ButtonGroup>
                 </Labelled>
 
                 {/* Column 3: Button icon picker */}
