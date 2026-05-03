@@ -1,3 +1,2 @@
-ui-nav-menu {
-  display: none !important;
-}
+/* App-local overrides only. Do not hide `ui-nav-menu` — App Bridge uses it to register
+   links with Shopify Admin; `display: none` breaks embedded app navigation. */
