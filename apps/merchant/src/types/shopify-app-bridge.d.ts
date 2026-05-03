@@ -1,9 +1,7 @@
 /**
- * Type declarations for Shopify App Bridge 4.x web components.
- * These custom elements are registered by the App Bridge CDN script
- * and used in the root layout to create native Shopify admin navigation.
+ * JSX for Shopify App Bridge 4.x web components (registered by CDN `app-bridge.js`).
  *
- * @see https://shopify.dev/docs/api/app-bridge-library/web-components/ui-nav-menu
+ * @see https://shopify.dev/docs/api/app-bridge-library/react-components/navmenu
  */
 
 import "react";
@@ -11,7 +9,8 @@ import "react";
 declare module "react" {
   namespace JSX {
     interface IntrinsicElements {
-      "ui-nav-menu": React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement>;
+      "s-app-nav": React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement>;
+      "s-link": React.DetailedHTMLProps<React.AnchorHTMLAttributes<HTMLElement>, HTMLElement>;
     }
   }
 }
