@@ -545,156 +545,164 @@ export function BuyButtonDesignerWorkspace(): ReactElement {
                 />
               </FormLayout.Group>
 
-              <FormLayout.Group>
-                <TextField
-                  id="buy-button-text-size"
-                  label="Text size"
-                  type="integer"
-                  value={String(fontSizePx)}
-                  min={FONT_MIN_PX}
-                  max={FONT_MAX_PX}
-                  autoComplete="off"
-                  suffix="px"
-                  onChange={(value): void => handleFontSizeChange(value)}
-                />
-                <BlockStack gap="200">
-                  <Text as="p" variant="bodyMd" fontWeight="semibold">
-                    Style
-                  </Text>
-                  <ButtonGroup variant="segmented" fullWidth>
-                    <Button
-                      pressed={textBold}
-                      onClick={(): void => setTextBold((previous) => !previous)}
-                      accessibilityLabel="Bold"
-                    >
-                      B
-                    </Button>
-                    <Button
-                      pressed={textItalic}
-                      onClick={(): void => setTextItalic((previous) => !previous)}
-                      accessibilityLabel="Italic"
-                    >
-                      I
-                    </Button>
-                  </ButtonGroup>
-                </BlockStack>
-                <Box minWidth="0">
-                  <Text as="p" variant="bodyMd" fontWeight="semibold">
-                    Button icon
-                  </Text>
-                  <Box paddingBlockStart="200">
-                    <Popover
-                      active={iconPickerOpen}
-                      autofocusTarget="first-node"
-                      preferredPosition="below"
-                      activator={
-                        <Button
-                          disclosure="down"
-                          variant="secondary"
-                          icon={iconActivatorSource}
-                          fullWidth
-                          textAlign="start"
-                          onClick={(): void => setIconPickerOpen((active) => !active)}
-                        >
-                          Change icon
-                        </Button>
-                      }
-                      onClose={(): void => setIconPickerOpen(false)}
-                    >
-                      <Box padding="400" maxWidth="496px">
-                        <BlockStack gap="400">
-                          <InlineStack align="space-between" blockAlign="center" wrap={false}>
-                            <ButtonGroup variant="segmented">
-                              <Button
-                                pressed={iconAlign === "start"}
-                                icon={TextAlignLeftIcon}
-                                accessibilityLabel="Icon before text"
-                                onClick={(): void => setIconAlign("start")}
-                              />
-                              <Button
-                                pressed={iconAlign === "end"}
-                                icon={TextAlignRightIcon}
-                                accessibilityLabel="Icon after text"
-                                onClick={(): void => setIconAlign("end")}
-                              />
-                            </ButtonGroup>
+              <Box maxWidth="100%" paddingBlockEnd="100">
+                <Box minWidth="520px">
+                  <InlineGrid columns={3} gap="400">
+                    <Box minWidth="0">
+                      <TextField
+                        id="buy-button-text-size"
+                        label="Text size"
+                        type="integer"
+                        value={String(fontSizePx)}
+                        min={FONT_MIN_PX}
+                        max={FONT_MAX_PX}
+                        autoComplete="off"
+                        suffix="px"
+                        onChange={(value): void => handleFontSizeChange(value)}
+                      />
+                    </Box>
+                    <Box minWidth="0">
+                      <BlockStack gap="200">
+                        <Text as="p" variant="bodyMd" fontWeight="semibold">
+                          Style
+                        </Text>
+                        <ButtonGroup variant="segmented" fullWidth>
+                          <Button
+                            pressed={textBold}
+                            onClick={(): void => setTextBold((previous) => !previous)}
+                            accessibilityLabel="Bold"
+                          >
+                            B
+                          </Button>
+                          <Button
+                            pressed={textItalic}
+                            onClick={(): void => setTextItalic((previous) => !previous)}
+                            accessibilityLabel="Italic"
+                          >
+                            I
+                          </Button>
+                        </ButtonGroup>
+                      </BlockStack>
+                    </Box>
+                    <Box minWidth="0">
+                      <Text as="p" variant="bodyMd" fontWeight="semibold">
+                        Button icon
+                      </Text>
+                      <Box paddingBlockStart="200">
+                        <Popover
+                          active={iconPickerOpen}
+                          autofocusTarget="first-node"
+                          preferredPosition="below"
+                          activator={
                             <Button
-                              tone="critical"
-                              variant="tertiary"
-                              onClick={(): void => {
-                                setButtonIconId("none");
-                                setIconPickerOpen(false);
-                              }}
+                              disclosure="down"
+                              variant="secondary"
+                              icon={iconActivatorSource}
+                              fullWidth
+                              textAlign="start"
+                              onClick={(): void => setIconPickerOpen((active) => !active)}
                             >
-                              Remove
+                              Change icon
                             </Button>
-                          </InlineStack>
-
-                          <Divider />
-
-                          <InlineStack gap="300" blockAlign="center" wrap={false}>
-                            <Box
-                              padding="300"
-                              background="bg-surface-secondary"
-                              borderWidth="025"
-                              borderColor="border"
-                              borderRadius="200"
-                              minWidth="56px"
-                              minHeight="56px"
-                            >
-                              <InlineStack align="center" blockAlign="center">
-                                {iconActivatorSource ? (
-                                  <span
-                                    style={{
-                                      display: "inline-flex",
-                                      transform: "scale(1.65)",
-                                      transformOrigin: "center center",
-                                    }}
-                                  >
-                                    <Icon source={iconActivatorSource} tone="base" />
-                                  </span>
-                                ) : (
-                                  <Text as="span" variant="bodyLg" tone="subdued">
-                                    —
-                                  </Text>
-                                )}
+                          }
+                          onClose={(): void => setIconPickerOpen(false)}
+                        >
+                          <Box padding="400" maxWidth="496px">
+                            <BlockStack gap="400">
+                              <InlineStack align="space-between" blockAlign="center" wrap={false}>
+                                <ButtonGroup variant="segmented">
+                                  <Button
+                                    pressed={iconAlign === "start"}
+                                    icon={TextAlignLeftIcon}
+                                    accessibilityLabel="Icon before text"
+                                    onClick={(): void => setIconAlign("start")}
+                                  />
+                                  <Button
+                                    pressed={iconAlign === "end"}
+                                    icon={TextAlignRightIcon}
+                                    accessibilityLabel="Icon after text"
+                                    onClick={(): void => setIconAlign("end")}
+                                  />
+                                </ButtonGroup>
+                                <Button
+                                  tone="critical"
+                                  variant="tertiary"
+                                  onClick={(): void => {
+                                    setButtonIconId("none");
+                                    setIconPickerOpen(false);
+                                  }}
+                                >
+                                  Remove
+                                </Button>
                               </InlineStack>
-                            </Box>
-                            <BlockStack gap="100">
-                              <Text as="p" variant="bodySm" fontWeight="semibold">
-                                {activeIcon ? activeIcon.label : "No icon"}
-                              </Text>
-                              <Text as="p" variant="bodySm" tone="subdued">
-                                How the icon appears on your live preview and storefront.
-                              </Text>
-                            </BlockStack>
-                          </InlineStack>
 
-                          <Text as="h3" variant="headingSm">
-                            All icons
-                          </Text>
-                          <InlineGrid columns={{ xs: 4, sm: 5 }} gap="200">
-                            {BUY_BUTTON_STORE_ICONS.map((entry) => (
-                              <BuyButtonIconSwatch
-                                key={entry.id}
-                                entry={entry}
-                                selected={buttonIconId === entry.id}
-                                hovered={iconSwatchHoverId === entry.id}
-                                onHoverStart={(): void => setIconSwatchHoverId(entry.id)}
-                                onHoverEnd={(): void => setIconSwatchHoverId(null)}
-                                onSelect={(): void => {
-                                  setButtonIconId(entry.id);
-                                  setIconPickerOpen(false);
-                                }}
-                              />
-                            ))}
-                          </InlineGrid>
-                        </BlockStack>
+                              <Divider />
+
+                              <InlineStack gap="300" blockAlign="center" wrap={false}>
+                                <Box
+                                  padding="300"
+                                  background="bg-surface-secondary"
+                                  borderWidth="025"
+                                  borderColor="border"
+                                  borderRadius="200"
+                                  minWidth="56px"
+                                  minHeight="56px"
+                                >
+                                  <InlineStack align="center" blockAlign="center">
+                                    {iconActivatorSource ? (
+                                      <span
+                                        style={{
+                                          display: "inline-flex",
+                                          transform: "scale(1.65)",
+                                          transformOrigin: "center center",
+                                        }}
+                                      >
+                                        <Icon source={iconActivatorSource} tone="base" />
+                                      </span>
+                                    ) : (
+                                      <Text as="span" variant="bodyLg" tone="subdued">
+                                        —
+                                      </Text>
+                                    )}
+                                  </InlineStack>
+                                </Box>
+                                <BlockStack gap="100">
+                                  <Text as="p" variant="bodySm" fontWeight="semibold">
+                                    {activeIcon ? activeIcon.label : "No icon"}
+                                  </Text>
+                                  <Text as="p" variant="bodySm" tone="subdued">
+                                    How the icon appears on your live preview and storefront.
+                                  </Text>
+                                </BlockStack>
+                              </InlineStack>
+
+                              <Text as="h3" variant="headingSm">
+                                All icons
+                              </Text>
+                              <InlineGrid columns={{ xs: 4, sm: 5 }} gap="200">
+                                {BUY_BUTTON_STORE_ICONS.map((entry) => (
+                                  <BuyButtonIconSwatch
+                                    key={entry.id}
+                                    entry={entry}
+                                    selected={buttonIconId === entry.id}
+                                    hovered={iconSwatchHoverId === entry.id}
+                                    onHoverStart={(): void => setIconSwatchHoverId(entry.id)}
+                                    onHoverEnd={(): void => setIconSwatchHoverId(null)}
+                                    onSelect={(): void => {
+                                      setButtonIconId(entry.id);
+                                      setIconPickerOpen(false);
+                                    }}
+                                  />
+                                ))}
+                              </InlineGrid>
+                            </BlockStack>
+                          </Box>
+                        </Popover>
                       </Box>
-                    </Popover>
-                  </Box>
+                    </Box>
+                  </InlineGrid>
                 </Box>
-              </FormLayout.Group>
+              </Box>
 
               <FormLayout.Group>
                 <Select
