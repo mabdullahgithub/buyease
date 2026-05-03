@@ -26,7 +26,6 @@ import {
 } from "@shopify/polaris-icons";
 
 import { BuyButtonDesignerWorkspace } from "@/components/form-builder/BuyButtonDesignerWorkspace";
-import { ShippingRatesWorkspace } from "@/components/form-builder/ShippingRatesWorkspace";
 
 /** Official Polaris empty-state illustration (decorative); required by `EmptyState`. */
 const FORM_BUILDER_EMPTY_ILLUSTRATION =
@@ -91,16 +90,14 @@ export function FormBuilderPageContent(): ReactElement {
       subtitle={
         mode === "buy-button"
           ? "Design your COD buy button and preview it before publishing to your storefront."
-          : mode === "shipping-rates"
-            ? "Define delivery options shown to customers inside the COD form before they place an order."
-            : undefined
+          : undefined
       }
       titleMetadata={
         mode === "buy-button" ? (
           <Badge tone="success">New</Badge>
-        ) : mode === "form-designer" ? (
+        ) : (
           <Badge tone="info">Coming soon</Badge>
-        ) : null
+        )
       }
     >
       <BlockStack gap="400">
@@ -130,8 +127,6 @@ export function FormBuilderPageContent(): ReactElement {
 
         {mode === "buy-button" ? (
           <BuyButtonDesignerWorkspace />
-        ) : mode === "shipping-rates" ? (
-          <ShippingRatesWorkspace />
         ) : (
           <InlineGrid
             columns={{
