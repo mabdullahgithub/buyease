@@ -7,13 +7,13 @@ import {
   Badge,
   BlockStack,
   Box,
-  Button,
-  ButtonGroup,
   Card,
   Divider,
   EmptyState,
   Icon,
   InlineGrid,
+  InlineStack,
+  LegacyTabs,
   Page,
   SkeletonBodyText,
   Text,
@@ -71,7 +71,7 @@ const MODES: ModeConfig[] = [
 
 /**
  * Form Builder workspace: Polaris-only layout aligned with Built for Shopify patterns
- * (page structure, cards, segmented control, EmptyState placeholder).
+ * (page structure, cards, fitted tabs, EmptyState placeholder).
  */
 export function FormBuilderPageContent(): ReactElement {
   const [mode, setMode] = useState<FormBuilderMode>("buy-button");
@@ -82,34 +82,33 @@ export function FormBuilderPageContent(): ReactElement {
 
   const active = MODES.find((m) => m.id === mode) ?? MODES[0]!;
 
+  const selectedIndex = MODES.findIndex((m) => m.id === mode);
+  const tabSelectedIndex = selectedIndex >= 0 ? selectedIndex : 0;
+
   return (
     <Page title="Form Builder" titleMetadata={<Badge tone="info">Coming soon</Badge>}>
       <BlockStack gap="400">
-        <Card roundedAbove="sm">
-          <Box
-            padding="150"
-            width="100%"
-            background="bg-surface"
-            borderWidth="025"
-            borderColor="border"
-            borderRadius="300"
-            shadow="100"
-          >
-            <ButtonGroup variant="segmented" fullWidth>
-              {MODES.map((item) => (
-                <Button
-                  key={item.id}
-                  icon={item.icon}
-                  pressed={mode === item.id}
-                  fullWidth
-                  onClick={() => handleModeChange(item.id)}
-                >
+        <LegacyTabs
+          fitted
+          selected={tabSelectedIndex}
+          tabs={MODES.map((item) => ({
+            id: item.id,
+            content: (
+              <InlineStack gap="200" blockAlign="center" wrap={false}>
+                <Icon source={item.icon} tone="subdued" />
+                <Text as="span" variant="bodyMd">
                   {item.label}
-                </Button>
-              ))}
-            </ButtonGroup>
-          </Box>
-        </Card>
+                </Text>
+              </InlineStack>
+            ),
+          }))}
+          onSelect={(index): void => {
+            const next = MODES[index];
+            if (next) {
+              handleModeChange(next.id);
+            }
+          }}
+        />
 
         <InlineGrid
           columns={{
