@@ -29,7 +29,7 @@ import {
 } from "@shopify/polaris";
 import { ChatIcon, TextAlignLeftIcon, TextAlignRightIcon } from "@shopify/polaris-icons";
 
-import type { BuyButtonIconId, SvgPathSpec } from "@/components/form-builder/buy-button-icon-registry";
+import type { BuyButtonIconDefinition, BuyButtonIconId, SvgPathSpec } from "@/components/form-builder/buy-button-icon-registry";
 import { BUY_BUTTON_STORE_ICONS, getBuyButtonIconDefinition } from "@/components/form-builder/buy-button-icon-registry";
 
 const BUY_BUTTON_INSTRUCTION =
@@ -230,7 +230,7 @@ function BuyButtonPreviewSvg({
   const subtitleTrim = subtitle.trim();
   const iconGap = 8;
   const hasIcon = Boolean(previewPaths && previewPaths.length > 0);
-  const iconSize = hasIcon ? Math.min(24, Math.round(fontSizePx * 1.15)) : 0;
+  const iconSize = hasIcon ? Math.min(28, Math.round(fontSizePx * 1.3)) : 0;
   const charEstimate = 0.52 * fontSizePx;
   const textWidthEstimate = safeLabel.length * charEstimate;
   const padX = Math.round(fontSizePx * 0.75);
@@ -313,7 +313,10 @@ function BuyButtonPreviewSvg({
         ) : null}
       </rect>
       {hasIcon && previewPaths ? (
-        <g transform={`translate(${iconX}, ${iconY}) scale(${iconScale})`}>
+        <g
+          transform={`translate(${iconX}, ${iconY}) scale(${iconScale})`}
+          style={{ shapeRendering: "geometricPrecision" }}
+        >
           {previewPaths.map((spec, index) => (
             <path
               key={`icon-path-${index}`}
@@ -381,6 +384,66 @@ function BuyButtonPreviewSvg({
   );
 }
 
+type BuyButtonIconSwatchProps = {
+  entry: BuyButtonIconDefinition;
+  selected: boolean;
+  hovered: boolean;
+  onSelect: () => void;
+  onHoverStart: () => void;
+  onHoverEnd: () => void;
+};
+
+function BuyButtonIconSwatch({
+  entry,
+  selected,
+  hovered,
+  onSelect,
+  onHoverStart,
+  onHoverEnd,
+}: BuyButtonIconSwatchProps): ReactElement {
+  const interactiveHover = hovered && !selected;
+  return (
+    <UnstyledButton
+      accessibilityLabel={entry.label}
+      onClick={onSelect}
+      onMouseEnter={onHoverStart}
+      onMouseLeave={onHoverEnd}
+    >
+      <Box
+        padding="300"
+        minHeight="48px"
+        background={
+          selected
+            ? "bg-surface-selected"
+            : interactiveHover
+              ? "bg-surface-tertiary"
+              : "bg-surface-secondary"
+        }
+        borderRadius="200"
+        borderWidth={selected ? "050" : "025"}
+        borderColor={selected ? "border-emphasis" : "border"}
+        shadow={selected ? "100" : undefined}
+      >
+        <Box width="100%" minHeight="36px">
+          <InlineStack align="center" blockAlign="center" wrap={false}>
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                transform: "scale(1.32)",
+                transformOrigin: "center center",
+              }}
+            >
+              <Icon source={entry.source} tone={selected ? "emphasis" : "base"} />
+            </span>
+          </InlineStack>
+        </Box>
+      </Box>
+    </UnstyledButton>
+  );
+}
+
 export function BuyButtonDesignerWorkspace(): ReactElement {
   const previewFilterId = useId().replace(/:/g, "");
 
@@ -388,6 +451,9 @@ export function BuyButtonDesignerWorkspace(): ReactElement {
   const [buttonSubtitle, setButtonSubtitle] = useState("");
   const [animation, setAnimation] = useState("none");
   const [iconPickerOpen, setIconPickerOpen] = useState(false);
+  const [iconSwatchHoverId, setIconSwatchHoverId] = useState<
+    Exclude<BuyButtonIconId, "none"> | null
+  >(null);
   const [buttonIconId, setButtonIconId] = useState<BuyButtonIconId>("cart-filled");
   const [iconAlign, setIconAlign] = useState<IconTextAlign>("start");
   const [textBold, setTextBold] = useState(true);
@@ -512,16 +578,6 @@ export function BuyButtonDesignerWorkspace(): ReactElement {
                     </Button>
                   </ButtonGroup>
                 </BlockStack>
-              </FormLayout.Group>
-
-              <FormLayout.Group>
-                <Select
-                  id="buy-button-animation"
-                  label="Animation"
-                  options={ANIMATION_OPTIONS}
-                  value={animation}
-                  onChange={(v): void => setAnimation(v)}
-                />
                 <Box minWidth="0">
                   <Text as="p" variant="bodyMd" fontWeight="semibold">
                     Button icon
@@ -545,7 +601,7 @@ export function BuyButtonDesignerWorkspace(): ReactElement {
                       }
                       onClose={(): void => setIconPickerOpen(false)}
                     >
-                      <Box padding="400" maxWidth="480px">
+                      <Box padding="400" maxWidth="496px">
                         <BlockStack gap="400">
                           <InlineStack align="space-between" blockAlign="center" wrap={false}>
                             <ButtonGroup variant="segmented">
@@ -573,32 +629,64 @@ export function BuyButtonDesignerWorkspace(): ReactElement {
                               Remove
                             </Button>
                           </InlineStack>
+
+                          <Divider />
+
+                          <InlineStack gap="300" blockAlign="center" wrap={false}>
+                            <Box
+                              padding="300"
+                              background="bg-surface-secondary"
+                              borderWidth="025"
+                              borderColor="border"
+                              borderRadius="200"
+                              minWidth="56px"
+                              minHeight="56px"
+                            >
+                              <InlineStack align="center" blockAlign="center">
+                                {iconActivatorSource ? (
+                                  <span
+                                    style={{
+                                      display: "inline-flex",
+                                      transform: "scale(1.65)",
+                                      transformOrigin: "center center",
+                                    }}
+                                  >
+                                    <Icon source={iconActivatorSource} tone="base" />
+                                  </span>
+                                ) : (
+                                  <Text as="span" variant="bodyLg" tone="subdued">
+                                    —
+                                  </Text>
+                                )}
+                              </InlineStack>
+                            </Box>
+                            <BlockStack gap="100">
+                              <Text as="p" variant="bodySm" fontWeight="semibold">
+                                {activeIcon ? activeIcon.label : "No icon"}
+                              </Text>
+                              <Text as="p" variant="bodySm" tone="subdued">
+                                How the icon appears on your live preview and storefront.
+                              </Text>
+                            </BlockStack>
+                          </InlineStack>
+
+                          <Text as="h3" variant="headingSm">
+                            All icons
+                          </Text>
                           <InlineGrid columns={{ xs: 4, sm: 5 }} gap="200">
                             {BUY_BUTTON_STORE_ICONS.map((entry) => (
-                              <Box
+                              <BuyButtonIconSwatch
                                 key={entry.id}
-                                padding="150"
-                                background={
-                                  buttonIconId === entry.id ? "bg-surface-selected" : "bg-surface-secondary"
-                                }
-                                borderRadius="200"
-                                borderWidth="025"
-                                borderColor="border"
-                              >
-                                <UnstyledButton
-                                  accessibilityLabel={entry.label}
-                                  onClick={(): void => {
-                                    setButtonIconId(entry.id);
-                                    setIconPickerOpen(false);
-                                  }}
-                                >
-                                  <Box width="100%" minHeight="36px">
-                                    <InlineStack align="center" blockAlign="center">
-                                      <Icon source={entry.source} tone="base" />
-                                    </InlineStack>
-                                  </Box>
-                                </UnstyledButton>
-                              </Box>
+                                entry={entry}
+                                selected={buttonIconId === entry.id}
+                                hovered={iconSwatchHoverId === entry.id}
+                                onHoverStart={(): void => setIconSwatchHoverId(entry.id)}
+                                onHoverEnd={(): void => setIconSwatchHoverId(null)}
+                                onSelect={(): void => {
+                                  setButtonIconId(entry.id);
+                                  setIconPickerOpen(false);
+                                }}
+                              />
                             ))}
                           </InlineGrid>
                         </BlockStack>
@@ -608,13 +696,22 @@ export function BuyButtonDesignerWorkspace(): ReactElement {
                 </Box>
               </FormLayout.Group>
 
-              <Select
-                id="buy-button-sticky"
-                label="Sticky button position"
-                options={STICKY_POSITION_OPTIONS}
-                value={stickyPosition}
-                onChange={(v): void => setStickyPosition(v)}
-              />
+              <FormLayout.Group>
+                <Select
+                  id="buy-button-animation"
+                  label="Animation"
+                  options={ANIMATION_OPTIONS}
+                  value={animation}
+                  onChange={(v): void => setAnimation(v)}
+                />
+                <Select
+                  id="buy-button-sticky"
+                  label="Sticky button position"
+                  options={STICKY_POSITION_OPTIONS}
+                  value={stickyPosition}
+                  onChange={(v): void => setStickyPosition(v)}
+                />
+              </FormLayout.Group>
 
               <FormLayout.Group>
                 <BlockStack gap="200">
