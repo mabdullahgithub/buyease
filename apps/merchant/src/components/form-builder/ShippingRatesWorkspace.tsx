@@ -561,7 +561,7 @@ export function ShippingRatesWorkspace(): ReactElement {
                         label={
                           <InlineStack gap="200" blockAlign="center">
                             <Text as="span" variant="bodyMd" fontWeight="semibold">{r.name}</Text>
-                            <Text as="span" variant="bodySm" tone="subdued">— {r.description}</Text>
+                            <Text as="span" variant="bodySm" tone="subdued">{`— ${r.description}`}</Text>
                             <Badge>{`$${r.price}`}</Badge>
                           </InlineStack>
                         }

@@ -148,7 +148,7 @@ export function FormBuilderPageContent(): ReactElement {
                   secondaryAction={{
                     content: "Learn more about BuyEase",
                     url: BUYEASE_MARKETING_URL,
-                    external: true,
+                    target: "_blank",
                   }}
                 >
                   <BlockStack gap="200">
