@@ -705,96 +705,100 @@ export function BuyButtonDesignerWorkspace(): ReactElement {
                 />
               </FormLayout.Group>
 
-              <InlineGrid columns={{ xs: "1fr", sm: "1fr 1fr 1fr" }} gap="300" alignItems="start">
-                <Box minWidth="0" width="100%">
-                  <TextField
-                    id="buy-button-text-size"
-                    label="Text size"
-                    value={String(fontSizePx)}
-                    autoComplete="off"
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    suffix="px"
-                    onChange={(value): void => handleFontSizeChange(value)}
-                  />
-                </Box>
-                <Box minWidth="0" width="100%">
-                  <Labelled id="buy-button-style" label="Style">
-                    {/* Native segmented control — guaranteed same height/width as TextField */}
-                    <div
+              {/* Three strictly equal columns — raw CSS grid bypasses any Polaris InlineGrid constraints */}
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr 1fr",
+                  gap: "var(--p-space-300)",
+                  alignItems: "start",
+                }}
+              >
+                {/* Column 1: Text size */}
+                <TextField
+                  id="buy-button-text-size"
+                  label="Text size"
+                  value={String(fontSizePx)}
+                  autoComplete="off"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  suffix="px"
+                  onChange={(value): void => handleFontSizeChange(value)}
+                />
+
+                {/* Column 2: Style B / I */}
+                <Labelled id="buy-button-style" label="Style">
+                  <div
+                    style={{
+                      display: "flex",
+                      width: "100%",
+                      height: "36px",
+                      borderRadius: "var(--p-border-radius-200)",
+                      border: "1px solid var(--p-color-border)",
+                      overflow: "hidden",
+                      background: "var(--p-color-bg-surface)",
+                    }}
+                  >
+                    <button
+                      type="button"
+                      aria-label="Bold"
+                      aria-pressed={textBold}
+                      onClick={(): void => setTextBold((p) => !p)}
                       style={{
-                        display: "flex",
-                        width: "100%",
-                        height: "36px",
-                        borderRadius: "var(--p-border-radius-200)",
-                        border: "1px solid var(--p-color-border)",
-                        overflow: "hidden",
-                        background: "var(--p-color-bg-surface)",
+                        flex: 1,
+                        border: "none",
+                        borderRight: "1px solid var(--p-color-border)",
+                        background: textBold ? "var(--p-color-bg-surface-active)" : "transparent",
+                        fontWeight: 700,
+                        fontSize: "var(--p-font-size-325)",
+                        color: "var(--p-color-text)",
+                        cursor: "pointer",
+                        fontFamily: "inherit",
                       }}
                     >
-                      <button
-                        type="button"
-                        aria-label="Bold"
-                        aria-pressed={textBold}
-                        onClick={(): void => setTextBold((p) => !p)}
-                        style={{
-                          flex: 1,
-                          border: "none",
-                          borderRight: "1px solid var(--p-color-border)",
-                          background: textBold ? "var(--p-color-bg-surface-active)" : "transparent",
-                          fontWeight: 700,
-                          fontSize: "var(--p-font-size-325)",
-                          color: "var(--p-color-text)",
-                          cursor: "pointer",
-                          fontFamily: "inherit",
-                        }}
-                      >
-                        B
-                      </button>
-                      <button
-                        type="button"
-                        aria-label="Italic"
-                        aria-pressed={textItalic}
-                        onClick={(): void => setTextItalic((p) => !p)}
-                        style={{
-                          flex: 1,
-                          border: "none",
-                          background: textItalic ? "var(--p-color-bg-surface-active)" : "transparent",
-                          fontStyle: "italic",
-                          fontSize: "var(--p-font-size-325)",
-                          color: "var(--p-color-text)",
-                          cursor: "pointer",
-                          fontFamily: "inherit",
-                        }}
-                      >
-                        I
-                      </button>
-                    </div>
-                  </Labelled>
-                </Box>
-                <Box minWidth="0" width="100%">
-                  <Labelled id="buy-button-icon" label="Button icon">
-                    <div style={{ height: "36px", width: "100%", display: "flex", alignItems: "stretch" }}>
-                    <Popover
-                      active={iconPickerOpen}
-                      autofocusTarget="first-node"
-                      preferredPosition="below"
-                      preferredAlignment="left"
-                      activator={
-                        <div style={{ height: "36px", display: "flex", alignItems: "stretch", width: "100%" }}>
-                          <Button
-                            fullWidth
-                            textAlign="left"
-                            icon={iconActivatorSource ?? BlankIcon}
-                            disclosure={iconPickerOpen ? "up" : "down"}
-                            onClick={(): void => setIconPickerOpen((active) => !active)}
-                          >
-                            Change icon
-                          </Button>
-                        </div>
-                      }
-                      onClose={(): void => setIconPickerOpen(false)}
+                      B
+                    </button>
+                    <button
+                      type="button"
+                      aria-label="Italic"
+                      aria-pressed={textItalic}
+                      onClick={(): void => setTextItalic((p) => !p)}
+                      style={{
+                        flex: 1,
+                        border: "none",
+                        background: textItalic ? "var(--p-color-bg-surface-active)" : "transparent",
+                        fontStyle: "italic",
+                        fontSize: "var(--p-font-size-325)",
+                        color: "var(--p-color-text)",
+                        cursor: "pointer",
+                        fontFamily: "inherit",
+                      }}
                     >
+                      I
+                    </button>
+                  </div>
+                </Labelled>
+
+                {/* Column 3: Button icon picker */}
+                <Labelled id="buy-button-icon" label="Button icon">
+                  <Popover
+                    active={iconPickerOpen}
+                    autofocusTarget="first-node"
+                    preferredPosition="below"
+                    preferredAlignment="left"
+                    activator={
+                      <Button
+                        fullWidth
+                        textAlign="left"
+                        icon={iconActivatorSource ?? BlankIcon}
+                        disclosure={iconPickerOpen ? "up" : "down"}
+                        onClick={(): void => setIconPickerOpen((active) => !active)}
+                      >
+                        Change icon
+                      </Button>
+                    }
+                    onClose={(): void => setIconPickerOpen(false)}
+                  >
                     <Box
                       minWidth="380px"
                       maxWidth="min(100vw - 32px, 460px)"
@@ -831,9 +835,7 @@ export function BuyButtonDesignerWorkspace(): ReactElement {
                           </Button>
                         </InlineStack>
                       </Box>
-
                       <Divider />
-
                       <Box padding="300" background="bg-surface">
                         <div
                           style={{
@@ -860,10 +862,8 @@ export function BuyButtonDesignerWorkspace(): ReactElement {
                       </Box>
                     </Box>
                   </Popover>
-                    </div>
-                  </Labelled>
-                </Box>
-              </InlineGrid>
+                </Labelled>
+              </div>
 
               <FormLayout.Group>
                 <Select
