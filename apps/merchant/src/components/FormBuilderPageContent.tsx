@@ -104,26 +104,28 @@ export function FormBuilderPageContent(): ReactElement {
       <BlockStack gap="400">
         <Box
           padding="100"
-          background="bg-surface"
+          background="bg-surface-secondary"
           borderWidth="025"
           borderColor="border"
-          borderRadius="300"
-          shadow="100"
-          width="100%"
+          borderRadius="200"
         >
-          <ButtonGroup variant="segmented" fullWidth>
-            {MODES.map((item) => (
-              <Button
-                key={item.id}
-                icon={item.icon}
-                pressed={mode === item.id}
-                fullWidth
-                onClick={() => handleModeChange(item.id)}
-              >
-                {item.label}
-              </Button>
-            ))}
-          </ButtonGroup>
+          <InlineGrid columns={3} gap="100">
+            {MODES.map((item) => {
+              const isSelected = mode === item.id;
+              return (
+                <Button
+                  key={item.id}
+                  icon={item.icon}
+                  variant={isSelected ? "primary" : "tertiary"}
+                  pressed={false} // Remove the native pressed styling in favor of variant switching
+                  fullWidth
+                  onClick={() => handleModeChange(item.id)}
+                >
+                  {item.label}
+                </Button>
+              );
+            })}
+          </InlineGrid>
         </Box>
 
         {mode === "buy-button" ? (
