@@ -400,12 +400,6 @@ export default function BillingPage(): ReactElement {
             </Text>
           </BlockStack>
         </Card>
-
-        <Box paddingBlockStart="200" paddingBlockEnd="400">
-          <Text as="p" variant="bodySm" tone="subdued" alignment="center">
-            &copy; BuyEase 2026 🇵🇰
-          </Text>
-        </Box>
       </BlockStack>
       </div>
     </Page>

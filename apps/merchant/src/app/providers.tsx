@@ -15,22 +15,32 @@ type NextLinkProps = {
 
 function NextPolarisLink({ children, url, ...rest }: NextLinkProps): ReactElement {
   const href = url ?? "/";
-  return <Link href={href} {...rest}>{children}</Link>;
+  return (
+    <Link href={href} {...rest}>
+      {children}
+    </Link>
+  );
 }
 
+/**
+ * App Bridge `ui-nav-menu` registers native `<a href="…">` children with the admin sidebar.
+ * Next.js `<Link>` here often prevents items from appearing; keep `<a>` for nav only.
+ */
 export default function Providers({ children }: { children: ReactNode }): ReactElement {
   return (
     <AppProvider i18n={translations} linkComponent={NextPolarisLink}>
+      {/* eslint-disable @next/next/no-html-link-for-pages -- App Bridge embedded nav requires <a> */}
       <NavMenu>
-        <Link href="/" rel="home">
+        <a href="/" rel="home">
           Home
-        </Link>
-        <Link href="/form-builder">Form Builder</Link>
-        <Link href="/upsells">Upsells</Link>
-        <Link href="/analytics">Analytics</Link>
-        <Link href="/settings">Settings</Link>
-        <Link href="/billing">Billing Plans</Link>
+        </a>
+        <a href="/form-builder">Form Builder</a>
+        <a href="/upsells">Upsells</a>
+        <a href="/analytics">Analytics</a>
+        <a href="/settings">Settings</a>
+        <a href="/billing">Billing</a>
       </NavMenu>
+      {/* eslint-enable @next/next/no-html-link-for-pages */}
 
       {children}
     </AppProvider>
