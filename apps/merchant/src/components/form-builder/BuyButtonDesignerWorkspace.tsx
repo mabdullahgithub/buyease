@@ -366,35 +366,35 @@ function BuyButtonPreviewSvg({
   const widestTitlePx = Math.max(...titleLineWidthsPx, fontSizePx);
   const titleClusterWidthPx = iconSlot + Math.min(titleColumnWidth, widestTitlePx);
 
+  const TITLE_CAP_ASCENT = 0.72;
+  const TITLE_BASE_DESCENT = 0.24;
+
   const titleLineAdvance = Math.round(fontSizePx * 1.2);
   const subtitleLineAdvance = Math.round(subFontSize * 1.2);
 
-  const firstTitleBaseline = padY + Math.round(fontSizePx * 0.92);
-  const lastTitleBaseline =
-    labelLines.length > 0
-      ? firstTitleBaseline + Math.max(0, labelLines.length - 1) * titleLineAdvance
-      : firstTitleBaseline;
+  // ── Pass 1: measure natural content height to determine button height ──
+  const titleBlockH = Math.max(0, labelLines.length - 1) * titleLineAdvance + fontSizePx;
+  const subtitleBlockH =
+    subtitleLines.length > 0
+      ? lineGap + Math.max(0, subtitleLines.length - 1) * subtitleLineAdvance + subFontSize
+      : 0;
+  const totalTextH = titleBlockH + subtitleBlockH;
+  const btnHeight = Math.max(52, totalTextH + padY * 2);
+
+  // ── Pass 2: derive baselines so text block is vertically centred ──────
+  const blockStartY = (btnHeight - totalTextH) / 2;
+  const firstTitleBaseline = Math.round(blockStartY + fontSizePx * TITLE_CAP_ASCENT);
+  const lastTitleBaseline = firstTitleBaseline + Math.max(0, labelLines.length - 1) * titleLineAdvance;
 
   const firstSubtitleBaseline =
-    subtitleLines.length > 0 ? lastTitleBaseline + lineGap + Math.round(subFontSize * 0.92) : 0;
-
+    subtitleLines.length > 0 ? lastTitleBaseline + lineGap + Math.round(subFontSize * TITLE_CAP_ASCENT) : 0;
   const lastSubtitleBaseline =
     subtitleLines.length > 0
       ? firstSubtitleBaseline + Math.max(0, subtitleLines.length - 1) * subtitleLineAdvance
-      : firstTitleBaseline;
+      : lastTitleBaseline;
 
-  const titleDescent = Math.round(fontSizePx * 0.28);
-  const subDescent = Math.round(subFontSize * 0.28);
-  const lastVisualBottom = hasSubtitle ? lastSubtitleBaseline + subDescent : lastTitleBaseline + titleDescent;
-  const btnHeight = Math.max(52, lastVisualBottom + padY);
-
-  /** Optical vertical center of wrapped title (baseline math alone misaligns icons vs text). */
-  const TITLE_CAP_ASCENT = 0.72;
-  const TITLE_BASE_DESCENT = 0.24;
-  const titleInkTopY =
-    firstTitleBaseline - TITLE_CAP_ASCENT * fontSizePx;
-  const titleInkBottomY =
-    lastTitleBaseline + TITLE_BASE_DESCENT * fontSizePx;
+  const titleInkTopY = firstTitleBaseline - TITLE_CAP_ASCENT * fontSizePx;
+  const titleInkBottomY = lastTitleBaseline + TITLE_BASE_DESCENT * fontSizePx;
   const titleVisualMidY = (titleInkTopY + titleInkBottomY) / 2;
 
   let iconX = 0;
@@ -720,23 +720,55 @@ export function BuyButtonDesignerWorkspace(): ReactElement {
                 </Box>
                 <Box minWidth="0" width="100%">
                   <Labelled id="buy-button-style" label="Style">
-                    <div style={{ height: "36px", width: "100%", display: "flex", alignItems: "stretch" }}>
-                      <ButtonGroup variant="segmented" fullWidth>
-                        <Button
-                          pressed={textBold}
-                          onClick={(): void => setTextBold((previous) => !previous)}
-                          accessibilityLabel="Bold"
-                        >
-                          B
-                        </Button>
-                        <Button
-                          pressed={textItalic}
-                          onClick={(): void => setTextItalic((previous) => !previous)}
-                          accessibilityLabel="Italic"
-                        >
-                          I
-                        </Button>
-                      </ButtonGroup>
+                    {/* Native segmented control — guaranteed same height/width as TextField */}
+                    <div
+                      style={{
+                        display: "flex",
+                        width: "100%",
+                        height: "36px",
+                        borderRadius: "var(--p-border-radius-200)",
+                        border: "1px solid var(--p-color-border)",
+                        overflow: "hidden",
+                        background: "var(--p-color-bg-surface)",
+                      }}
+                    >
+                      <button
+                        type="button"
+                        aria-label="Bold"
+                        aria-pressed={textBold}
+                        onClick={(): void => setTextBold((p) => !p)}
+                        style={{
+                          flex: 1,
+                          border: "none",
+                          borderRight: "1px solid var(--p-color-border)",
+                          background: textBold ? "var(--p-color-bg-surface-active)" : "transparent",
+                          fontWeight: 700,
+                          fontSize: "var(--p-font-size-325)",
+                          color: "var(--p-color-text)",
+                          cursor: "pointer",
+                          fontFamily: "inherit",
+                        }}
+                      >
+                        B
+                      </button>
+                      <button
+                        type="button"
+                        aria-label="Italic"
+                        aria-pressed={textItalic}
+                        onClick={(): void => setTextItalic((p) => !p)}
+                        style={{
+                          flex: 1,
+                          border: "none",
+                          background: textItalic ? "var(--p-color-bg-surface-active)" : "transparent",
+                          fontStyle: "italic",
+                          fontSize: "var(--p-font-size-325)",
+                          color: "var(--p-color-text)",
+                          cursor: "pointer",
+                          fontFamily: "inherit",
+                        }}
+                      >
+                        I
+                      </button>
                     </div>
                   </Labelled>
                 </Box>
@@ -764,6 +796,7 @@ export function BuyButtonDesignerWorkspace(): ReactElement {
                       onClose={(): void => setIconPickerOpen(false)}
                     >
                     <Box
+                      minWidth="380px"
                       maxWidth="min(100vw - 32px, 460px)"
                       borderRadius="300"
                       background="bg-surface"
