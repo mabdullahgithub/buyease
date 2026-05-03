@@ -720,7 +720,7 @@ export function BuyButtonDesignerWorkspace(): ReactElement {
                 </Box>
                 <Box minWidth="0" width="100%">
                   <Labelled id="buy-button-style" label="Style">
-                    <div style={{ height: "36px", display: "flex", alignItems: "stretch" }}>
+                    <div style={{ height: "36px", width: "100%", display: "flex", alignItems: "stretch" }}>
                       <ButtonGroup variant="segmented" fullWidth>
                         <Button
                           pressed={textBold}
@@ -742,7 +742,7 @@ export function BuyButtonDesignerWorkspace(): ReactElement {
                 </Box>
                 <Box minWidth="0" width="100%">
                   <Labelled id="buy-button-icon" label="Button icon">
-                    <div style={{ height: "36px", display: "flex", alignItems: "stretch" }}>
+                    <div style={{ height: "36px", width: "100%", display: "flex", alignItems: "stretch" }}>
                     <Popover
                       active={iconPickerOpen}
                       autofocusTarget="first-node"
