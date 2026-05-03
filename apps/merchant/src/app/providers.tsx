@@ -38,7 +38,7 @@ export default function Providers({ children }: { children: ReactNode }): ReactE
         <a href="/upsells">Upsells</a>
         <a href="/analytics">Analytics</a>
         <a href="/settings">Settings</a>
-        <a href="/billing">{"Billing & Plans"}</a>
+        <a href="/billing">Billing</a>
       </NavMenu>
       {/* eslint-enable @next/next/no-html-link-for-pages */}
 
