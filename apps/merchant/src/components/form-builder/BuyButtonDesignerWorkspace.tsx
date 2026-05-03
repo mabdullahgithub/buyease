@@ -821,63 +821,101 @@ export function BuyButtonDesignerWorkspace(): ReactElement {
 
         <Box position="sticky" insetBlockStart="400" zIndex="400" width="100%">
           <Card roundedAbove="sm">
-            <BlockStack gap="400">
-              <BlockStack gap="100">
-                <Text as="h2" variant="headingSm">
-                  Live preview
-                </Text>
-                <Text as="p" variant="bodySm" tone="subdued">
-                  Sample product page—your COD button appears as a full-width primary action. Typography on the
-                  live store follows the theme; colors, weight, and scale reflect your settings here.
-                </Text>
-              </BlockStack>
-              <Box
-                background="bg-surface"
-                borderWidth="025"
-                borderColor="border"
-                borderRadius="300"
-                padding="400"
-                width="100%"
+            <BlockStack gap="500">
+              <InlineStack
+                align="space-between"
+                blockAlign="start"
+                gap="300"
+                wrap
               >
-                <BlockStack gap="400">
-                  <BlockStack gap="200">
+                <BlockStack gap="150">
+                  <Text as="h2" variant="headingLg">
+                    Live preview
+                  </Text>
+                  <Box maxWidth="420px">
                     <Text as="p" variant="bodySm" tone="subdued">
-                      storename.com
+                      Sample product page—your COD button is the full-width primary action. Live typography
+                      follows the theme; colors, weight, and size match these controls.
                     </Text>
-                    <Text as="h3" variant="headingLg">
-                      Sample product
-                    </Text>
-                    <InlineStack align="space-between" blockAlign="center" wrap={false} gap="200">
-                      <Badge tone="success">In stock</Badge>
-                      <Text as="p" variant="headingLg">
-                        $29.99
-                      </Text>
-                    </InlineStack>
-                    <Text as="p" variant="bodySm" tone="subdued">
-                      Shown with sample title and price. Your real product data appears on the storefront.
-                    </Text>
-                  </BlockStack>
-                  <Divider />
-                  <Box background="bg-surface-secondary" borderRadius="200" padding="300" width="100%">
-                    <BuyButtonPreviewSvg
-                      filterId={previewFilterId}
-                      label={buttonText}
-                      subtitle={buttonSubtitle}
-                      previewPaths={previewPaths}
-                      iconAlign={iconAlign}
-                      animation={animation}
-                      bg={bgColor}
-                      fg={textColor}
-                      border={borderColor}
-                      fontSizePx={fontSizePx}
-                      borderRadiusPx={borderRadiusPx}
-                      borderWidthPx={borderWidthPx}
-                      shadowStrength={shadowStrength}
-                      fontBold={textBold}
-                      fontItalic={textItalic}
-                    />
                   </Box>
                 </BlockStack>
+                <Badge tone="info">Product page</Badge>
+              </InlineStack>
+
+              <Box
+                background="bg-surface-secondary"
+                borderRadius="400"
+                padding="300"
+                borderWidth="025"
+                borderColor="border"
+              >
+                <Box
+                  background="bg-surface"
+                  borderRadius="300"
+                  overflowX="hidden"
+                  overflowY="hidden"
+                  shadow="200"
+                  width="100%"
+                >
+                  <BlockStack gap="0">
+                    <Box padding="500" paddingBlockEnd="400">
+                      <BlockStack gap="300">
+                        <Text
+                          as="p"
+                          variant="bodySm"
+                          tone="subdued"
+                        >
+                          <span
+                            style={{
+                              letterSpacing: "0.04em",
+                              textTransform: "lowercase",
+                              fontSize: "0.8125rem",
+                            }}
+                          >
+                            storename.com
+                          </span>
+                        </Text>
+                        <Text as="h3" variant="headingLg">
+                          Sample product
+                        </Text>
+                        <InlineStack align="space-between" blockAlign="center" wrap={false} gap="300">
+                          <Badge tone="success">In stock</Badge>
+                          <Text as="p" variant="headingLg" fontWeight="bold">
+                            <span style={{ fontVariantNumeric: "tabular-nums" }}>$29.99</span>
+                          </Text>
+                        </InlineStack>
+                        <Text as="p" variant="bodySm" tone="subdued">
+                          Shown with sample title and price. Your catalog appears on the storefront.
+                        </Text>
+                      </BlockStack>
+                    </Box>
+                    <Divider />
+                    <Box
+                      background="bg-surface-secondary"
+                      padding="400"
+                      paddingBlockStart="400"
+                      width="100%"
+                    >
+                      <BuyButtonPreviewSvg
+                        filterId={previewFilterId}
+                        label={buttonText}
+                        subtitle={buttonSubtitle}
+                        previewPaths={previewPaths}
+                        iconAlign={iconAlign}
+                        animation={animation}
+                        bg={bgColor}
+                        fg={textColor}
+                        border={borderColor}
+                        fontSizePx={fontSizePx}
+                        borderRadiusPx={borderRadiusPx}
+                        borderWidthPx={borderWidthPx}
+                        shadowStrength={shadowStrength}
+                        fontBold={textBold}
+                        fontItalic={textItalic}
+                      />
+                    </Box>
+                  </BlockStack>
+                </Box>
               </Box>
             </BlockStack>
           </Card>
