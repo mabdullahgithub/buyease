@@ -14,12 +14,11 @@ import {
   InlineGrid,
   InlineStack,
   Page,
-  SkeletonBodyText,
-  SkeletonDisplayText,
   Text,
 } from "@shopify/polaris";
 import { CheckCircleIcon } from "@shopify/polaris-icons";
 
+import { BillingPlansPageSkeleton } from "@/components/skeletons/BillingPlansPageSkeleton";
 import {
   PLANS,
   getEffectiveMonthlyPrice,
@@ -40,47 +39,6 @@ type CurrentPlanResponse = {
 
 const BILLING_PAGE_SUBTITLE =
   "Change your plan here. If you need help or you have any doubts or questions don't hesitate to contact us!";
-
-function BillingPageSkeleton(): ReactElement {
-  return (
-    <Page fullWidth>
-      <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
-        <BlockStack gap="600">
-          <BlockStack gap="100">
-            <Box maxWidth="18ch">
-              <SkeletonDisplayText maxWidth="100%" />
-            </Box>
-            <SkeletonBodyText lines={1} />
-          </BlockStack>
-          <InlineStack align="center" gap="200">
-            <Box width="200px">
-              <SkeletonDisplayText size="small" />
-            </Box>
-          </InlineStack>
-          <InlineGrid columns={{ xs: 1, sm: 2, lg: 4 }} gap="500">
-            {PLAN_KEYS.map((key) => (
-              <Card key={key} roundedAbove="sm">
-                <BlockStack gap="400">
-                  <SkeletonDisplayText size="small" />
-                  <SkeletonDisplayText size="medium" />
-                  <Box borderBlockStartWidth="025" borderColor="border" paddingBlockStart="400">
-                    <BlockStack gap="300">
-                      <SkeletonBodyText lines={6} />
-                    </BlockStack>
-                  </Box>
-                  <SkeletonDisplayText size="small" />
-                </BlockStack>
-              </Card>
-            ))}
-          </InlineGrid>
-          <Card roundedAbove="sm">
-            <SkeletonBodyText lines={3} />
-          </Card>
-        </BlockStack>
-      </div>
-    </Page>
-  );
-}
 
 export default function BillingPage(): ReactElement {
   const [interval, setInterval] = useState<BillingInterval>("EVERY_30_DAYS");
@@ -176,7 +134,7 @@ export default function BillingPage(): ReactElement {
   const isAnnual = interval === "ANNUAL";
 
   if (loading) {
-    return <BillingPageSkeleton />;
+    return <BillingPlansPageSkeleton />;
   }
 
   return (
@@ -185,7 +143,7 @@ export default function BillingPage(): ReactElement {
       <BlockStack gap="600">
         <BlockStack gap="100">
           <Text as="h1" variant="headingXl">
-            Billing Plans
+            {"Billing & Plans"}
           </Text>
           <Text as="p" variant="bodyMd" tone="subdued">
             {BILLING_PAGE_SUBTITLE}
