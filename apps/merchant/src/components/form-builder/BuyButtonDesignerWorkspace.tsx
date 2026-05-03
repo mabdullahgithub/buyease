@@ -388,7 +388,14 @@ function BuyButtonPreviewSvg({
   const lastVisualBottom = hasSubtitle ? lastSubtitleBaseline + subDescent : lastTitleBaseline + titleDescent;
   const btnHeight = Math.max(52, lastVisualBottom + padY);
 
-  const iconMidY = (firstTitleBaseline + lastTitleBaseline) / 2;
+  /** Optical vertical center of wrapped title (baseline math alone misaligns icons vs text). */
+  const TITLE_CAP_ASCENT = 0.72;
+  const TITLE_BASE_DESCENT = 0.24;
+  const titleInkTopY =
+    firstTitleBaseline - TITLE_CAP_ASCENT * fontSizePx;
+  const titleInkBottomY =
+    lastTitleBaseline + TITLE_BASE_DESCENT * fontSizePx;
+  const titleVisualMidY = (titleInkTopY + titleInkBottomY) / 2;
 
   let iconX = 0;
   let iconY = 0;
@@ -398,7 +405,7 @@ function BuyButtonPreviewSvg({
   const clusterInnerStart = padX + Math.max(0, (innerContentWidth - titleClusterWidthPx) / 2);
 
   if (hasIcon && previewPaths) {
-    iconY = iconMidY - iconSize / 2;
+    iconY = titleVisualMidY - iconSize / 2;
     const textStripePx = Math.min(titleColumnWidth, widestTitlePx);
     if (iconAlign === "start") {
       iconX = clusterInnerStart;
@@ -704,27 +711,21 @@ export function BuyButtonDesignerWorkspace(): ReactElement {
                 />
               </FormLayout.Group>
 
-              <InlineGrid columns={{ xs: 1, sm: 3 }} gap="400" alignItems="end">
-                <TextField
-                  id="buy-button-text-size"
-                  label="Text size"
-                  type="integer"
-                  value={String(fontSizePx)}
-                  min={FONT_MIN_PX}
-                  max={FONT_MAX_PX}
-                  autoComplete="off"
-                  suffix="px"
-                  onChange={(value): void => handleFontSizeChange(value)}
-                />
-                <Labelled id="buy-button-style" label="Style">
-                  <div
-                    style={{
-                      display: "flex",
-                      width: "100%",
-                      minHeight: "var(--pg-control-height)",
-                      alignItems: "stretch",
-                    }}
-                  >
+              <InlineGrid columns={{ xs: "1fr", sm: "1fr 1fr 1fr" }} gap="300" alignItems="start">
+                <Box minWidth="0" width="100%">
+                  <TextField
+                    id="buy-button-text-size"
+                    label="Text size"
+                    value={String(fontSizePx)}
+                    autoComplete="off"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    suffix="px"
+                    onChange={(value): void => handleFontSizeChange(value)}
+                  />
+                </Box>
+                <Box minWidth="0" width="100%">
+                  <Labelled id="buy-button-style" label="Style">
                     <ButtonGroup variant="segmented" fullWidth>
                       <Button
                         pressed={textBold}
@@ -741,38 +742,28 @@ export function BuyButtonDesignerWorkspace(): ReactElement {
                         I
                       </Button>
                     </ButtonGroup>
-                  </div>
-                </Labelled>
-                <Labelled id="buy-button-icon" label="Button icon">
-                  <Popover
-                    active={iconPickerOpen}
-                    autofocusTarget="first-node"
-                    preferredPosition="below"
-                    preferredAlignment="left"
-                    activator={
-                      <div
-                        style={{
-                          display: "flex",
-                          width: "100%",
-                          minHeight: "var(--pg-control-height)",
-                          alignItems: "stretch",
-                        }}
-                      >
-                        <Box width="100%">
-                          <Button
-                            fullWidth
-                            textAlign="left"
-                            icon={iconActivatorSource ?? BlankIcon}
-                            disclosure={iconPickerOpen ? "up" : "down"}
-                            onClick={(): void => setIconPickerOpen((active) => !active)}
-                          >
-                            Change icon
-                          </Button>
-                        </Box>
-                      </div>
-                    }
-                    onClose={(): void => setIconPickerOpen(false)}
-                  >
+                  </Labelled>
+                </Box>
+                <Box minWidth="0" width="100%">
+                  <Labelled id="buy-button-icon" label="Button icon">
+                    <Popover
+                      active={iconPickerOpen}
+                      autofocusTarget="first-node"
+                      preferredPosition="below"
+                      preferredAlignment="left"
+                      activator={
+                        <Button
+                          fullWidth
+                          textAlign="left"
+                          icon={iconActivatorSource ?? BlankIcon}
+                          disclosure={iconPickerOpen ? "up" : "down"}
+                          onClick={(): void => setIconPickerOpen((active) => !active)}
+                        >
+                          Change icon
+                        </Button>
+                      }
+                      onClose={(): void => setIconPickerOpen(false)}
+                    >
                     <Box
                       maxWidth="min(100vw - 32px, 440px)"
                       borderRadius="300"
@@ -834,6 +825,7 @@ export function BuyButtonDesignerWorkspace(): ReactElement {
                     </Box>
                   </Popover>
                 </Labelled>
+                </Box>
               </InlineGrid>
 
               <FormLayout.Group>
