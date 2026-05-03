@@ -549,58 +549,21 @@ function BuyButtonPreviewSvg({
 type BuyButtonIconSwatchProps = {
   entry: BuyButtonIconDefinition;
   selected: boolean;
-  hovered: boolean;
   onSelect: () => void;
-  onHoverStart: () => void;
-  onHoverEnd: () => void;
 };
 
 function BuyButtonIconSwatch({
   entry,
   selected,
-  hovered,
   onSelect,
-  onHoverStart,
-  onHoverEnd,
 }: BuyButtonIconSwatchProps): ReactElement {
-  const interactiveHover = hovered && !selected;
   return (
-    <UnstyledButton
-      accessibilityLabel={entry.label}
+    <Button
+      icon={entry.source}
+      pressed={selected}
       onClick={onSelect}
-      onMouseEnter={onHoverStart}
-      onMouseLeave={onHoverEnd}
-    >
-      <span
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          width: "38px",
-          height: "38px",
-          borderRadius: "8px",
-          border: "none",
-          background: selected
-            ? "rgba(0,0,0,0.82)"
-            : interactiveHover
-              ? "rgba(0,0,0,0.06)"
-              : "transparent",
-          transition: "background 100ms ease",
-          cursor: "pointer",
-        }}
-      >
-        <span
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
-            filter: selected ? "invert(1)" : undefined,
-          }}
-        >
-          <Icon source={entry.source} tone="base" />
-        </span>
-      </span>
-    </UnstyledButton>
+      accessibilityLabel={entry.label}
+    />
   );
 }
 
@@ -611,9 +574,6 @@ export function BuyButtonDesignerWorkspace(): ReactElement {
   const [buttonSubtitle, setButtonSubtitle] = useState("");
   const [animation, setAnimation] = useState("none");
   const [iconPickerOpen, setIconPickerOpen] = useState(false);
-  const [iconSwatchHoverId, setIconSwatchHoverId] = useState<
-    Exclude<BuyButtonIconId, "none"> | null
-  >(null);
   const [buttonIconId, setButtonIconId] = useState<BuyButtonIconId>("cart-filled");
   const [iconAlign, setIconAlign] = useState<IconTextAlign>("start");
   const [textBold, setTextBold] = useState(true);
@@ -816,9 +776,6 @@ export function BuyButtonDesignerWorkspace(): ReactElement {
                               key={entry.id}
                               entry={entry}
                               selected={buttonIconId === entry.id}
-                              hovered={iconSwatchHoverId === entry.id}
-                              onHoverStart={(): void => setIconSwatchHoverId(entry.id)}
-                              onHoverEnd={(): void => setIconSwatchHoverId(null)}
                               onSelect={(): void => {
                                 setButtonIconId(entry.id);
                                 setIconPickerOpen(false);
