@@ -63,13 +63,17 @@ const CONDITION_ICONS: Record<ConditionType, IconSource> = {
   cart_not_contains: XIcon,
 };
 
-/** Tone for condition badge based on type category. */
-function conditionBadgeTone(type: ConditionType): "info" | "warning" | "success" | "attention" {
-  if (type.startsWith("order_total")) return "info";
-  if (type.startsWith("order_weight")) return "warning";
-  if (type.startsWith("quantity")) return "success";
-  return "attention";
-}
+/** Each condition type gets a unique badge tone for instant visual distinction. */
+const CONDITION_BADGE_TONES: Record<ConditionType, "info" | "success" | "warning" | "attention" | "new" | "critical" | "read-only" | "enabled"> = {
+  order_total_gte: "info",
+  order_total_lte: "new",
+  order_weight_gte: "warning",
+  order_weight_lte: "attention",
+  quantity_gte: "success",
+  quantity_lte: "enabled",
+  cart_contains: "read-only",
+  cart_not_contains: "critical",
+};
 
 /** Simulated Shopify shipping zones for import. */
 const MOCK_SHOPIFY_ZONES = [
@@ -97,7 +101,7 @@ function ConditionBadges({ conditions }: { conditions: RateCondition[] }): React
     <InlineStack gap="100" wrap>
       {conditions.map((c) => (
         <Tooltip key={c.id} content={`${CONDITION_SHORT_LABELS[c.type]} ${c.value}`}>
-          <Badge tone={conditionBadgeTone(c.type)} icon={CONDITION_ICONS[c.type]}>
+          <Badge tone={CONDITION_BADGE_TONES[c.type]} icon={CONDITION_ICONS[c.type]}>
             {`${CONDITION_SHORT_LABELS[c.type]} ${c.value}`}
           </Badge>
         </Tooltip>
