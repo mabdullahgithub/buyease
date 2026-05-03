@@ -5,7 +5,6 @@ import translations from "@shopify/polaris/locales/en.json";
 import "@shopify/polaris/build/esm/styles.css";
 import Link from "next/link";
 
-import { NavMenu } from "@shopify/app-bridge-react";
 import type { AnchorHTMLAttributes, ReactElement, ReactNode } from "react";
 
 type NextLinkProps = {
@@ -23,24 +22,23 @@ function NextPolarisLink({ children, url, ...rest }: NextLinkProps): ReactElemen
 }
 
 /**
- * App Bridge `ui-nav-menu` registers native `<a href="…">` children with the admin sidebar.
- * Next.js `<Link>` here often prevents items from appearing; keep `<a>` for nav only.
+ * Shopify admin reads navigation from App Bridge `<s-app-nav>` + `<s-link>` (CDN web components).
+ * The older React `NavMenu` / `<ui-nav-menu>` pattern often fails to show links with App Bridge 4 + `app-bridge.js`.
+ * `rel="home"` marks the default route; that entry is hidden from the visible menu per Shopify behavior.
  */
 export default function Providers({ children }: { children: ReactNode }): ReactElement {
   return (
     <AppProvider i18n={translations} linkComponent={NextPolarisLink}>
-      {/* eslint-disable @next/next/no-html-link-for-pages -- App Bridge embedded nav requires <a> */}
-      <NavMenu>
-        <a href="/" rel="home">
+      <s-app-nav>
+        <s-link href="/" rel="home">
           Home
-        </a>
-        <a href="/form-builder">Form Builder</a>
-        <a href="/upsells">Upsells</a>
-        <a href="/analytics">Analytics</a>
-        <a href="/settings">Settings</a>
-        <a href="/billing">Billing</a>
-      </NavMenu>
-      {/* eslint-enable @next/next/no-html-link-for-pages */}
+        </s-link>
+        <s-link href="/form-builder">Form Builder</s-link>
+        <s-link href="/upsells">Upsells</s-link>
+        <s-link href="/analytics">Analytics</s-link>
+        <s-link href="/settings">Settings</s-link>
+        <s-link href="/billing">Billing</s-link>
+      </s-app-nav>
 
       {children}
     </AppProvider>
