@@ -24,6 +24,7 @@ import {
   Text,
   TextField,
   Tooltip,
+  UnstyledButton,
   hsbToRgb,
   rgbaString,
 } from "@shopify/polaris";
@@ -446,7 +447,7 @@ export function FormDesignerWorkspace({
           <Text as="p" variant="bodyMd">
             The COD form is currently disabled on your store. You can enable it anytime through the app's Visibility settings.
           </Text>
-          <Button size="small">Visibility</Button>
+          <Button size="slim">Visibility</Button>
         </InlineStack>
       </Banner>
 
@@ -690,7 +691,7 @@ export function FormDesignerWorkspace({
                               icon={HideIcon}
                               variant="plain"
                               accessibilityLabel="Hide field"
-                              tone={field.hidden ? "critical" : "base"}
+                              tone={field.hidden ? "critical" : undefined}
                               onClick={() => updateField(field.id, { hidden: !field.hidden })}
                             />
                             <Button
@@ -860,7 +861,14 @@ export function FormDesignerWorkspace({
                       onSelect={setAddFieldTab}
                       fitted
                     >
-                      <Box padding="300" background="bg-surface" minHeight="300px" maxHeight="400px" overflowY="auto">
+                      <div
+                        style={{
+                          minHeight: "300px",
+                          maxHeight: "400px",
+                          overflowY: "auto",
+                        }}
+                      >
+                        <Box padding="300" background="bg-surface">
                         {addFieldTab === 0 ? (
                           <ActionList
                             actionRole="menuitem"
@@ -876,48 +884,48 @@ export function FormDesignerWorkspace({
                             ]}
                           />
                         ) : (
-                          <BlockStack gap="400">
-                            <ActionList
-                              title="Buttons"
-                              actionRole="menuitem"
-                              items={[
-                                { content: 'Shopify checkout Button', icon: CartIcon, onAction: () => addField('Shopify checkout Button', 'note') },
-                                { content: 'WhatsApp Button', icon: ChatIcon, onAction: () => addField('WhatsApp Button', 'chat') },
-                                { content: 'Link Button', icon: LinkIcon, onAction: () => addField('Link Button', 'note') },
-                              ]}
-                            />
-                            <ActionList
-                              title="Inputs"
-                              actionRole="menuitem"
-                              items={[
-                                { content: 'Text input', icon: TextIcon, onAction: () => addField('Text input', 'text') },
-                                { content: 'Multi-line input', icon: NoteIcon, onAction: () => addField('Multi-line input', 'note') },
-                                { content: 'Single Choice', icon: CheckIcon, onAction: () => addField('Single Choice', 'note') },
-                                { content: 'Multiple Choices', icon: NoteIcon, onAction: () => addField('Multiple Choices', 'note') },
-                                { content: 'Drop-down List', icon: CaretDownIcon, onAction: () => addField('Drop-down List', 'note') },
-                                { content: 'Date input', icon: CalendarIcon, onAction: () => addField('Date input', 'note') },
-                                { content: 'Privacy Policy', icon: LockIcon, onAction: () => addField('Privacy Policy', 'note') },
-                              ]}
-                            />
-                            <ActionList
-                              title="Content"
-                              actionRole="menuitem"
-                              items={[
-                                { content: 'Text / HTML', icon: TextIcon, onAction: () => addField('Text / HTML', 'text') },
-                                { content: 'Image', icon: ImageIcon, onAction: () => addField('Image', 'note') },
-                              ]}
-                            />
-                            <ActionList
-                              title="Conversion"
-                              actionRole="menuitem"
-                              items={[
-                                { content: 'Urgency Countdown', icon: ClockIcon, onAction: () => addField('Urgency Countdown', 'note') },
-                                { content: '1-Tick Upsells', icon: CheckIcon, onAction: () => addField('1-Tick Upsells', 'note') },
-                              ]}
-                            />
-                          </BlockStack>
+                          <ActionList
+                            actionRole="menuitem"
+                            sections={[
+                              {
+                                title: "Buttons",
+                                items: [
+                                  { content: "Shopify checkout Button", icon: CartIcon, onAction: () => addField("Shopify checkout Button", "note") },
+                                  { content: "WhatsApp Button", icon: ChatIcon, onAction: () => addField("WhatsApp Button", "chat") },
+                                  { content: "Link Button", icon: LinkIcon, onAction: () => addField("Link Button", "note") },
+                                ],
+                              },
+                              {
+                                title: "Inputs",
+                                items: [
+                                  { content: "Text input", icon: TextIcon, onAction: () => addField("Text input", "text") },
+                                  { content: "Multi-line input", icon: NoteIcon, onAction: () => addField("Multi-line input", "note") },
+                                  { content: "Single Choice", icon: CheckIcon, onAction: () => addField("Single Choice", "note") },
+                                  { content: "Multiple Choices", icon: NoteIcon, onAction: () => addField("Multiple Choices", "note") },
+                                  { content: "Drop-down List", icon: CaretDownIcon, onAction: () => addField("Drop-down List", "note") },
+                                  { content: "Date input", icon: CalendarIcon, onAction: () => addField("Date input", "note") },
+                                  { content: "Privacy Policy", icon: LockIcon, onAction: () => addField("Privacy Policy", "note") },
+                                ],
+                              },
+                              {
+                                title: "Content",
+                                items: [
+                                  { content: "Text / HTML", icon: TextIcon, onAction: () => addField("Text / HTML", "text") },
+                                  { content: "Image", icon: ImageIcon, onAction: () => addField("Image", "note") },
+                                ],
+                              },
+                              {
+                                title: "Conversion",
+                                items: [
+                                  { content: "Urgency Countdown", icon: ClockIcon, onAction: () => addField("Urgency Countdown", "note") },
+                                  { content: "1-Tick Upsells", icon: CheckIcon, onAction: () => addField("1-Tick Upsells", "note") },
+                                ],
+                              },
+                            ]}
+                          />
                         )}
-                      </Box>
+                        </Box>
+                      </div>
                     </Tabs>
                   </Box>
                 </Popover>
@@ -963,12 +971,27 @@ export function FormDesignerWorkspace({
                     <Popover
                       active={false}
                       activator={
-                        <Button fullWidth textAlign="left">
+                        <UnstyledButton
+                          type="button"
+                          accessibilityLabel="Select background color"
+                          style={{
+                            display: "block",
+                            width: "100%",
+                            cursor: "pointer",
+                            padding: "var(--p-space-200) var(--p-space-300)",
+                            borderRadius: "var(--p-border-radius-200)",
+                            border: "var(--p-border-width-025) solid var(--p-color-input-border)",
+                            background: "var(--p-color-bg-surface-secondary)",
+                            color: "var(--p-color-text)",
+                            font: "inherit",
+                            textAlign: "left",
+                          }}
+                        >
                           <InlineStack gap="200" blockAlign="center">
-                            <div style={{ width: '16px', height: '16px', background: previewFormBg, border: '1px solid #ccc', borderRadius: '4px' }} />
+                            <div style={{ width: "16px", height: "16px", background: previewFormBg, border: "1px solid var(--p-color-border-secondary)", borderRadius: "var(--p-border-radius-100)" }} />
                             <span>Select Color</span>
                           </InlineStack>
-                        </Button>
+                        </UnstyledButton>
                       }
                       onClose={() => {}}
                     >
@@ -982,12 +1005,27 @@ export function FormDesignerWorkspace({
                     <Popover
                       active={false}
                       activator={
-                        <Button fullWidth textAlign="left">
+                        <UnstyledButton
+                          type="button"
+                          accessibilityLabel="Select text color"
+                          style={{
+                            display: "block",
+                            width: "100%",
+                            cursor: "pointer",
+                            padding: "var(--p-space-200) var(--p-space-300)",
+                            borderRadius: "var(--p-border-radius-200)",
+                            border: "var(--p-border-width-025) solid var(--p-color-input-border)",
+                            background: "var(--p-color-bg-surface-secondary)",
+                            color: "var(--p-color-text)",
+                            font: "inherit",
+                            textAlign: "left",
+                          }}
+                        >
                           <InlineStack gap="200" blockAlign="center">
-                            <div style={{ width: '16px', height: '16px', background: previewFormText, border: '1px solid #ccc', borderRadius: '4px' }} />
+                            <div style={{ width: "16px", height: "16px", background: previewFormText, border: "1px solid var(--p-color-border-secondary)", borderRadius: "var(--p-border-radius-100)" }} />
                             <span>Select Color</span>
                           </InlineStack>
-                        </Button>
+                        </UnstyledButton>
                       }
                       onClose={() => {}}
                     >
