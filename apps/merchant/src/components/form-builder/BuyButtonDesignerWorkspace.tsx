@@ -599,34 +599,55 @@ type BuyButtonConfig = {
 
 function BuyButtonDesignerSkeleton(): ReactElement {
   return (
-    <InlineGrid
-      columns={{ xs: 1, md: ["twoThirds", "oneThird"] }}
-      gap="400"
-      alignItems="start"
-    >
+    <BlockStack gap="400">
       <Card roundedAbove="sm">
-        <BlockStack gap="500">
-          <SkeletonDisplayText size="small" />
-          <SkeletonBodyText lines={3} />
-          <SkeletonBodyText lines={2} />
-          <SkeletonBodyText lines={4} />
-          <SkeletonBodyText lines={3} />
-        </BlockStack>
+        <SkeletonBodyText lines={2} />
       </Card>
-      <Card roundedAbove="sm">
-        <BlockStack gap="300">
-          <SkeletonDisplayText size="small" />
-          <Box
-            padding="400"
-            background="bg-surface-secondary"
-            borderRadius="300"
-            minHeight="120px"
-          >
+
+      <InlineGrid
+        columns={{ xs: 1, md: ["twoThirds", "oneThird"] }}
+        gap="400"
+        alignItems="start"
+      >
+        <Card roundedAbove="sm">
+          <BlockStack gap="400">
+            <SkeletonBodyText lines={1} />
+            <BlockStack gap="300">
+              <SkeletonBodyText lines={2} />
+              <SkeletonBodyText lines={1} />
+            </BlockStack>
             <SkeletonBodyText lines={2} />
-          </Box>
-        </BlockStack>
-      </Card>
-    </InlineGrid>
+            <Box minHeight="180px">
+              <SkeletonBodyText lines={6} />
+            </Box>
+            <Box minHeight="180px">
+              <SkeletonBodyText lines={6} />
+            </Box>
+            <SkeletonBodyText lines={2} />
+            <SkeletonBodyText lines={1} />
+          </BlockStack>
+        </Card>
+
+        <Card roundedAbove="sm">
+          <BlockStack gap="300">
+            <Box paddingBlockEnd="200">
+              <SkeletonDisplayText size="small" />
+            </Box>
+            <Box
+              padding="400"
+              background="bg-surface-secondary"
+              borderRadius="300"
+              borderWidth="025"
+              borderColor="border"
+              minHeight="80px"
+            >
+              <SkeletonBodyText lines={1} />
+            </Box>
+            <SkeletonBodyText lines={1} />
+          </BlockStack>
+        </Card>
+      </InlineGrid>
+    </BlockStack>
   );
 }
 
@@ -638,6 +659,7 @@ export function BuyButtonDesignerWorkspace(): ReactElement {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
+  const [infoDismissed, setInfoDismissed] = useState(false);
 
   const [buttonText, setButtonText] = useState("Order via COD");
   const [buttonSubtitle, setButtonSubtitle] = useState("");
@@ -791,7 +813,7 @@ export function BuyButtonDesignerWorkspace(): ReactElement {
         const data: BuyButtonConfig = await response.json();
         savedConfigRef.current = data;
         setDirty(false);
-        shopify.toast.show("Buy button saved");
+        shopify.toast.show("Changes saved successfully");
       } else {
         const err = await response.json().catch(() => null);
         const msg = err?.details?.[0]?.message ?? err?.error ?? "Save failed. Please try again.";
@@ -833,14 +855,7 @@ export function BuyButtonDesignerWorkspace(): ReactElement {
   const iconActivatorSource = activeIcon?.source;
 
   if (loading) {
-    return (
-      <BlockStack gap="400">
-        <Card roundedAbove="sm">
-          <SkeletonBodyText lines={2} />
-        </Card>
-        <BuyButtonDesignerSkeleton />
-      </BlockStack>
-    );
+    return <BuyButtonDesignerSkeleton />;
   }
 
   return (
@@ -856,13 +871,13 @@ export function BuyButtonDesignerWorkspace(): ReactElement {
         </Banner>
       ) : null}
 
-      <Card roundedAbove="sm">
-        <BlockStack gap="300">
+      {!infoDismissed ? (
+        <Banner tone="info" onDismiss={() => setInfoDismissed(true)}>
           <Text as="p" variant="bodyMd">
             {BUY_BUTTON_INSTRUCTION}
           </Text>
-        </BlockStack>
-      </Card>
+        </Banner>
+      ) : null}
 
       <InlineGrid
         columns={{
