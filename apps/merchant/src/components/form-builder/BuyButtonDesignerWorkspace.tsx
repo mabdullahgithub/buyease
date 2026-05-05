@@ -600,9 +600,15 @@ type BuyButtonConfig = {
 function BuyButtonDesignerSkeleton(): ReactElement {
   return (
     <BlockStack gap="400">
-      <Card roundedAbove="sm">
+      <Box
+        padding="300"
+        background="bg-surface-info"
+        borderRadius="200"
+        borderWidth="025"
+        borderColor="border-info"
+      >
         <SkeletonBodyText lines={2} />
-      </Card>
+      </Box>
 
       <InlineGrid
         columns={{ xs: 1, md: ["twoThirds", "oneThird"] }}
@@ -610,40 +616,95 @@ function BuyButtonDesignerSkeleton(): ReactElement {
         alignItems="start"
       >
         <Card roundedAbove="sm">
-          <BlockStack gap="400">
+          <BlockStack gap="500">
             <SkeletonBodyText lines={1} />
-            <BlockStack gap="300">
-              <SkeletonBodyText lines={2} />
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--p-space-300)" }}>
+              <BlockStack gap="100">
+                <SkeletonDisplayText size="small" />
+                <SkeletonBodyText lines={1} />
+              </BlockStack>
+              <BlockStack gap="100">
+                <SkeletonDisplayText size="small" />
+                <SkeletonBodyText lines={1} />
+              </BlockStack>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "var(--p-space-300)" }}>
+              <BlockStack gap="100">
+                <SkeletonDisplayText size="small" />
+                <SkeletonBodyText lines={1} />
+              </BlockStack>
+              <BlockStack gap="100">
+                <SkeletonDisplayText size="small" />
+                <SkeletonBodyText lines={1} />
+              </BlockStack>
+              <BlockStack gap="100">
+                <SkeletonDisplayText size="small" />
+                <SkeletonBodyText lines={1} />
+              </BlockStack>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--p-space-300)" }}>
+              <BlockStack gap="100">
+                <SkeletonDisplayText size="small" />
+                <SkeletonBodyText lines={1} />
+              </BlockStack>
+              <BlockStack gap="100">
+                <SkeletonDisplayText size="small" />
+                <SkeletonBodyText lines={1} />
+              </BlockStack>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--p-space-300)" }}>
+              <BlockStack gap="200">
+                <SkeletonDisplayText size="small" />
+                <Box minHeight="140px" background="bg-surface-secondary" borderRadius="200" />
+                <SkeletonBodyText lines={1} />
+              </BlockStack>
+              <BlockStack gap="200">
+                <SkeletonDisplayText size="small" />
+                <Box minHeight="140px" background="bg-surface-secondary" borderRadius="200" />
+                <SkeletonBodyText lines={1} />
+              </BlockStack>
+            </div>
+
+            <BlockStack gap="200">
+              <SkeletonDisplayText size="small" />
               <SkeletonBodyText lines={1} />
             </BlockStack>
-            <SkeletonBodyText lines={2} />
-            <Box minHeight="180px">
-              <SkeletonBodyText lines={6} />
-            </Box>
-            <Box minHeight="180px">
-              <SkeletonBodyText lines={6} />
-            </Box>
-            <SkeletonBodyText lines={2} />
+
+            <BlockStack gap="200">
+              <SkeletonDisplayText size="small" />
+              <SkeletonBodyText lines={1} />
+            </BlockStack>
+
             <SkeletonBodyText lines={1} />
           </BlockStack>
         </Card>
 
         <Card roundedAbove="sm">
           <BlockStack gap="300">
-            <Box paddingBlockEnd="200">
+            <InlineStack align="center">
               <SkeletonDisplayText size="small" />
-            </Box>
+            </InlineStack>
             <Box
               padding="400"
               background="bg-surface-secondary"
               borderRadius="300"
               borderWidth="025"
               borderColor="border"
-              minHeight="80px"
+              minHeight="90px"
             >
-              <SkeletonBodyText lines={1} />
+              <Box
+                background="bg-surface-tertiary"
+                borderRadius="200"
+                minHeight="56px"
+              />
             </Box>
-            <SkeletonBodyText lines={1} />
+            <InlineStack align="center">
+              <SkeletonBodyText lines={1} />
+            </InlineStack>
           </BlockStack>
         </Card>
       </InlineGrid>
