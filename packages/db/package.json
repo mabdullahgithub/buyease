@@ -9,6 +9,7 @@
     "db:migrate": "prisma migrate deploy",
     "studio": "prisma studio",
     "seed:admin": "tsx scripts/seed-admin.ts",
+    "seed:form-config": "tsx scripts/seed-default-form-config.ts",
     "typecheck": "tsc --noEmit"
   },
   "exports": {

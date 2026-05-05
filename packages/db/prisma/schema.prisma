@@ -66,8 +66,11 @@ model Merchant {
   planId String?
   plan   Plan?   @relation(fields: [planId], references: [id])
 
-  orders   Order[]
-  settings MerchantSettings?
+  orders          Order[]
+  settings        MerchantSettings?
+  buyButtonConfig BuyButtonConfig?
+  formDesignConfig FormDesignConfig?
+  shippingRates   ShippingRate[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -94,6 +97,116 @@ model MerchantSettings {
   updatedAt DateTime @updatedAt
 
   @@index([shop])
+}
+
+// ---------------------------------------------------------------------------
+// BuyButtonConfig — customization settings for the COD buy button on storefront
+// ---------------------------------------------------------------------------
+model BuyButtonConfig {
+  id          String   @id @default(cuid())
+  shop        String   @unique
+  merchant    Merchant @relation(fields: [shop], references: [shop], onDelete: Cascade)
+
+  buttonText      String  @default("Order via COD")
+  buttonSubtitle  String?
+  iconId          String  @default("cart")
+  iconAlign       String  @default("start")
+  showIcon        Boolean @default(true)
+  animation       String  @default("none")
+
+  stickyPosition  String  @default("none")
+  mobileFullWidth Boolean @default(false)
+
+  bgColor         String  @default("#000000")
+  textColor       String  @default("#FFFFFF")
+  borderColor     String  @default("#000000")
+  fontSizePx      Int     @default(16)
+  borderRadiusPx  Int     @default(8)
+  borderWidthPx   Int     @default(0)
+  shadowStrength  Int     @default(0)
+
+  isBold          Boolean @default(false)
+  isItalic        Boolean @default(false)
+  isVisible       Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([shop])
+  @@index([isVisible])
+}
+
+// ---------------------------------------------------------------------------
+// FormDesignConfig — layout, fields, and styling for the checkout form
+// ---------------------------------------------------------------------------
+model FormDesignConfig {
+  id          String   @id @default(cuid())
+  shop        String   @unique
+  merchant    Merchant @relation(fields: [shop], references: [shop], onDelete: Cascade)
+
+  formType    String   @default("popup")
+  fields      Json     @default("[]")
+
+  formBgColor         String @default("#FFFFFF")
+  formTextColor       String @default("#000000")
+  formBorderColor     String @default("#E5E5E5")
+  formBorderRadiusPx  Int    @default(12)
+  formPaddingPx       Int    @default(24)
+
+  fieldBgColor        String @default("#FFFFFF")
+  fieldTextColor      String @default("#000000")
+  fieldBorderColor    String @default("#D1D5DB")
+  fieldBorderRadiusPx Int    @default(6)
+  fieldFontSizePx     Int    @default(14)
+
+  textAlign   String  @default("left")
+  hideLabels  Boolean @default(false)
+  rtl         Boolean @default(false)
+  autocomplete Boolean @default(true)
+
+  errorRequired String @default("This field is required")
+  errorInvalid  String @default("Please enter a valid value")
+  errorSoldOut  String @default("This product is sold out")
+
+  isVisible   Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([shop])
+  @@index([isVisible])
+}
+
+// ---------------------------------------------------------------------------
+// ShippingRate — configurable shipping options displayed in the checkout form
+// ---------------------------------------------------------------------------
+model ShippingRate {
+  id          String   @id @default(cuid())
+  shop        String
+  merchant    Merchant @relation(fields: [shop], references: [shop], onDelete: Cascade)
+
+  name        String
+  description String?
+  price       Decimal  @db.Decimal(10, 2)
+  currency    String   @default("USD")
+
+  conditions  Json     @default("[]")
+
+  countriesEnabled Boolean @default(false)
+  countries        Json    @default("[]")
+  provincesEnabled Boolean @default(false)
+  provinces        Json    @default("[]")
+
+  importedFromShopify Boolean @default(false)
+  isActive            Boolean @default(true)
+  sortOrder           Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([shop])
+  @@index([isActive])
+  @@index([shop, sortOrder])
 }
 
 // ---------------------------------------------------------------------------

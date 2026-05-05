@@ -6,6 +6,7 @@ import { prisma } from "@/lib/db";
 import { checkMaintenance } from "@/lib/maintenance";
 import { getOrderCount } from "@/lib/order-counter";
 import { merchantAppOrigin } from "@/lib/merchant-app-url";
+import { addRateLimitHeaders, type createRateLimiter } from "@/lib/rate-limit";
 import { withSessionVerification } from "@/lib/verify-session";
 
 type PlanFeature = "whatsappOtp" | "abTesting" | "advancedFraud";
@@ -19,10 +20,13 @@ type RouteContext = {
 
 type ProtectedHandler = (req: NextRequest, ctx: RouteContext) => Promise<NextResponse>;
 
+type RateLimiterFn = ReturnType<typeof createRateLimiter>;
+
 type GuardOptions = {
   requiredFeature?: PlanFeature;
   checkOrderLimit?: boolean;
   skipPlanGate?: boolean;
+  rateLimiter?: RateLimiterFn;
 };
 
 function extractFeatures(raw: unknown): Record<string, boolean> {
@@ -58,13 +62,22 @@ export function withGuards(options: GuardOptions, handler: ProtectedHandler) {
     const maintenanceResponse = await checkMaintenance();
     if (maintenanceResponse) return maintenanceResponse;
 
+    if (options.rateLimiter) {
+      const rateLimitResponse = options.rateLimiter(req);
+      if (rateLimitResponse) return rateLimitResponse;
+    }
+
     if (options.skipPlanGate) {
-      return handler(req, {
+      const response = await handler(req, {
         shop: session.shop,
         session,
         planKey: "free",
         ordersRemaining: null,
       });
+      if (options.rateLimiter) {
+        return addRateLimitHeaders(response, req);
+      }
+      return response;
     }
 
     const merchant = await prisma.merchant.findUnique({
@@ -125,6 +138,10 @@ export function withGuards(options: GuardOptions, handler: ProtectedHandler) {
       ordersRemaining = orderLimit - currentCount;
     }
 
-    return handler(req, { shop: session.shop, session, planKey, ordersRemaining });
+    const response = await handler(req, { shop: session.shop, session, planKey, ordersRemaining });
+    if (options.rateLimiter) {
+      return addRateLimitHeaders(response, req);
+    }
+    return response;
   });
 }

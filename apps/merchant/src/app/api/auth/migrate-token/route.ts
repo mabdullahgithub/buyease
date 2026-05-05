@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import { prisma } from "@/lib/db";
 import shopify from "@/lib/shopify";
+import { validationErrorResponse } from "@/lib/validation";
 
 const MigrateSchema = z.object({
   secret: z.string().min(1),
@@ -86,7 +87,11 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
   try {
     const raw = await req.json();
-    body = MigrateSchema.parse(raw);
+    const parsed = MigrateSchema.safeParse(raw);
+    if (!parsed.success) {
+      return validationErrorResponse(parsed.error);
+    }
+    body = parsed.data;
   } catch {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }

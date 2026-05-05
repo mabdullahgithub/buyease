@@ -1,39 +1,34 @@
 "use client";
 
+import type { ReactElement } from "react";
 import {
   BlockStack,
-  Box,
   Card,
-  InlineGrid,
-  Page,
   SkeletonBodyText,
   SkeletonDisplayText,
+  SkeletonPage,
 } from "@shopify/polaris";
-import type { ReactElement } from "react";
 
-export default function HomeLoading(): ReactElement {
+/**
+ * Root-level loading skeleton. Full-width Polaris page shell with content cards.
+ */
+export default function RootLoading(): ReactElement {
   return (
-    <Page>
+    <SkeletonPage title="">
       <BlockStack gap="400">
-        <SkeletonDisplayText size="large" />
-        <InlineGrid columns={{ xs: 1, sm: 2, lg: 4 }} gap="400">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <Card key={i} roundedAbove="sm">
-              <BlockStack gap="200">
-                <SkeletonDisplayText size="small" />
-                <SkeletonBodyText lines={1} />
-              </BlockStack>
-            </Card>
-          ))}
-        </InlineGrid>
         <Card roundedAbove="sm">
           <BlockStack gap="400">
             <SkeletonDisplayText size="small" />
-            <SkeletonBodyText lines={8} />
+            <SkeletonBodyText lines={3} />
           </BlockStack>
         </Card>
-        <Box paddingBlockEnd="400" />
+        <Card roundedAbove="sm">
+          <BlockStack gap="300">
+            <SkeletonDisplayText size="small" />
+            <SkeletonBodyText lines={2} />
+          </BlockStack>
+        </Card>
       </BlockStack>
-    </Page>
+    </SkeletonPage>
   );
 }

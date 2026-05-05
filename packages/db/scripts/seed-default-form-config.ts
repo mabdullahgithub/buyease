@@ -1,0 +1,237 @@
+/**
+ * Seeds default form configuration for a specific merchant.
+ *
+ * Required env (in packages/db/.env or exported in shell):
+ *   DATABASE_URL
+ *
+ * Usage:
+ *   npm run seed:form-config --workspace=@buyease/db -- --shop=example.myshopify.com
+ */
+
+import { config } from "dotenv";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+import { PrismaClient } from "@prisma/client";
+
+const pkgRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+config({ path: resolve(pkgRoot, ".env") });
+
+const prisma = new PrismaClient();
+
+const DEFAULT_FIELDS = [
+  {
+    id: "header",
+    type: "header",
+    title: "Please fill in the form to order",
+    deletable: false,
+    hidden: false,
+  },
+  {
+    id: "cart",
+    type: "cart",
+    title: "Your Cart",
+    deletable: false,
+    hidden: false,
+  },
+  {
+    id: "summary",
+    type: "summary",
+    title: "Order Summary",
+    deletable: false,
+    hidden: false,
+  },
+  {
+    id: "shipping",
+    type: "shipping",
+    title: "Shipping Method",
+    deletable: false,
+    hidden: false,
+  },
+  {
+    id: "first_name",
+    type: "input",
+    title: "First Name",
+    placeholder: "Enter your first name",
+    required: true,
+    iconId: "user",
+    deletable: true,
+    hidden: false,
+  },
+  {
+    id: "phone",
+    type: "input",
+    title: "Phone",
+    placeholder: "Enter your phone number",
+    required: true,
+    iconId: "phone",
+    deletable: true,
+    hidden: false,
+  },
+  {
+    id: "address",
+    type: "input",
+    title: "Address",
+    placeholder: "Enter your full address",
+    required: true,
+    iconId: "map-pin",
+    deletable: true,
+    hidden: false,
+  },
+  {
+    id: "city",
+    type: "input",
+    title: "City",
+    placeholder: "Enter your city",
+    required: true,
+    iconId: "building",
+    deletable: true,
+    hidden: false,
+  },
+  {
+    id: "postal_code",
+    type: "input",
+    title: "Postal Code",
+    placeholder: "Enter your postal code",
+    required: true,
+    iconId: null,
+    deletable: true,
+    hidden: false,
+  },
+  {
+    id: "marketing_checkbox",
+    type: "checkbox",
+    title: "I agree to receive marketing messages",
+    required: false,
+    deletable: true,
+    hidden: false,
+  },
+  {
+    id: "submit",
+    type: "submit",
+    title: "BUY IT NOW - {total}",
+    deletable: false,
+    hidden: false,
+  },
+];
+
+async function main(): Promise<void> {
+  const databaseUrl = process.env.DATABASE_URL;
+  if (!databaseUrl?.trim()) {
+    process.stderr.write("DATABASE_URL is missing. Set it in packages/db/.env\n");
+    process.exit(1);
+  }
+
+  const shopArg = process.argv.find((arg) => arg.startsWith("--shop="));
+  if (!shopArg) {
+    process.stderr.write(
+      "Usage: npm run seed:form-config -- --shop=example.myshopify.com\n",
+    );
+    process.exit(1);
+  }
+
+  const shop = shopArg.replace("--shop=", "").trim();
+  if (!shop.endsWith(".myshopify.com")) {
+    process.stderr.write("Shop must be a valid *.myshopify.com domain.\n");
+    process.exit(1);
+  }
+
+  const merchant = await prisma.merchant.findUnique({ where: { shop } });
+  if (!merchant) {
+    process.stderr.write(`Merchant not found for shop: ${shop}\n`);
+    process.exit(1);
+  }
+
+  await Promise.all([
+    prisma.buyButtonConfig.upsert({
+      where: { shop },
+      create: {
+        shop,
+        buttonText: "Order via COD",
+        buttonSubtitle: null,
+        iconId: "cart",
+        iconAlign: "start",
+        showIcon: true,
+        animation: "none",
+        stickyPosition: "none",
+        mobileFullWidth: false,
+        bgColor: "#000000",
+        textColor: "#FFFFFF",
+        borderColor: "#000000",
+        fontSizePx: 16,
+        borderRadiusPx: 8,
+        borderWidthPx: 0,
+        shadowStrength: 0,
+        isBold: false,
+        isItalic: false,
+        isVisible: true,
+      },
+      update: {},
+    }),
+
+    prisma.formDesignConfig.upsert({
+      where: { shop },
+      create: {
+        shop,
+        formType: "popup",
+        fields: DEFAULT_FIELDS,
+        formBgColor: "#FFFFFF",
+        formTextColor: "#000000",
+        formBorderColor: "#E5E5E5",
+        formBorderRadiusPx: 12,
+        formPaddingPx: 24,
+        fieldBgColor: "#FFFFFF",
+        fieldTextColor: "#000000",
+        fieldBorderColor: "#D1D5DB",
+        fieldBorderRadiusPx: 6,
+        fieldFontSizePx: 14,
+        textAlign: "left",
+        hideLabels: false,
+        rtl: false,
+        autocomplete: true,
+        errorRequired: "This field is required",
+        errorInvalid: "Please enter a valid value",
+        errorSoldOut: "This product is sold out",
+        isVisible: true,
+      },
+      update: {},
+    }),
+
+    prisma.shippingRate.upsert({
+      where: { id: `default_${shop}` },
+      create: {
+        id: `default_${shop}`,
+        shop,
+        name: "Standard Shipping",
+        description: "Delivered within 3-7 business days",
+        price: 5.99,
+        currency: "USD",
+        conditions: [],
+        countriesEnabled: false,
+        countries: [],
+        provincesEnabled: false,
+        provinces: [],
+        importedFromShopify: false,
+        isActive: true,
+        sortOrder: 1,
+      },
+      update: {},
+    }),
+  ]);
+
+  process.stdout.write(
+    `Default form config seeded for ${shop}:\n` +
+      "  - BuyButtonConfig (black button, white text, cart icon)\n" +
+      "  - FormDesignConfig (11 default fields)\n" +
+      "  - ShippingRate (Standard Shipping $5.99)\n",
+  );
+}
+
+main()
+  .catch((err: unknown) => {
+    const message = err instanceof Error ? err.message : String(err);
+    process.stderr.write(`Seed failed: ${message}\n`);
+    process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });

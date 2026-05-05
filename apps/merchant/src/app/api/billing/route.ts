@@ -4,6 +4,7 @@ import { z } from "zod";
 import { PLANS, getBillingPrice, type PlanKey, type BillingInterval } from "@/lib/billing";
 import { merchantAppOrigin } from "@/lib/merchant-app-url";
 import { withGuards } from "@/lib/middleware-stack";
+import { validationErrorResponse } from "@/lib/validation";
 
 const bodySchema = z.object({
   plan: z.enum(["premium", "enterprise", "unlimited"]),
@@ -24,7 +25,7 @@ export const POST = withGuards({ skipPlanGate: true }, async (req: NextRequest, 
   try {
     const parsed = bodySchema.safeParse(await req.json());
     if (!parsed.success) {
-      return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+      return validationErrorResponse(parsed.error);
     }
 
     const plan = parsed.data.plan as PlanKey;

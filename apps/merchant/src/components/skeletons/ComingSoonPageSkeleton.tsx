@@ -3,34 +3,33 @@
 import type { ReactElement } from "react";
 import {
   BlockStack,
-  Box,
-  Page,
+  Card,
   SkeletonBodyText,
   SkeletonDisplayText,
+  SkeletonPage,
 } from "@shopify/polaris";
 
 /**
- * Mirrors {@link ComingSoonPage}: centered vertical stack (hero icon + heading + body).
+ * Full-width loading skeleton for ComingSoonPage routes.
+ * Uses SkeletonPage for proper page shell width, with card content placeholders.
  */
 export function ComingSoonPageSkeleton(): ReactElement {
   return (
-    <Page>
-      <Box paddingBlockStart="1600" paddingBlockEnd="1600">
-        <BlockStack gap="400" align="center" inlineAlign="center">
-          <Box
-            minHeight="48px"
-            minWidth="48px"
-            borderRadius="full"
-            background="bg-surface-secondary"
-          />
-          <Box maxWidth="16ch">
-            <SkeletonDisplayText maxWidth="100%" size="medium" />
-          </Box>
-          <Box maxWidth="28ch">
+    <SkeletonPage title="">
+      <BlockStack gap="400">
+        <Card roundedAbove="sm">
+          <BlockStack gap="400">
+            <SkeletonDisplayText size="small" />
+            <SkeletonBodyText lines={3} />
+          </BlockStack>
+        </Card>
+        <Card roundedAbove="sm">
+          <BlockStack gap="300">
+            <SkeletonDisplayText size="small" />
             <SkeletonBodyText lines={2} />
-          </Box>
-        </BlockStack>
-      </Box>
-    </Page>
+          </BlockStack>
+        </Card>
+      </BlockStack>
+    </SkeletonPage>
   );
 }

@@ -1,6 +1,7 @@
 import { Session } from "@shopify/shopify-api";
 
 import { prisma } from "@/lib/db";
+import { seedDefaultFormConfig } from "@/lib/seed-default-form-config";
 import { saveSession } from "@/lib/session-cache";
 import shopify from "@/lib/shopify";
 
@@ -104,6 +105,11 @@ export async function exchangeSessionToken(
   // but this is a safety net for any that were missed.
   void shopify.webhooks.register({ session }).catch((error: unknown) => {
     console.error("Background webhook registration failed", { shop, error });
+  });
+
+  // Seed default form config in the background — non-blocking, idempotent.
+  void seedDefaultFormConfig(shop).catch((error: unknown) => {
+    console.error("Default form config seed failed", { shop, error });
   });
 
   return session;

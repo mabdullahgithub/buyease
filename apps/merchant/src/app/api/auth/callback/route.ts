@@ -9,6 +9,7 @@ import {
 
 import { prisma } from "@/lib/db";
 import { merchantAppOrigin } from "@/lib/merchant-app-url";
+import { seedDefaultFormConfig } from "@/lib/seed-default-form-config";
 import { saveSession } from "@/lib/session-cache";
 import shopify from "@/lib/shopify";
 import { toShopifyAuthRequest } from "@/lib/shopify-auth-request";
@@ -55,6 +56,11 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     // Register webhooks in the background — non-blocking.
     void shopify.webhooks.register({ session }).catch((error: unknown) => {
       console.error("Webhook registration failed", { shop: session.shop, error });
+    });
+
+    // Seed default form config in the background — non-blocking, idempotent.
+    void seedDefaultFormConfig(session.shop).catch((error: unknown) => {
+      console.error("Default form config seed failed", { shop: session.shop, error });
     });
 
     const host = req.nextUrl.searchParams.get("host");
