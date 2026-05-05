@@ -30,6 +30,7 @@ import {
 } from "@shopify/polaris";
 import type { HSBAColor } from "@shopify/polaris";
 import { BUY_BUTTON_STORE_ICONS, getBuyButtonIconDefinition } from "@/components/form-builder/buy-button-icon-registry";
+import { BuyButtonLivePreview } from "@/components/form-builder/BuyButtonLivePreview";
 import {
   AlertCircleIcon,
   ArrowDownIcon,
@@ -580,7 +581,7 @@ export function FormDesignerWorkspace({
             </BlockStack>
           </Card>
 
-          {/* Buy Button Preview Link */}
+          {/* Buy Button Preview */}
           {formType === "popup" && (
             <Card padding="400">
               <BlockStack gap="300">
@@ -590,31 +591,11 @@ export function FormDesignerWorkspace({
                   </Text>
                   {onNavigateToBuyButton && (
                     <Button variant="plain" onClick={onNavigateToBuyButton}>
-                      Customize more
+                      Customize
                     </Button>
                   )}
                 </InlineStack>
-                <Text as="p" variant="bodySm" tone="subdued">
-                  The button that opens the form
-                </Text>
-                <Box background="bg-surface-secondary" padding="400" borderRadius="200">
-                  <div style={{ display: "flex", justifyContent: "center" }}>
-                    <div
-                      style={{
-                        background: previewFormText,
-                        color: previewFormBg,
-                        padding: "12px 24px",
-                        borderRadius: "6px",
-                        fontFamily: "system-ui, sans-serif",
-                        fontWeight: "600",
-                        fontSize: "16px",
-                        boxShadow: `0 4px ${formShadow}px rgba(0,0,0,0.15)`
-                      }}
-                    >
-                      Order Now - Cash on Delivery
-                    </div>
-                  </div>
-                </Box>
+                <BuyButtonLivePreview />
               </BlockStack>
             </Card>
           )}

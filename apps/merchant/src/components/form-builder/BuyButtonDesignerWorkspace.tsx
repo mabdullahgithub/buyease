@@ -88,7 +88,7 @@ function hsbaToRgbaString(color: HSBAColor): string {
   return rgbaString(hsbToRgb(color));
 }
 
-function hexToHsb(hex: string): HSBAColor {
+export function hexToHsb(hex: string): HSBAColor {
   const r = parseInt(hex.slice(1, 3), 16);
   const g = parseInt(hex.slice(3, 5), 16);
   const b = parseInt(hex.slice(5, 7), 16);
@@ -215,7 +215,7 @@ const PREVIEW_LABEL_FALLBACK = "Buy with Cash on Delivery";
 
 type IconTextAlign = "start" | "end";
 
-type BuyButtonPreviewSvgProps = {
+export type BuyButtonPreviewSvgProps = {
   filterId: string;
   label: string;
   subtitle: string;
@@ -338,7 +338,7 @@ function PreviewMotionWrapper({
   return <g>{children}</g>;
 }
 
-function BuyButtonPreviewSvg({
+export function BuyButtonPreviewSvg({
   filterId,
   label,
   subtitle,
