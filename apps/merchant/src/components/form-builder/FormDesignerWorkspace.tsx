@@ -1154,7 +1154,63 @@ export function FormDesignerWorkspace({
                 }}
               >
                 <Text as="h3" variant="headingSm">
-                  Live preview:
+                  Button section:
+                </Text>
+              </span>
+            </InlineStack>
+
+            <Card padding="400">
+              <Box
+                padding="400"
+                background="bg-surface-secondary"
+                borderRadius="300"
+                borderWidth="025"
+                borderColor="border"
+              >
+                {(() => {
+                  const submitField = fields.find((f) => f.type === "submit");
+                  if (submitField) {
+                    return (
+                      <div
+                        style={{
+                          width: "100%",
+                          background: previewFormText,
+                          color: previewFormBg,
+                          padding: "14px 20px",
+                          borderRadius: `${fieldBorderRadius}px`,
+                          border: "none",
+                          fontWeight: "bold",
+                          fontSize: "16px",
+                          cursor: "pointer",
+                          textAlign: "center",
+                          fontFamily: "system-ui, sans-serif",
+                        }}
+                      >
+                        {submitField.title.replace("{total}", "$19.99")}
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
+              </Box>
+            </Card>
+
+            <InlineStack align="center">
+              <Text as="p" variant="bodySm" tone="subdued" alignment="center">
+                Customer action button
+              </Text>
+            </InlineStack>
+
+            <InlineStack align="center">
+              <span
+                style={{
+                  borderBottom: "1px dashed var(--p-color-border-secondary)",
+                  paddingBottom: "4px",
+                  marginTop: "8px",
+                }}
+              >
+                <Text as="h3" variant="headingSm">
+                  Form fields:
                 </Text>
               </span>
             </InlineStack>
@@ -1183,7 +1239,7 @@ export function FormDesignerWorkspace({
                   )}
                   
                   <BlockStack gap="400">
-                    {fields.map((field) => (
+                    {fields.filter((f) => f.type !== "submit").map((field) => (
                       <div key={field.id}>
                         {renderPreviewField(field)}
                         {(field.type === "cart" || field.type === "summary" || field.type === "shipping") && (
