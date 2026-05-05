@@ -386,7 +386,7 @@ export function AdminNavbar() {
           <MaintenanceIndicator />
 
           <NavBtn label="Notifications">
-            <Bell className="size-[15px]" />
+            <Bell className="size-4" />
           </NavBtn>
 
           <ThemeToggle />
