@@ -63,27 +63,6 @@ const STICKY_POSITION_OPTIONS = [
 
 const ICON_VIEWBOX = 20;
 
-const DEFAULT_BG: HSBAColor = {
-  hue: 0,
-  saturation: 0,
-  brightness: 0,
-  alpha: 1,
-};
-
-const DEFAULT_TEXT: HSBAColor = {
-  hue: 0,
-  saturation: 0,
-  brightness: 1,
-  alpha: 1,
-};
-
-const DEFAULT_BORDER: HSBAColor = {
-  hue: 0,
-  saturation: 0,
-  brightness: 0,
-  alpha: 1,
-};
-
 function hsbaToRgbaString(color: HSBAColor): string {
   return rgbaString(hsbToRgb(color));
 }
@@ -595,6 +574,28 @@ type BuyButtonConfig = {
   isVisible: boolean;
 };
 
+const DEFAULT_BUY_BUTTON_CONFIG: BuyButtonConfig = {
+  buttonText: "Order via COD",
+  buttonSubtitle: null,
+  iconId: "cart",
+  iconAlign: "start",
+  showIcon: true,
+  animation: "none",
+  stickyPosition: "off",
+  stickyMobile: true,
+  mobileFullWidth: false,
+  bgColor: "#000000",
+  textColor: "#FFFFFF",
+  borderColor: "#000000",
+  fontSizePx: 16,
+  borderRadiusPx: 8,
+  borderWidthPx: 0,
+  shadowStrength: 0,
+  isBold: false,
+  isItalic: false,
+  isVisible: true,
+};
+
 
 export function BuyButtonDesignerWorkspace(): ReactElement {
   const previewFilterId = useId().replace(/:/g, "");
@@ -606,28 +607,28 @@ export function BuyButtonDesignerWorkspace(): ReactElement {
   const [dirty, setDirty] = useState(false);
   const [infoDismissed, setInfoDismissed] = useState(false);
 
-  const [buttonText, setButtonText] = useState("Order via COD");
-  const [buttonSubtitle, setButtonSubtitle] = useState("");
-  const [animation, setAnimation] = useState("none");
+  const [buttonText, setButtonText] = useState(DEFAULT_BUY_BUTTON_CONFIG.buttonText);
+  const [buttonSubtitle, setButtonSubtitle] = useState(DEFAULT_BUY_BUTTON_CONFIG.buttonSubtitle ?? "");
+  const [animation, setAnimation] = useState(DEFAULT_BUY_BUTTON_CONFIG.animation);
   const [iconPickerOpen, setIconPickerOpen] = useState(false);
-  const [buttonIconId, setButtonIconId] = useState<BuyButtonIconId>("cart-filled");
-  const [iconAlign, setIconAlign] = useState<IconTextAlign>("start");
-  const [showIcon, setShowIcon] = useState(true);
-  const [textBold, setTextBold] = useState(false);
-  const [textItalic, setTextItalic] = useState(false);
-  const [stickyPosition, setStickyPosition] = useState("off");
-  const [stickyMobile, setStickyMobile] = useState(true);
-  const [mobileFullWidth, setMobileFullWidth] = useState(false);
-  const [isVisible, setIsVisible] = useState(true);
+  const [buttonIconId, setButtonIconId] = useState<BuyButtonIconId>(DEFAULT_BUY_BUTTON_CONFIG.iconId as BuyButtonIconId);
+  const [iconAlign, setIconAlign] = useState<IconTextAlign>(DEFAULT_BUY_BUTTON_CONFIG.iconAlign as IconTextAlign);
+  const [showIcon, setShowIcon] = useState(DEFAULT_BUY_BUTTON_CONFIG.showIcon);
+  const [textBold, setTextBold] = useState(DEFAULT_BUY_BUTTON_CONFIG.isBold);
+  const [textItalic, setTextItalic] = useState(DEFAULT_BUY_BUTTON_CONFIG.isItalic);
+  const [stickyPosition, setStickyPosition] = useState(DEFAULT_BUY_BUTTON_CONFIG.stickyPosition);
+  const [stickyMobile, setStickyMobile] = useState(DEFAULT_BUY_BUTTON_CONFIG.stickyMobile);
+  const [mobileFullWidth, setMobileFullWidth] = useState(DEFAULT_BUY_BUTTON_CONFIG.mobileFullWidth);
+  const [isVisible, setIsVisible] = useState(DEFAULT_BUY_BUTTON_CONFIG.isVisible);
 
-  const [bgColor, setBgColor] = useState<HSBAColor>(DEFAULT_BG);
-  const [textColor, setTextColor] = useState<HSBAColor>(DEFAULT_TEXT);
-  const [borderColor, setBorderColor] = useState<HSBAColor>(DEFAULT_BORDER);
+  const [bgColor, setBgColor] = useState<HSBAColor>(hexToHsb(DEFAULT_BUY_BUTTON_CONFIG.bgColor));
+  const [textColor, setTextColor] = useState<HSBAColor>(hexToHsb(DEFAULT_BUY_BUTTON_CONFIG.textColor));
+  const [borderColor, setBorderColor] = useState<HSBAColor>(hexToHsb(DEFAULT_BUY_BUTTON_CONFIG.borderColor));
 
-  const [fontSizePx, setFontSizePx] = useState(16);
-  const [borderRadiusPx, setBorderRadiusPx] = useState(8);
-  const [borderWidthPx, setBorderWidthPx] = useState(0);
-  const [shadowStrength, setShadowStrength] = useState(0);
+  const [fontSizePx, setFontSizePx] = useState(DEFAULT_BUY_BUTTON_CONFIG.fontSizePx);
+  const [borderRadiusPx, setBorderRadiusPx] = useState(DEFAULT_BUY_BUTTON_CONFIG.borderRadiusPx);
+  const [borderWidthPx, setBorderWidthPx] = useState(DEFAULT_BUY_BUTTON_CONFIG.borderWidthPx);
+  const [shadowStrength, setShadowStrength] = useState(DEFAULT_BUY_BUTTON_CONFIG.shadowStrength);
 
   const savedConfigRef = useRef<BuyButtonConfig | null>(null);
 
@@ -637,7 +638,7 @@ export function BuyButtonDesignerWorkspace(): ReactElement {
     return activeIcon?.previewPaths;
   }, [activeIcon, showIcon]);
 
-  const populateFromConfig = useCallback((config: BuyButtonConfig): void => {
+  const applyConfigToState = useCallback((config: BuyButtonConfig): void => {
     setButtonText(config.buttonText);
     setButtonSubtitle(config.buttonSubtitle ?? "");
     setAnimation(config.animation);
@@ -657,8 +658,12 @@ export function BuyButtonDesignerWorkspace(): ReactElement {
     setBorderRadiusPx(config.borderRadiusPx);
     setBorderWidthPx(config.borderWidthPx);
     setShadowStrength(config.shadowStrength);
-    savedConfigRef.current = config;
   }, []);
+
+  const populateFromConfig = useCallback((config: BuyButtonConfig): void => {
+    applyConfigToState(config);
+    savedConfigRef.current = config;
+  }, [applyConfigToState]);
 
   const buildPayload = useCallback((): BuyButtonConfig => {
     return {
@@ -773,11 +778,16 @@ export function BuyButtonDesignerWorkspace(): ReactElement {
 
   const handleDiscard = useCallback((): void => {
     if (savedConfigRef.current) {
-      populateFromConfig(savedConfigRef.current);
+      applyConfigToState(savedConfigRef.current);
     }
     setDirty(false);
     setError(null);
-  }, [populateFromConfig]);
+  }, [applyConfigToState]);
+
+  const handleResetToDefault = useCallback((): void => {
+    applyConfigToState(DEFAULT_BUY_BUTTON_CONFIG);
+    setError(null);
+  }, [applyConfigToState]);
 
   const handleFontSizeChange = useCallback((value: string): void => {
     const parsed = Number.parseInt(value, 10);
@@ -1161,6 +1171,12 @@ export function BuyButtonDesignerWorkspace(): ReactElement {
                 />
               </Box>
             </Card>
+
+            <InlineStack align="center">
+              <Button variant="secondary" onClick={handleResetToDefault} disabled={loading || saving}>
+                Reset to default
+              </Button>
+            </InlineStack>
 
             <InlineStack align="center">
               <Text as="p" variant="bodySm" tone="subdued" alignment="center">
