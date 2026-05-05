@@ -114,7 +114,8 @@ model BuyButtonConfig {
   showIcon        Boolean @default(true)
   animation       String  @default("none")
 
-  stickyPosition  String  @default("none")
+  stickyPosition  String  @default("off")
+  stickyMobile    Boolean @default(true)
   mobileFullWidth Boolean @default(false)
 
   bgColor         String  @default("#000000")

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useId, useMemo, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import type { ReactElement, ReactNode } from "react";
 import type { HSBAColor } from "@shopify/polaris";
 import {
@@ -14,17 +14,18 @@ import {
   ColorPicker,
   Divider,
   FormLayout,
-  Icon,
   InlineGrid,
   InlineStack,
   Labelled,
   Popover,
   RangeSlider,
   Select,
+  SkeletonBodyText,
+  SkeletonDisplayText,
   Text,
   TextField,
-  UnstyledButton,
   hsbToRgb,
+  rgbToHsb,
   rgbaString,
 } from "@shopify/polaris";
 import {
@@ -34,12 +35,13 @@ import {
   TextAlignLeftIcon,
   TextAlignRightIcon,
 } from "@shopify/polaris-icons";
+import { SaveBar, useAppBridge } from "@shopify/app-bridge-react";
 
 import type { BuyButtonIconDefinition, BuyButtonIconId, SvgPathSpec } from "@/components/form-builder/buy-button-icon-registry";
 import { BUY_BUTTON_STORE_ICONS, getBuyButtonIconDefinition } from "@/components/form-builder/buy-button-icon-registry";
 
 const BUY_BUTTON_INSTRUCTION =
-  "This is the button customers tap to open your COD form on product or cart pages. Customize the label and look here so it matches your brand. On the storefront the button uses your theme’s font family.";
+  "This is the button customers tap to open your COD form on product or cart pages. Customize the label and look here so it matches your brand. On the storefront the button uses your theme's font family.";
 
 const FONT_MIN_PX = 12;
 const FONT_MAX_PX = 28;
@@ -87,6 +89,20 @@ function hsbaToRgbaString(color: HSBAColor): string {
   return rgbaString(hsbToRgb(color));
 }
 
+function hexToHsb(hex: string): HSBAColor {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  const hsb = rgbToHsb({ red: r, green: g, blue: b });
+  return { ...hsb, alpha: 1 };
+}
+
+function hsbToHex(color: HSBAColor): string {
+  const { red, green, blue } = hsbToRgb(color);
+  const toHex = (n: number): string => Math.round(n).toString(16).padStart(2, "0");
+  return `#${toHex(red)}${toHex(green)}${toHex(blue)}`;
+}
+
 const PREVIEW_LABEL_MAX_LINES = 8;
 const PREVIEW_SUBTITLE_MAX_LINES = 4;
 const PREVIEW_CHAR_WIDTH_RATIO = 0.52;
@@ -109,7 +125,6 @@ function ellipsizeLastLine(lines: string[], maxLines: number): string[] {
   return clipped;
 }
 
-/** Greedy word-wrap for SVG (`tspan`); breaks long tokens; ellipsizes only when exceeding `maxLines`. */
 function wrapTextToLines(
   raw: string,
   maxWidthPx: number,
@@ -195,7 +210,6 @@ function clampFontSizePx(value: number): number {
   return Math.min(FONT_MAX_PX, Math.max(FONT_MIN_PX, Math.round(value)));
 }
 
-/** Preview canvas width — button spans nearly full width like Dawn product form CTAs. */
 const PRODUCT_PREVIEW_VIEW_WIDTH = 400;
 const PRODUCT_PREVIEW_SIDE_PAD = 16;
 const PREVIEW_LABEL_FALLBACK = "Buy with Cash on Delivery";
@@ -218,7 +232,6 @@ type BuyButtonPreviewSvgProps = {
   shadowStrength: number;
   fontBold: boolean;
   fontItalic: boolean;
-  /** When true, the SVG viewBox is cropped to the button only (no side canvas padding). */
   cropToButton?: boolean;
 };
 
@@ -271,6 +284,21 @@ function PreviewMotionWrapper({
           type="translate"
           values="0 0; 0 4; 0 1; 0 5; 0 0"
           dur="0.55s"
+          repeatCount="indefinite"
+        />
+        {children}
+      </g>
+    );
+  }
+
+  if (animation === "pulse") {
+    return (
+      <g>
+        <animateTransform
+          attributeName="transform"
+          type="scale"
+          values="1; 1.03; 1; 0.98; 1"
+          dur="1.5s"
           repeatCount="indefinite"
         />
         {children}
@@ -364,15 +392,12 @@ function BuyButtonPreviewSvg({
 
   const titleLineWidthsPx = labelLines.map((ln) => estimateTextWidthPx(ln, fontSizePx));
   const widestTitlePx = Math.max(...titleLineWidthsPx, fontSizePx);
-  const titleClusterWidthPx = iconSlot + Math.min(titleColumnWidth, widestTitlePx);
-
   const TITLE_CAP_ASCENT = 0.72;
   const TITLE_BASE_DESCENT = 0.24;
 
   const titleLineAdvance = Math.round(fontSizePx * 1.2);
   const subtitleLineAdvance = Math.round(subFontSize * 1.2);
 
-  // ── Pass 1: measure natural content height to determine button height ──
   const titleBlockH = Math.max(0, labelLines.length - 1) * titleLineAdvance + fontSizePx;
   const subtitleBlockH =
     subtitleLines.length > 0
@@ -381,17 +406,12 @@ function BuyButtonPreviewSvg({
   const totalTextH = titleBlockH + subtitleBlockH;
   const btnHeight = Math.max(52, totalTextH + padY * 2);
 
-  // ── Pass 2: derive baselines so text block is vertically centred ──────
   const blockStartY = (btnHeight - totalTextH) / 2;
   const firstTitleBaseline = Math.round(blockStartY + fontSizePx * TITLE_CAP_ASCENT);
   const lastTitleBaseline = firstTitleBaseline + Math.max(0, labelLines.length - 1) * titleLineAdvance;
 
   const firstSubtitleBaseline =
     subtitleLines.length > 0 ? lastTitleBaseline + lineGap + Math.round(subFontSize * TITLE_CAP_ASCENT) : 0;
-  const lastSubtitleBaseline =
-    subtitleLines.length > 0
-      ? firstSubtitleBaseline + Math.max(0, subtitleLines.length - 1) * subtitleLineAdvance
-      : lastTitleBaseline;
 
   const titleInkTopY = firstTitleBaseline - TITLE_CAP_ASCENT * fontSizePx;
   const titleInkBottomY = lastTitleBaseline + TITLE_BASE_DESCENT * fontSizePx;
@@ -399,15 +419,11 @@ function BuyButtonPreviewSvg({
 
   let iconX = 0;
   let iconY = 0;
-  // Title text is always centered at the button midpoint so it looks
-  // pixel-perfect regardless of font-metric estimation variance.
   const labelX = btnWidth / 2;
   const labelAnchor: "start" | "middle" = "middle";
 
   if (hasIcon && previewPaths) {
     iconY = titleVisualMidY - iconSize / 2;
-    // Estimate half-width of the widest title line and offset the icon
-    // from the text centre so the icon+text cluster is balanced.
     const halfTextPx = Math.min(titleColumnWidth / 2, widestTitlePx / 2);
     if (iconAlign === "start") {
       iconX = Math.max(padX, btnWidth / 2 - halfTextPx - iconGap - iconSize);
@@ -418,8 +434,6 @@ function BuyButtonPreviewSvg({
 
   const viewHeight = btnHeight + 16;
   const blur = Math.min(14, Math.max(0, shadowStrength / 2));
-  const pulseLayer = animation === "pulse";
-  const glowLayer = animation === "fanfare";
   const originX = PRODUCT_PREVIEW_SIDE_PAD;
   const originY = 8;
 
@@ -464,14 +478,7 @@ function BuyButtonPreviewSvg({
         stroke={borderStroke}
         strokeWidth={borderWidthPx}
         filter={shadowStrength > 0 ? `url(#${filterId})` : undefined}
-      >
-        {glowLayer ? (
-          <animate attributeName="opacity" values="1;0.88;1" dur="1.25s" repeatCount="indefinite" />
-        ) : null}
-        {pulseLayer ? (
-          <animate attributeName="opacity" values="1;0.88;1" dur="1.5s" repeatCount="indefinite" />
-        ) : null}
-      </rect>
+      />
       {hasIcon && previewPaths ? (
         <g
           transform={`translate(${iconX}, ${iconY}) scale(${iconScale})`}
@@ -567,67 +574,287 @@ function BuyButtonIconSwatch({
   );
 }
 
+type BuyButtonConfig = {
+  buttonText: string;
+  buttonSubtitle: string | null;
+  iconId: string;
+  iconAlign: string;
+  showIcon: boolean;
+  animation: string;
+  stickyPosition: string;
+  stickyMobile: boolean;
+  mobileFullWidth: boolean;
+  bgColor: string;
+  textColor: string;
+  borderColor: string;
+  fontSizePx: number;
+  borderRadiusPx: number;
+  borderWidthPx: number;
+  shadowStrength: number;
+  isBold: boolean;
+  isItalic: boolean;
+  isVisible: boolean;
+};
+
+function BuyButtonDesignerSkeleton(): ReactElement {
+  return (
+    <InlineGrid
+      columns={{ xs: 1, md: ["twoThirds", "oneThird"] }}
+      gap="400"
+      alignItems="start"
+    >
+      <Card roundedAbove="sm">
+        <BlockStack gap="500">
+          <SkeletonDisplayText size="small" />
+          <SkeletonBodyText lines={3} />
+          <SkeletonBodyText lines={2} />
+          <SkeletonBodyText lines={4} />
+          <SkeletonBodyText lines={3} />
+        </BlockStack>
+      </Card>
+      <Card roundedAbove="sm">
+        <BlockStack gap="300">
+          <SkeletonDisplayText size="small" />
+          <Box
+            padding="400"
+            background="bg-surface-secondary"
+            borderRadius="300"
+            minHeight="120px"
+          >
+            <SkeletonBodyText lines={2} />
+          </Box>
+        </BlockStack>
+      </Card>
+    </InlineGrid>
+  );
+}
+
 export function BuyButtonDesignerWorkspace(): ReactElement {
   const previewFilterId = useId().replace(/:/g, "");
+  const shopify = useAppBridge();
 
-  const [buttonText, setButtonText] = useState("Buy with Cash on Delivery");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [dirty, setDirty] = useState(false);
+
+  const [buttonText, setButtonText] = useState("Order via COD");
   const [buttonSubtitle, setButtonSubtitle] = useState("");
   const [animation, setAnimation] = useState("none");
   const [iconPickerOpen, setIconPickerOpen] = useState(false);
   const [buttonIconId, setButtonIconId] = useState<BuyButtonIconId>("cart-filled");
   const [iconAlign, setIconAlign] = useState<IconTextAlign>("start");
-  const [textBold, setTextBold] = useState(true);
+  const [showIcon, setShowIcon] = useState(true);
+  const [textBold, setTextBold] = useState(false);
   const [textItalic, setTextItalic] = useState(false);
-  const [stickyPosition, setStickyPosition] = useState("bottom");
+  const [stickyPosition, setStickyPosition] = useState("off");
   const [stickyMobile, setStickyMobile] = useState(true);
+  const [mobileFullWidth, setMobileFullWidth] = useState(false);
+  const [isVisible, setIsVisible] = useState(true);
 
   const [bgColor, setBgColor] = useState<HSBAColor>(DEFAULT_BG);
   const [textColor, setTextColor] = useState<HSBAColor>(DEFAULT_TEXT);
   const [borderColor, setBorderColor] = useState<HSBAColor>(DEFAULT_BORDER);
 
   const [fontSizePx, setFontSizePx] = useState(16);
-  const [borderRadiusPx, setBorderRadiusPx] = useState(6);
-  const [borderWidthPx, setBorderWidthPx] = useState(1);
-  const [shadowStrength, setShadowStrength] = useState(8);
+  const [borderRadiusPx, setBorderRadiusPx] = useState(8);
+  const [borderWidthPx, setBorderWidthPx] = useState(0);
+  const [shadowStrength, setShadowStrength] = useState(0);
 
-  const bgRgbaDisplay = useMemo(() => hsbaToRgbaString(bgColor), [bgColor]);
-  const textRgbaDisplay = useMemo(() => hsbaToRgbaString(textColor), [textColor]);
-  const borderRgbaDisplay = useMemo(() => hsbaToRgbaString(borderColor), [borderColor]);
+  const savedConfigRef = useRef<BuyButtonConfig | null>(null);
 
   const activeIcon = useMemo(() => getBuyButtonIconDefinition(buttonIconId), [buttonIconId]);
+  const previewPaths = useMemo(() => {
+    if (!showIcon) return undefined;
+    return activeIcon?.previewPaths;
+  }, [activeIcon, showIcon]);
 
-  const previewPaths = useMemo(() => activeIcon?.previewPaths, [activeIcon]);
+  const populateFromConfig = useCallback((config: BuyButtonConfig): void => {
+    setButtonText(config.buttonText);
+    setButtonSubtitle(config.buttonSubtitle ?? "");
+    setAnimation(config.animation);
+    setButtonIconId((config.iconId || "none") as BuyButtonIconId);
+    setIconAlign((config.iconAlign || "start") as IconTextAlign);
+    setShowIcon(config.showIcon);
+    setTextBold(config.isBold);
+    setTextItalic(config.isItalic);
+    setStickyPosition(config.stickyPosition);
+    setStickyMobile(config.stickyMobile);
+    setMobileFullWidth(config.mobileFullWidth);
+    setIsVisible(config.isVisible);
+    setBgColor(hexToHsb(config.bgColor));
+    setTextColor(hexToHsb(config.textColor));
+    setBorderColor(hexToHsb(config.borderColor));
+    setFontSizePx(config.fontSizePx);
+    setBorderRadiusPx(config.borderRadiusPx);
+    setBorderWidthPx(config.borderWidthPx);
+    setShadowStrength(config.shadowStrength);
+    savedConfigRef.current = config;
+  }, []);
+
+  const buildPayload = useCallback((): BuyButtonConfig => {
+    return {
+      buttonText: buttonText.trim() || "Order via COD",
+      buttonSubtitle: buttonSubtitle.trim() || null,
+      iconId: buttonIconId,
+      iconAlign,
+      showIcon,
+      animation,
+      stickyPosition,
+      stickyMobile,
+      mobileFullWidth,
+      bgColor: hsbToHex(bgColor),
+      textColor: hsbToHex(textColor),
+      borderColor: hsbToHex(borderColor),
+      fontSizePx,
+      borderRadiusPx,
+      borderWidthPx,
+      shadowStrength,
+      isBold: textBold,
+      isItalic: textItalic,
+      isVisible,
+    };
+  }, [
+    buttonText, buttonSubtitle, buttonIconId, iconAlign, showIcon,
+    animation, stickyPosition, stickyMobile, mobileFullWidth, bgColor,
+    textColor, borderColor, fontSizePx, borderRadiusPx, borderWidthPx,
+    shadowStrength, textBold, textItalic, isVisible,
+  ]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function fetchConfig(): Promise<void> {
+      try {
+        const response = await fetch("/api/buy-button-config", {
+          headers: {
+            Authorization: `Bearer ${await shopify.idToken()}`,
+          },
+        });
+
+        if (cancelled) return;
+
+        if (response.ok) {
+          const data: BuyButtonConfig = await response.json();
+          populateFromConfig(data);
+        } else if (response.status === 404) {
+          savedConfigRef.current = null;
+        } else {
+          setError("Failed to load button configuration.");
+        }
+      } catch {
+        if (!cancelled) {
+          setError("Unable to connect. Please check your connection and reload.");
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    }
+
+    fetchConfig();
+    return () => { cancelled = true; };
+  }, [shopify, populateFromConfig]);
+
+  useEffect(() => {
+    if (loading) return;
+    const current = buildPayload();
+    const saved = savedConfigRef.current;
+    if (!saved) {
+      setDirty(true);
+      return;
+    }
+    const isDirty = JSON.stringify(current) !== JSON.stringify(saved);
+    setDirty(isDirty);
+  }, [
+    loading, buildPayload,
+  ]);
+
+  const handleSave = useCallback(async (): Promise<void> => {
+    setSaving(true);
+    setError(null);
+
+    try {
+      const payload = buildPayload();
+      const response = await fetch("/api/buy-button-config", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${await shopify.idToken()}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (response.ok) {
+        const data: BuyButtonConfig = await response.json();
+        savedConfigRef.current = data;
+        setDirty(false);
+        shopify.toast.show("Buy button saved");
+      } else {
+        const err = await response.json().catch(() => null);
+        const msg = err?.details?.[0]?.message ?? err?.error ?? "Save failed. Please try again.";
+        setError(msg);
+      }
+    } catch {
+      setError("Unable to save. Check your connection and try again.");
+    } finally {
+      setSaving(false);
+    }
+  }, [shopify, buildPayload]);
+
+  const handleDiscard = useCallback((): void => {
+    if (savedConfigRef.current) {
+      populateFromConfig(savedConfigRef.current);
+    }
+    setDirty(false);
+    setError(null);
+  }, [populateFromConfig]);
 
   const handleFontSizeChange = useCallback((value: string): void => {
     const parsed = Number.parseInt(value, 10);
-    if (Number.isNaN(parsed)) {
-      return;
-    }
+    if (Number.isNaN(parsed)) return;
     setFontSizePx(clampFontSizePx(parsed));
   }, []);
 
   const handleBorderRadiusChange = useCallback((value: number | [number, number]): void => {
-    if (typeof value === "number") {
-      setBorderRadiusPx(value);
-    }
+    if (typeof value === "number") setBorderRadiusPx(value);
   }, []);
 
   const handleBorderWidthChange = useCallback((value: number | [number, number]): void => {
-    if (typeof value === "number") {
-      setBorderWidthPx(value);
-    }
+    if (typeof value === "number") setBorderWidthPx(value);
   }, []);
 
   const handleShadowChange = useCallback((value: number | [number, number]): void => {
-    if (typeof value === "number") {
-      setShadowStrength(value);
-    }
+    if (typeof value === "number") setShadowStrength(value);
   }, []);
 
   const iconActivatorSource = activeIcon?.source;
 
+  if (loading) {
+    return (
+      <BlockStack gap="400">
+        <Card roundedAbove="sm">
+          <SkeletonBodyText lines={2} />
+        </Card>
+        <BuyButtonDesignerSkeleton />
+      </BlockStack>
+    );
+  }
+
   return (
     <BlockStack gap="400">
+      <SaveBar id="buy-button-save-bar" open={dirty}>
+        <button variant="primary" onClick={handleSave} disabled={saving} loading={saving} />
+        <button onClick={handleDiscard} disabled={saving} />
+      </SaveBar>
+
+      {error ? (
+        <Banner tone="critical" onDismiss={() => setError(null)}>
+          <Text as="p" variant="bodyMd">{error}</Text>
+        </Banner>
+      ) : null}
+
       <Card roundedAbove="sm">
         <BlockStack gap="300">
           <Text as="p" variant="bodyMd">
@@ -647,6 +874,12 @@ export function BuyButtonDesignerWorkspace(): ReactElement {
         <Card roundedAbove="sm">
           <BlockStack gap="500">
             <FormLayout>
+              <Checkbox
+                label="Show buy button on storefront"
+                checked={isVisible}
+                onChange={setIsVisible}
+              />
+
               <FormLayout.Group>
                 <TextField
                   id="buy-button-label"
@@ -654,6 +887,8 @@ export function BuyButtonDesignerWorkspace(): ReactElement {
                   value={buttonText}
                   onChange={setButtonText}
                   autoComplete="off"
+                  maxLength={100}
+                  showCharacterCount
                 />
                 <TextField
                   id="buy-button-subtitle"
@@ -662,10 +897,10 @@ export function BuyButtonDesignerWorkspace(): ReactElement {
                   onChange={setButtonSubtitle}
                   autoComplete="off"
                   placeholder="Optional"
+                  maxLength={200}
                 />
               </FormLayout.Group>
 
-              {/* Three strictly equal columns — raw CSS grid bypasses any Polaris InlineGrid constraints */}
               <div
                 style={{
                   display: "grid",
@@ -674,7 +909,6 @@ export function BuyButtonDesignerWorkspace(): ReactElement {
                   alignItems: "start",
                 }}
               >
-                {/* Column 1: Text size */}
                 <TextField
                   id="buy-button-text-size"
                   label="Text size"
@@ -685,22 +919,21 @@ export function BuyButtonDesignerWorkspace(): ReactElement {
                   max={FONT_MAX_PX}
                   step={1}
                   suffix="px"
-                  onChange={(value): void => handleFontSizeChange(value)}
+                  onChange={handleFontSizeChange}
                 />
 
-                {/* Column 2: Style B / I */}
                 <Labelled id="buy-button-style" label="Style">
                   <ButtonGroup variant="segmented" fullWidth>
                     <Button
                       pressed={textBold}
-                      onClick={(): void => setTextBold((p) => !p)}
+                      onClick={() => setTextBold((p) => !p)}
                       accessibilityLabel="Bold"
                     >
                       B
                     </Button>
                     <Button
                       pressed={textItalic}
-                      onClick={(): void => setTextItalic((p) => !p)}
+                      onClick={() => setTextItalic((p) => !p)}
                       accessibilityLabel="Italic"
                     >
                       I
@@ -708,7 +941,6 @@ export function BuyButtonDesignerWorkspace(): ReactElement {
                   </ButtonGroup>
                 </Labelled>
 
-                {/* Column 3: Button icon picker */}
                 <Labelled id="buy-button-icon" label="Button icon">
                   <Popover
                     active={iconPickerOpen}
@@ -721,12 +953,12 @@ export function BuyButtonDesignerWorkspace(): ReactElement {
                         textAlign="left"
                         icon={iconActivatorSource ?? BlankIcon}
                         disclosure={iconPickerOpen ? "up" : "down"}
-                        onClick={(): void => setIconPickerOpen((active) => !active)}
+                        onClick={() => setIconPickerOpen((active) => !active)}
                       >
                         Change icon
                       </Button>
                     }
-                    onClose={(): void => setIconPickerOpen(false)}
+                    onClose={() => setIconPickerOpen(false)}
                   >
                     <Box
                       minWidth="380px"
@@ -742,21 +974,22 @@ export function BuyButtonDesignerWorkspace(): ReactElement {
                               pressed={iconAlign === "start"}
                               icon={TextAlignLeftIcon}
                               accessibilityLabel="Icon before text"
-                              onClick={(): void => setIconAlign("start")}
+                              onClick={() => setIconAlign("start")}
                             />
                             <Button
                               pressed={iconAlign === "end"}
                               icon={TextAlignRightIcon}
                               accessibilityLabel="Icon after text"
-                              onClick={(): void => setIconAlign("end")}
+                              onClick={() => setIconAlign("end")}
                             />
                           </ButtonGroup>
                           <Button
                             tone="critical"
                             variant="plain"
                             icon={DeleteIcon}
-                            onClick={(): void => {
+                            onClick={() => {
                               setButtonIconId("none");
+                              setShowIcon(false);
                               setIconPickerOpen(false);
                             }}
                           >
@@ -778,8 +1011,9 @@ export function BuyButtonDesignerWorkspace(): ReactElement {
                               key={entry.id}
                               entry={entry}
                               selected={buttonIconId === entry.id}
-                              onSelect={(): void => {
+                              onSelect={() => {
                                 setButtonIconId(entry.id);
+                                setShowIcon(true);
                                 setIconPickerOpen(false);
                               }}
                             />
@@ -797,14 +1031,14 @@ export function BuyButtonDesignerWorkspace(): ReactElement {
                   label="Animation"
                   options={ANIMATION_OPTIONS}
                   value={animation}
-                  onChange={(v): void => setAnimation(v)}
+                  onChange={setAnimation}
                 />
                 <Select
                   id="buy-button-sticky"
                   label="Sticky button position"
                   options={STICKY_POSITION_OPTIONS}
                   value={stickyPosition}
-                  onChange={(v): void => setStickyPosition(v)}
+                  onChange={setStickyPosition}
                 />
               </FormLayout.Group>
 
@@ -815,12 +1049,16 @@ export function BuyButtonDesignerWorkspace(): ReactElement {
                   </Text>
                   <ColorPicker onChange={setBgColor} color={bgColor} allowAlpha fullWidth />
                   <TextField
-                    id="buy-button-bg-rgba"
-                    label="RGBA"
-                    value={bgRgbaDisplay}
+                    id="buy-button-bg-hex"
+                    label="Hex"
+                    value={hsbToHex(bgColor)}
                     autoComplete="off"
-                    readOnly
-                    onChange={() => {}}
+                    onChange={(v) => {
+                      if (/^#[0-9a-fA-F]{6}$/.test(v)) {
+                        setBgColor(hexToHsb(v));
+                      }
+                    }}
+                    placeholder="#000000"
                   />
                 </BlockStack>
                 <BlockStack gap="200">
@@ -829,12 +1067,16 @@ export function BuyButtonDesignerWorkspace(): ReactElement {
                   </Text>
                   <ColorPicker onChange={setTextColor} color={textColor} allowAlpha fullWidth />
                   <TextField
-                    id="buy-button-text-rgba"
-                    label="RGBA"
-                    value={textRgbaDisplay}
+                    id="buy-button-text-hex"
+                    label="Hex"
+                    value={hsbToHex(textColor)}
                     autoComplete="off"
-                    readOnly
-                    onChange={() => {}}
+                    onChange={(v) => {
+                      if (/^#[0-9a-fA-F]{6}$/.test(v)) {
+                        setTextColor(hexToHsb(v));
+                      }
+                    }}
+                    placeholder="#FFFFFF"
                   />
                 </BlockStack>
               </FormLayout.Group>
@@ -845,12 +1087,16 @@ export function BuyButtonDesignerWorkspace(): ReactElement {
                 </Text>
                 <ColorPicker onChange={setBorderColor} color={borderColor} allowAlpha fullWidth />
                 <TextField
-                  id="buy-button-border-rgba"
-                  label="RGBA"
-                  value={borderRgbaDisplay}
+                  id="buy-button-border-hex"
+                  label="Hex"
+                  value={hsbToHex(borderColor)}
                   autoComplete="off"
-                  readOnly
-                  onChange={() => {}}
+                  onChange={(v) => {
+                    if (/^#[0-9a-fA-F]{6}$/.test(v)) {
+                      setBorderColor(hexToHsb(v));
+                    }
+                  }}
+                  placeholder="#000000"
                 />
               </BlockStack>
 

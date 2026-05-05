@@ -9,9 +9,10 @@ export const buyButtonConfigSchema = z.object({
   iconAlign: z.enum(["start", "end"]).default("start"),
   showIcon: z.boolean().default(true),
   animation: z
-    .enum(["none", "pulse", "bounce", "shake", "glow", "ripple", "slide"])
+    .enum(["none", "shake-lr", "shake-ud", "shake-bottom", "pulse", "bounce", "fanfare"])
     .default("none"),
-  stickyPosition: z.enum(["none", "bottom", "top"]).default("none"),
+  stickyPosition: z.enum(["off", "bottom", "top"]).default("off"),
+  stickyMobile: z.boolean().default(true),
   mobileFullWidth: z.boolean().default(false),
   bgColor: hexColor.default("#000000"),
   textColor: hexColor.default("#FFFFFF"),
