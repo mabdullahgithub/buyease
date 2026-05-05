@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ExternalLink, ShieldCheck, Shield } from "lucide-react";
+import { ExternalLink, ShieldCheck, Shield, Construction } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -18,6 +18,7 @@ type SettingsTab = {
 const SETTINGS_TABS: SettingsTab[] = [
   { href: "/settings/system", group: "Configuration", label: "IP allowlisting", icon: Shield },
   { href: "/settings/security", group: "Configuration", label: "Security", icon: ShieldCheck },
+  { href: "/settings/maintenance", group: "Configuration", label: "Maintenance mode", icon: Construction },
 ];
 
 const GROUPS: Array<SettingsTab["group"]> = [

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { db } from "@buyease/db";
 import { formatDate } from "@buyease/utils";
+import { Construction } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -124,6 +125,13 @@ export default async function MerchantsPage({
             {total} total merchants
           </p>
         </div>
+        <Link
+          href="/settings/maintenance"
+          className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+        >
+          <Construction className="size-3.5" />
+          Maintenance
+        </Link>
       </div>
 
       <Card>

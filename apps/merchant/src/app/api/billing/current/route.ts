@@ -2,11 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { prisma } from "@/lib/db";
 import { normalizePlanKey } from "@/lib/billing";
-import { withSessionVerification } from "@/lib/verify-session";
+import { withGuards } from "@/lib/middleware-stack";
 
-export const GET = withSessionVerification(async (_req: NextRequest, session) => {
+export const GET = withGuards({ skipPlanGate: true }, async (_req: NextRequest, ctx) => {
   const merchant = await prisma.merchant.findUnique({
-    where: { shop: session.shop },
+    where: { shop: ctx.shop },
     select: {
       planBillingId: true,
       plan: { select: { name: true, interval: true } },
@@ -15,7 +15,6 @@ export const GET = withSessionVerification(async (_req: NextRequest, session) =>
 
   const currentPlanRaw = merchant?.plan?.name ?? "free";
   const currentPlan = normalizePlanKey(currentPlanRaw);
-  /** Paid Shopify tier and/or lingering subscription id — drives cancel/downgrade UX */
   const hasActiveSubscription = !!merchant?.planBillingId || currentPlan !== "free";
   const interval = merchant?.plan?.interval ?? "MONTHLY";
 

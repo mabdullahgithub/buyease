@@ -8,6 +8,7 @@ import { Bell, ChevronRight, CircleUser, LogOut, Search, ShieldCheck, Upload } f
 
 import { AdminCommandMenu } from "@/components/admin/admin-command-menu";
 import { BrandLogo } from "@/components/admin/brand-logo";
+import { MaintenanceIndicator } from "@/components/admin/maintenance-indicator";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -381,6 +382,8 @@ export function AdminNavbar() {
               <span className="mr-px text-[11px] leading-none">⌘</span>K
             </kbd>
           </button>
+
+          <MaintenanceIndicator />
 
           <NavBtn label="Notifications">
             <Bell className="size-[15px]" />

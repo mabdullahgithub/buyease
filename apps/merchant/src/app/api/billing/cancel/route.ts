@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { prisma } from "@/lib/db";
 import { getPlanRecord, isShopifySubscriptionGraphqlActive } from "@/lib/billing";
-import { withSessionVerification } from "@/lib/verify-session";
+import { withGuards } from "@/lib/middleware-stack";
 
 const ACTIVE_SUBSCRIPTIONS_QUERY = `
 query ActiveSubscriptions {
@@ -23,13 +23,13 @@ mutation AppSubscriptionCancel($id: ID!) {
   }
 }`;
 
-export const POST = withSessionVerification(async (_req: NextRequest, session) => {
-  const accessToken = session.accessToken ?? "";
+export const POST = withGuards({ skipPlanGate: true }, async (_req: NextRequest, ctx) => {
+  const accessToken = ctx.session.accessToken ?? "";
   if (!accessToken) {
     return NextResponse.json({ error: "Missing access token", reauth: true }, { status: 401 });
   }
 
-  const subsResponse = await fetch(`https://${session.shop}/admin/api/2026-04/graphql.json`, {
+  const subsResponse = await fetch(`https://${ctx.shop}/admin/api/2026-04/graphql.json`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -61,7 +61,7 @@ export const POST = withSessionVerification(async (_req: NextRequest, session) =
 
   const errors: string[] = [];
   for (const sub of activeSubs) {
-    const cancelRes = await fetch(`https://${session.shop}/admin/api/2026-04/graphql.json`, {
+    const cancelRes = await fetch(`https://${ctx.shop}/admin/api/2026-04/graphql.json`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -116,7 +116,7 @@ export const POST = withSessionVerification(async (_req: NextRequest, session) =
   });
 
   await prisma.merchant.updateMany({
-    where: { shop: session.shop },
+    where: { shop: ctx.shop },
     data: {
       planId: dbPlan.id,
       planBillingId: null,

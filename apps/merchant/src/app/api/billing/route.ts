@@ -3,7 +3,7 @@ import { z } from "zod";
 
 import { PLANS, getBillingPrice, type PlanKey, type BillingInterval } from "@/lib/billing";
 import { merchantAppOrigin } from "@/lib/merchant-app-url";
-import { withSessionVerification } from "@/lib/verify-session";
+import { withGuards } from "@/lib/middleware-stack";
 
 const bodySchema = z.object({
   plan: z.enum(["premium", "enterprise", "unlimited"]),
@@ -20,7 +20,7 @@ mutation AppSubscriptionCreate($name: String!, $lineItems: [AppSubscriptionLineI
   }
 }`;
 
-export const POST = withSessionVerification(async (req: NextRequest, session) => {
+export const POST = withGuards({ skipPlanGate: true }, async (req: NextRequest, ctx) => {
   try {
     const parsed = bodySchema.safeParse(await req.json());
     if (!parsed.success) {
@@ -32,7 +32,7 @@ export const POST = withSessionVerification(async (req: NextRequest, session) =>
     const hostParam = parsed.data.host ?? "";
     const selectedPlan = PLANS[plan];
     const testMode = process.env.SHOPIFY_BILLING_TEST === "true";
-    const accessToken = session.accessToken ?? "";
+    const accessToken = ctx.session.accessToken ?? "";
 
     if (!accessToken) {
       return NextResponse.json({ error: "Missing access token", reauth: true }, { status: 401 });
@@ -42,12 +42,12 @@ export const POST = withSessionVerification(async (req: NextRequest, session) =>
     const billingInterval = interval === "ANNUAL" ? "ANNUAL" : "EVERY_30_DAYS";
 
     const callbackParams = new URLSearchParams({
-      shop: session.shop,
+      shop: ctx.shop,
       plan,
       ...(hostParam ? { host: hostParam } : {}),
     });
 
-    const response = await fetch(`https://${session.shop}/admin/api/2026-04/graphql.json`, {
+    const response = await fetch(`https://${ctx.shop}/admin/api/2026-04/graphql.json`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

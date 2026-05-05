@@ -295,3 +295,17 @@ model AdminIpAccessSetting {
 
   @@index([allowlistMode])
 }
+
+// ---------------------------------------------------------------------------
+// AppSettings — singleton (id=1) for global platform configuration
+// Controlled by admin panel. Cached in-memory with short TTL.
+// ---------------------------------------------------------------------------
+model AppSettings {
+  id                     Int      @id @default(1)
+  maintenanceEnabled     Boolean  @default(false)
+  maintenanceMessage     String   @default("BuyEase is undergoing scheduled maintenance. Please try again shortly.")
+  maintenanceRetryAfter  Int      @default(300)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
