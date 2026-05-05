@@ -111,3 +111,14 @@ export const shippingRateSchema = z.object({
 });
 
 export type ShippingRateInput = z.infer<typeof shippingRateSchema>;
+
+export const shippingRateWithIdSchema = shippingRateSchema.extend({
+  id: z.string().max(50).optional(),
+  importedFromShopify: z.boolean().default(false),
+});
+
+export const shippingRatesSyncSchema = z.object({
+  rates: z.array(shippingRateWithIdSchema).max(50),
+});
+
+export type ShippingRateSyncInput = z.infer<typeof shippingRatesSyncSchema>;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactElement } from "react";
 import type { IconSource } from "@shopify/polaris";
 import {
@@ -17,6 +17,7 @@ import {
   InlineStack,
   Modal,
   Select,
+  SkeletonBodyText,
   Text,
   TextField,
   Tooltip,
@@ -36,6 +37,7 @@ import {
   SearchIcon,
   XIcon,
 } from "@shopify/polaris-icons";
+import { SaveBar } from "@shopify/app-bridge-react";
 
 import type {
   ConditionType,
@@ -50,6 +52,7 @@ import {
   createEmptyRate,
 } from "@/components/form-builder/shipping-rates-types";
 import { SHIPPING_COUNTRIES } from "@/components/form-builder/shipping-rates-countries";
+import { useShopifyBridge } from "@/lib/use-shopify-bridge";
 
 /** Maps each condition type to a unique Polaris icon for visual identification. */
 const CONDITION_ICONS: Record<ConditionType, IconSource> = {
@@ -87,6 +90,72 @@ const MOCK_SHOPIFY_ZONES = [
     { name: "International Express", price: "29.99", description: "5-7 business days" },
   ]},
 ];
+
+type ApiCondition = {
+  type: ConditionType;
+  value: number | string;
+};
+
+type ApiShippingRate = {
+  id: string;
+  name: string;
+  description: string | null;
+  price: number;
+  currency: string;
+  conditions: ApiCondition[];
+  countriesEnabled: boolean;
+  countries: string[];
+  provincesEnabled: boolean;
+  provinces: string[];
+  importedFromShopify: boolean;
+  isActive: boolean;
+  sortOrder: number;
+};
+
+function toApiPayload(rates: ShippingRate[]): unknown[] {
+  return rates.map((r) => ({
+    id: r.id.startsWith("rate-") ? undefined : r.id,
+    name: r.name,
+    description: r.description || undefined,
+    price: parseFloat(r.price) || 0,
+    currency: r.currency,
+    conditions: r.conditions.map((c) => ({
+      type: c.type,
+      value: isNaN(Number(c.value)) ? c.value : Number(c.value),
+    })),
+    countriesEnabled: r.countryRestrictionEnabled,
+    countries: r.selectedCountries,
+    provincesEnabled: r.provinceRestrictionEnabled,
+    provinces: r.selectedProvinces,
+    importedFromShopify: r.importedFromShopify,
+    isActive: true,
+  }));
+}
+
+function fromApiResponse(apiRates: ApiShippingRate[]): ShippingRate[] {
+  return apiRates.map((r) => ({
+    id: r.id,
+    name: r.name,
+    description: r.description ?? "",
+    price: String(r.price),
+    currency: r.currency,
+    conditions: (r.conditions as ApiCondition[]).map((c) => ({
+      id: `cond-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      type: c.type,
+      value: String(c.value),
+    })),
+    countryRestrictionEnabled: r.countriesEnabled,
+    selectedCountries: r.countries as string[],
+    provinceRestrictionEnabled: r.provincesEnabled,
+    selectedProvinces: r.provinces as string[],
+    isEditing: false,
+    importedFromShopify: r.importedFromShopify,
+  }));
+}
+
+function stripEditingState(rates: ShippingRate[]): Omit<ShippingRate, "isEditing">[] {
+  return rates.map(({ isEditing: _, ...rest }) => rest);
+}
 
 function ConditionBadges({ conditions }: { conditions: RateCondition[] }): ReactElement {
   if (conditions.length === 0) {
@@ -374,18 +443,108 @@ function RateEditForm({
 }
 
 export function ShippingRatesWorkspace(): ReactElement {
-  const [rates, setRates] = useState<ShippingRate[]>([
-    {
-      ...createEmptyRate(),
-      id: "default-free",
-      name: "Free shipping",
-      price: "0.00",
-      isEditing: false,
-    },
-  ]);
+  const shopify = useShopifyBridge();
+
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [dirty, setDirty] = useState(false);
+
+  const [rates, setRates] = useState<ShippingRate[]>([]);
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [importSelections, setImportSelections] = useState<Record<string, boolean>>({});
   const [showInfoBanner, setShowInfoBanner] = useState(true);
+
+  const savedRatesRef = useRef<ShippingRate[] | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function fetchRates(): Promise<void> {
+      try {
+        const response = await fetch("/api/shipping-rates", {
+          headers: {
+            Authorization: `Bearer ${await shopify.idToken()}`,
+          },
+        });
+
+        if (cancelled) return;
+
+        if (response.ok) {
+          const data: ApiShippingRate[] = await response.json();
+          const mapped = fromApiResponse(data);
+          setRates(mapped);
+          savedRatesRef.current = mapped;
+        } else {
+          setError("Failed to load shipping rates.");
+        }
+      } catch {
+        if (!cancelled) {
+          setError("Unable to connect. Please check your connection and reload.");
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    }
+
+    fetchRates();
+    return () => { cancelled = true; };
+  }, [shopify]);
+
+  useEffect(() => {
+    if (loading) return;
+    const saved = savedRatesRef.current;
+    if (!saved) {
+      setDirty(true);
+      return;
+    }
+    const isDirty = JSON.stringify(stripEditingState(rates)) !== JSON.stringify(stripEditingState(saved));
+    setDirty(isDirty);
+  }, [loading, rates]);
+
+  const handleSave = useCallback(async (): Promise<void> => {
+    setSaving(true);
+    setError(null);
+
+    try {
+      const payload = { rates: toApiPayload(rates) };
+      const response = await fetch("/api/shipping-rates", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${await shopify.idToken()}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (response.ok) {
+        const data: ApiShippingRate[] = await response.json();
+        const mapped = fromApiResponse(data);
+        setRates(mapped);
+        savedRatesRef.current = mapped;
+        setDirty(false);
+        shopify.toast.show("Shipping rates saved successfully");
+      } else {
+        const err = await response.json().catch(() => null);
+        const msg = err?.details?.[0]?.message ?? err?.error ?? "Save failed. Please try again.";
+        setError(msg);
+      }
+    } catch {
+      setError("Unable to save. Check your connection and try again.");
+    } finally {
+      setSaving(false);
+    }
+  }, [shopify, rates]);
+
+  const handleDiscard = useCallback((): void => {
+    if (savedRatesRef.current) {
+      setRates(savedRatesRef.current);
+    }
+    setDirty(false);
+    setError(null);
+  }, []);
 
   const updateRate = useCallback((rateId: string, patch: Partial<ShippingRate>) => {
     setRates((prev) => prev.map((r) => (r.id === rateId ? { ...r, ...patch } : r)));
@@ -443,8 +602,36 @@ export function ShippingRatesWorkspace(): ReactElement {
 
   const selectedImportCount = Object.values(importSelections).filter(Boolean).length;
 
+  if (loading) {
+    return (
+      <BlockStack gap="400">
+        <Card roundedAbove="sm">
+          <BlockStack gap="300">
+            <SkeletonBodyText lines={2} />
+          </BlockStack>
+        </Card>
+        <Card roundedAbove="sm">
+          <BlockStack gap="300">
+            <SkeletonBodyText lines={5} />
+          </BlockStack>
+        </Card>
+      </BlockStack>
+    );
+  }
+
   return (
     <BlockStack gap="400">
+      <SaveBar id="shipping-rates-save-bar" open={dirty}>
+        <button variant="primary" onClick={handleSave} disabled={saving} loading={saving} />
+        <button onClick={handleDiscard} disabled={saving} />
+      </SaveBar>
+
+      {error && (
+        <Banner tone="critical" onDismiss={() => setError(null)}>
+          <Text as="p" variant="bodyMd">{error}</Text>
+        </Banner>
+      )}
+
       <Card roundedAbove="sm">
         <BlockStack gap="300">
           <Text as="p" variant="bodyMd">
