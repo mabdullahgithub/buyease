@@ -46,13 +46,18 @@ export const PUT = withGuards({ skipPlanGate: true }, async (req: NextRequest, c
     return parsed.response;
   }
 
+  const data = {
+    ...parsed.data,
+    buttonSubtitle: parsed.data.buttonSubtitle ?? null,
+  };
+
   const updated = await prisma.buyButtonConfig.upsert({
     where: { shop: ctx.shop },
     create: {
       shop: ctx.shop,
-      ...parsed.data,
+      ...data,
     },
-    update: parsed.data,
+    update: data,
     select: {
       buttonText: true,
       buttonSubtitle: true,

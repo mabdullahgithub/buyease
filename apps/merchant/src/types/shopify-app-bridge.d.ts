@@ -15,3 +15,18 @@ declare module "react" {
     }
   }
 }
+
+interface Window {
+  shopify?: {
+    idToken(): Promise<string>;
+    toast: { show(message: string, options?: Record<string, unknown>): void };
+    saveBar: {
+      show(): Promise<void>;
+      hide(): Promise<void>;
+      toggle(): Promise<void>;
+    };
+    resourcePicker(options: Record<string, unknown>): Promise<unknown>;
+    environment: { embedded: boolean; mobile: boolean };
+    config: { apiKey: string; shop: string; locale: string };
+  };
+}

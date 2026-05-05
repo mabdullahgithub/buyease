@@ -35,8 +35,9 @@ import {
   TextAlignLeftIcon,
   TextAlignRightIcon,
 } from "@shopify/polaris-icons";
-import { SaveBar, useAppBridge } from "@shopify/app-bridge-react";
+import { SaveBar } from "@shopify/app-bridge-react";
 
+import { useShopifyBridge } from "@/lib/use-shopify-bridge";
 import type { BuyButtonIconDefinition, BuyButtonIconId, SvgPathSpec } from "@/components/form-builder/buy-button-icon-registry";
 import { BUY_BUTTON_STORE_ICONS, getBuyButtonIconDefinition } from "@/components/form-builder/buy-button-icon-registry";
 
@@ -631,7 +632,7 @@ function BuyButtonDesignerSkeleton(): ReactElement {
 
 export function BuyButtonDesignerWorkspace(): ReactElement {
   const previewFilterId = useId().replace(/:/g, "");
-  const shopify = useAppBridge();
+  const shopify = useShopifyBridge();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);

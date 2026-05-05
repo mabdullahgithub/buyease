@@ -4,7 +4,7 @@ import { countryCode, hexColor, provinceCode } from "@/lib/validation";
 
 export const buyButtonConfigSchema = z.object({
   buttonText: z.string().trim().min(1).max(100),
-  buttonSubtitle: z.string().trim().max(200).optional(),
+  buttonSubtitle: z.string().trim().max(200).nullish(),
   iconId: z.string().max(50).optional(),
   iconAlign: z.enum(["start", "end"]).default("start"),
   showIcon: z.boolean().default(true),
