@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { ReactElement } from "react";
 import {
   ActionList,
@@ -189,6 +189,13 @@ export function FormDesignerWorkspace({
 }: {
   onNavigateToBuyButton?: () => void;
 }): ReactElement {
+  // Live shop domain from App Bridge
+  const [shopDomain, setShopDomain] = useState("");
+  useEffect(() => {
+    const domain = window.shopify?.config?.shop ?? "";
+    if (domain) setShopDomain(domain);
+  }, []);
+
   // Form Type
   const [formType, setFormType] = useState<"popup" | "embedded">("popup");
 
@@ -1215,7 +1222,7 @@ export function FormDesignerWorkspace({
                   display: "flex", alignItems: "center", padding: "0 8px",
                   border: "1px solid #d1d5db",
                 }}>
-                  <span style={{ fontSize: "10px", color: "#9ca3af" }}>yourstore.myshopify.com/products/example</span>
+                  <span style={{ fontSize: "10px", color: "#9ca3af" }}>{shopDomain || "yourstore.myshopify.com"}/products/example</span>
                 </div>
               </div>
 
