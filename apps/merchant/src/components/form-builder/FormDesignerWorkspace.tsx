@@ -313,6 +313,7 @@ export function FormDesignerWorkspace({
   const savedRef        = useRef<string | null>(null);
   const justAppliedRef  = useRef(false);
   const dirtyTimerRef   = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const preferencesRef  = useRef<HTMLDivElement>(null);
 
   // Form type
   const [formType, setFormType] = useState<"popup" | "embedded">(DEFAULT_CONFIG.formType);
@@ -968,15 +969,22 @@ export function FormDesignerWorkspace({
       )}
 
       {!isVisible && !loading && (
-        <Banner tone="warning" icon={AlertCircleIcon}>
+        <Banner
+          tone="warning"
+          icon={AlertCircleIcon}
+          action={{
+            content: "Visibility",
+            onAction: () => preferencesRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }),
+          }}
+        >
           <Text as="p" variant="bodyMd">
-            The COD form is currently hidden on your store. Enable "Show form on storefront" in Preferences to make it visible.
+            The COD form is currently disabled on your store. You can enable it anytime through the app&apos;s Visibility settings.
           </Text>
         </Banner>
       )}
 
       <InlineGrid
-        columns={{ xs: 1, md: ["twoThirds", "oneThird"] }}
+        columns={{ xs: 1, md: ["oneHalf", "oneHalf"] }}
         gap="400"
         alignItems="start"
       >
@@ -1548,6 +1556,7 @@ export function FormDesignerWorkspace({
           </Card>
 
           {/* Preferences */}
+          <div ref={preferencesRef}>
           <Card padding="0">
             {/* Header */}
             <Box padding="400">
@@ -1702,6 +1711,7 @@ export function FormDesignerWorkspace({
               </BlockStack>
             </Box>
           </Card>
+          </div>
 
           <Banner tone="info" title="Need help?">
             <BlockStack gap="100">
