@@ -581,25 +581,6 @@ export function FormDesignerWorkspace({
             </BlockStack>
           </Card>
 
-          {/* Buy Button Preview */}
-          {formType === "popup" && (
-            <Card padding="400">
-              <BlockStack gap="300">
-                <InlineStack align="space-between" blockAlign="center">
-                  <Text as="h2" variant="headingSm">
-                    Buy Button
-                  </Text>
-                  {onNavigateToBuyButton && (
-                    <Button variant="plain" onClick={onNavigateToBuyButton}>
-                      Customize
-                    </Button>
-                  )}
-                </InlineStack>
-                <BuyButtonLivePreview />
-              </BlockStack>
-            </Card>
-          )}
-
           {/* Form Fields Card */}
           <Card padding="0">
             <Box padding="400">
@@ -1146,6 +1127,25 @@ export function FormDesignerWorkspace({
 
         <Box position="sticky" insetBlockStart="400" zIndex="400" width="100%">
           <BlockStack gap="300">
+            {/* Buy Button Preview */}
+            {formType === "popup" && (
+              <Card padding="400">
+                <BlockStack gap="300">
+                  <InlineStack align="space-between" blockAlign="center">
+                    <Text as="h2" variant="headingSm">
+                      Buy Button
+                    </Text>
+                    {onNavigateToBuyButton && (
+                      <Button variant="plain" onClick={onNavigateToBuyButton}>
+                        Customize
+                      </Button>
+                    )}
+                  </InlineStack>
+                  <BuyButtonLivePreview />
+                </BlockStack>
+              </Card>
+            )}
+
             <InlineStack align="center">
               <span
                 style={{
