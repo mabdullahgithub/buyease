@@ -274,172 +274,213 @@ export function FormDesignerWorkspace({
   const previewFieldBorder = hsbaToRgbaString(fieldBorderColor);
   const previewFieldText = hsbaToRgbaString(fieldTextColor);
 
-  // Render a specific block of the preview depending on field type
-  const renderPreviewField = (field: FieldDef) => {
+  // Render each form field exactly as customers see it on the storefront
+  const renderPreviewField = (field: FieldDef): ReactElement | null => {
     switch (field.type) {
       case "header":
         return (
-          <Text as="h3" variant="headingMd" fontWeight="bold">
-            {field.title}
-          </Text>
+          <div style={{ paddingRight: "32px", marginBottom: "14px" }}>
+            <p style={{
+              margin: 0,
+              fontWeight: 700,
+              fontSize: Math.max(formTextSize, 15),
+              color: previewFormText,
+              lineHeight: 1.35,
+            }}>
+              {field.title}
+            </p>
+          </div>
         );
+
       case "cart":
         return (
-          <Box paddingBlockStart="200" paddingBlockEnd="200">
-            <InlineStack gap="300" wrap={false} blockAlign="center">
-              <div
-                style={{
-                  width: "48px",
-                  height: "48px",
-                  background: "rgba(0,0,0,0.05)",
-                  borderRadius: "8px",
-                }}
-              />
-              <BlockStack gap="0">
-                <Text as="p" variant="bodyMd" fontWeight="semibold">Product's name</Text>
-                <Text as="p" variant="bodySm" tone="subdued">Variant</Text>
-              </BlockStack>
-              <div style={{ marginLeft: "auto" }}>
-                <Text as="p" variant="bodyMd" fontWeight="semibold">$19.99</Text>
+          <div style={{ marginBottom: "14px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <div style={{
+                width: "52px", height: "52px", borderRadius: "8px",
+                background: "rgba(0,0,0,0.07)", flexShrink: 0,
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                  <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="1.5" opacity="0.35"/>
+                  <circle cx="8.5" cy="8.5" r="1.5" fill="currentColor" opacity="0.35"/>
+                  <path d="M21 15L16 10L5 21" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" opacity="0.35"/>
+                </svg>
               </div>
-            </InlineStack>
-          </Box>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ margin: 0, fontWeight: 600, fontSize: 13, color: previewFormText }}>Product's name</p>
+                <p style={{ margin: "2px 0 0", fontSize: 11, color: previewFormText, opacity: 0.55 }}>Default Title</p>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "6px", flexShrink: 0 }}>
+                <span style={{ fontWeight: 700, fontSize: 13, color: previewFormText }}>$19.99</span>
+                <div style={{
+                  display: "flex", alignItems: "center",
+                  border: `1px solid ${previewFormBorder}`, borderRadius: "6px", overflow: "hidden",
+                }}>
+                  <button style={{ padding: "2px 8px", border: "none", background: "transparent", cursor: "default", fontSize: 13, color: previewFormText, lineHeight: 1 }}>−</button>
+                  <span style={{ padding: "2px 6px", fontSize: 12, color: previewFormText, borderLeft: `1px solid ${previewFormBorder}`, borderRight: `1px solid ${previewFormBorder}` }}>1</span>
+                  <button style={{ padding: "2px 8px", border: "none", background: "transparent", cursor: "default", fontSize: 13, color: previewFormText, lineHeight: 1 }}>+</button>
+                </div>
+              </div>
+            </div>
+            <div style={{ height: "1px", background: previewFormBorder, margin: "12px 0 0", opacity: 0.35 }} />
+          </div>
         );
+
       case "summary":
         return (
-          <Box paddingBlockStart="200" paddingBlockEnd="200">
-            <BlockStack gap="200">
-              <InlineStack align="space-between">
-                <Text as="p" variant="bodySm" tone="subdued">Subtotal</Text>
-                <Text as="p" variant="bodySm" fontWeight="semibold">$19.99</Text>
-              </InlineStack>
-              <InlineStack align="space-between">
-                <Text as="p" variant="bodySm" tone="subdued">Shipping</Text>
-                <Text as="p" variant="bodySm" fontWeight="semibold">$19.99</Text>
-              </InlineStack>
-              <InlineStack align="space-between">
-                <Text as="p" variant="bodyMd" fontWeight="bold">Total</Text>
-                <Text as="p" variant="bodyMd" fontWeight="bold">$19.99</Text>
-              </InlineStack>
-            </BlockStack>
-          </Box>
+          <div style={{ marginBottom: "14px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px" }}>
+              <span style={{ fontSize: 12, color: previewFormText, opacity: 0.6 }}>Subtotal</span>
+              <span style={{ fontSize: 12, color: previewFormText }}>$19.99</span>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "10px" }}>
+              <span style={{ fontSize: 12, color: previewFormText, opacity: 0.6 }}>Shipping</span>
+              <span style={{ fontSize: 12, color: previewFormText }}>Free</span>
+            </div>
+            <div style={{ height: "1px", background: previewFormBorder, marginBottom: "10px", opacity: 0.35 }} />
+            <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <span style={{ fontWeight: 700, fontSize: 14, color: previewFormText }}>Total</span>
+              <span style={{ fontWeight: 700, fontSize: 14, color: previewFormText }}>$19.99</span>
+            </div>
+            <div style={{ height: "1px", background: previewFormBorder, margin: "12px 0 0", opacity: 0.35 }} />
+          </div>
         );
+
       case "shipping":
         return (
-          <Box paddingBlockStart="200" paddingBlockEnd="200">
-            <BlockStack gap="300">
-              <Text as="h4" variant="headingSm">{field.title}</Text>
-              <Box borderWidth="025" borderColor="border" borderRadius="200" padding="300">
-                <InlineStack align="space-between" blockAlign="center">
-                  <InlineStack gap="200" blockAlign="center">
-                    <input type="radio" checked readOnly style={{ accentColor: previewFormText, margin: 0 }} />
-                    <Text as="span" variant="bodyMd">Free Shipping</Text>
-                  </InlineStack>
-                  <Text as="span" variant="bodyMd" fontWeight="bold">Free</Text>
-                </InlineStack>
-              </Box>
-            </BlockStack>
-          </Box>
+          <div style={{ marginBottom: "14px" }}>
+            <p style={{ margin: "0 0 8px", fontWeight: 600, fontSize: 12, color: previewFormText }}>
+              {field.title}
+            </p>
+            <div style={{
+              display: "flex", alignItems: "center", justifyContent: "space-between",
+              padding: "9px 12px",
+              border: `1.5px solid ${previewFormText}`,
+              borderRadius: `${fieldBorderRadius}px`,
+              cursor: "default",
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <div style={{
+                  width: 15, height: 15, borderRadius: "50%",
+                  border: `2px solid ${previewFormText}`,
+                  display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+                }}>
+                  <div style={{ width: 7, height: 7, borderRadius: "50%", background: previewFormText }} />
+                </div>
+                <span style={{ fontSize: 12, color: previewFormText }}>Free Shipping</span>
+              </div>
+              <span style={{ fontSize: 12, fontWeight: 600, color: previewFormText }}>Free</span>
+            </div>
+            <div style={{ height: "1px", background: previewFormBorder, margin: "12px 0 0", opacity: 0.35 }} />
+          </div>
         );
+
       case "input":
         if (field.hidden) return null;
         return (
-          <Box paddingBlockStart="100" paddingBlockEnd="100">
-            <BlockStack gap="100">
-              {!hideLabels && !field.hideLabel && (
-                <Text as="span" variant="bodyMd" fontWeight="bold">
-                  {field.title} {field.required && <span style={{ color: "var(--p-color-text-critical)" }}>*</span>}
-                </Text>
+          <div style={{ marginBottom: "10px" }}>
+            {!hideLabels && !field.hideLabel && (
+              <label style={{
+                display: "block", fontSize: "12px", fontWeight: 600,
+                marginBottom: "4px", color: previewFormText, textAlign: formLabelAlign,
+              }}>
+                {field.title}
+                {field.required && <span style={{ color: "#e53e3e", marginLeft: "2px" }}>*</span>}
+              </label>
+            )}
+            <div style={{
+              display: "flex", alignItems: "stretch",
+              background: previewFieldBg,
+              border: `1px solid ${previewFieldBorder}`,
+              borderRadius: `${fieldBorderRadius}px`,
+              overflow: "hidden",
+            }}>
+              {showIcons && field.showIcon && field.iconId && getFormIcon(field.iconId) && (
+                <div style={{
+                  background: "rgba(0,0,0,0.04)", padding: "0 10px",
+                  display: "flex", alignItems: "center",
+                  borderRight: `1px solid ${previewFieldBorder}`, flexShrink: 0,
+                }}>
+                  <Icon source={getFormIcon(field.iconId)!.source} tone="subdued" />
+                </div>
               )}
-              <div
-                style={{
-                  background: previewFieldBg,
-                  border: `1px solid ${previewFieldBorder}`,
-                  borderRadius: `${fieldBorderRadius}px`,
-                  color: previewFieldText,
-                  fontSize: "14px",
-                  display: "flex",
-                  alignItems: "stretch",
-                  overflow: "hidden",
-                }}
-              >
-                {showIcons && field.showIcon && field.iconId && getFormIcon(field.iconId) && (
-                  <div style={{ background: "rgba(0,0,0,0.05)", padding: "10px", display: "flex", alignItems: "center", borderRight: `1px solid ${previewFieldBorder}` }}>
-                    <Icon source={getFormIcon(field.iconId)!.source} tone="subdued" />
-                  </div>
-                )}
-                {field.isSelect ? (
-                  <select
-                    style={{
-                      border: "none",
-                      padding: "10px",
-                      flex: 1,
-                      background: "transparent",
-                      color: "inherit",
-                      fontSize: "inherit",
-                      outline: "none",
-                      appearance: "none",
-                    }}
-                  >
+              {field.isSelect ? (
+                <>
+                  <select style={{
+                    flex: 1, border: "none", padding: "9px 10px",
+                    background: "transparent", color: previewFieldText,
+                    fontSize: "13px", outline: "none", appearance: "none",
+                  }}>
                     <option>{field.placeholder || field.title}</option>
                   </select>
-                ) : (
-                  <input
-                    placeholder={field.placeholder || field.title}
-                    readOnly
-                    style={{
-                      border: "none",
-                      padding: "10px",
-                      flex: 1,
-                      background: "transparent",
-                      color: "inherit",
-                      fontSize: "inherit",
-                      outline: "none",
-                    }}
-                  />
-                )}
-                {field.isSelect && (
-                  <div style={{ padding: "10px", display: "flex", alignItems: "center" }}>
+                  <div style={{ padding: "0 10px", display: "flex", alignItems: "center", flexShrink: 0 }}>
                     <Icon source={ChevronDownIcon} tone="subdued" />
                   </div>
-                )}
-              </div>
-            </BlockStack>
-          </Box>
+                </>
+              ) : (
+                <input
+                  placeholder={field.placeholder || field.title}
+                  readOnly
+                  style={{
+                    flex: 1, border: "none", padding: "9px 10px",
+                    background: "transparent", color: previewFieldText,
+                    fontSize: "13px", outline: "none",
+                  }}
+                />
+              )}
+            </div>
+          </div>
         );
+
       case "checkbox":
         return (
-          <Box paddingBlockStart="200" paddingBlockEnd="200">
-            <InlineStack gap="200" blockAlign="center">
-              <input type="checkbox" style={{ accentColor: previewFormText }} />
-              <Text as="span" variant="bodyMd">{field.title}</Text>
-            </InlineStack>
-          </Box>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "10px" }}>
+            <div style={{
+              width: 15, height: 15,
+              border: `1.5px solid ${previewFormBorder}`,
+              borderRadius: "3px", flexShrink: 0, background: "transparent",
+            }} />
+            <span style={{ fontSize: "12px", color: previewFormText }}>{field.title}</span>
+          </div>
         );
+
       case "submit":
         return (
-          <Box paddingBlockStart="300">
-            <button
-              style={{
-                width: "100%",
-                background: previewFormText,
-                color: previewFormBg,
-                padding: "14px 20px",
-                borderRadius: `${fieldBorderRadius}px`,
-                border: "none",
-                fontWeight: "bold",
-                fontSize: "16px",
-                cursor: "pointer",
-              }}
-            >
+          <div style={{ marginTop: "8px" }}>
+            <button style={{
+              width: "100%",
+              background: previewFormText,
+              color: previewFormBg,
+              padding: "13px 20px",
+              borderRadius: `${fieldBorderRadius}px`,
+              border: "none",
+              fontWeight: 700,
+              fontSize: "14px",
+              cursor: "default",
+              letterSpacing: "0.3px",
+            }}>
               {field.title.replace("{total}", "$19.99")}
             </button>
-          </Box>
+          </div>
         );
+
       default:
         return null;
     }
   };
+
+  const renderFormContent = (): ReactElement => (
+    <div style={{ textAlign: formLabelAlign, fontStyle: formTextItalic ? "italic" : "normal" }}>
+      {fields
+        .filter((f) => !f.hidden)
+        .map((field) => {
+          const el = renderPreviewField(field);
+          if (!el) return null;
+          return <div key={field.id}>{el}</div>;
+        })}
+    </div>
+  );
 
   return (
     <BlockStack gap="400">
@@ -1127,18 +1168,14 @@ export function FormDesignerWorkspace({
 
         <Box position="sticky" insetBlockStart="400" zIndex="400" width="100%">
           <BlockStack gap="300">
-            {/* Buy Button Preview */}
+            {/* Buy Button Preview — popup only */}
             {formType === "popup" && (
               <Card padding="400">
                 <BlockStack gap="300">
                   <InlineStack align="space-between" blockAlign="center">
-                    <Text as="h2" variant="headingSm">
-                      Buy Button
-                    </Text>
+                    <Text as="h2" variant="headingSm">Buy Button</Text>
                     {onNavigateToBuyButton && (
-                      <Button variant="plain" onClick={onNavigateToBuyButton}>
-                        Customize
-                      </Button>
+                      <Button variant="plain" onClick={onNavigateToBuyButton}>Customize</Button>
                     )}
                   </InlineStack>
                   <BuyButtonLivePreview />
@@ -1147,54 +1184,140 @@ export function FormDesignerWorkspace({
             )}
 
             <InlineStack align="center">
-              <span
-                style={{
-                  borderBottom: "1px dashed var(--p-color-border-secondary)",
-                  paddingBottom: "4px",
-                }}
-              >
-                <Text as="h3" variant="headingSm">
-                  Live preview:
-                </Text>
+              <span style={{ borderBottom: "1px dashed var(--p-color-border-secondary)", paddingBottom: "4px" }}>
+                <Text as="h3" variant="headingSm">Live preview:</Text>
               </span>
             </InlineStack>
 
-            <Card padding="0">
-              <Box background="bg-surface-secondary" padding="400" borderRadius="300">
-                <div
-                  style={{
-                    background: previewFormBg,
-                    border: `${formBorderWidth}px solid ${previewFormBorder}`,
-                    borderRadius: `${formBorderRadius}px`,
-                    padding: "24px",
-                    boxShadow: `0 4px ${formShadow * 2}px rgba(0,0,0,${Math.min(0.2, formShadow / 100)})`,
-                    color: previewFormText,
-                    textAlign: formLabelAlign,
-                    fontFamily: "system-ui, sans-serif",
-                    fontSize: `${formTextSize}px`,
-                    fontStyle: formTextItalic ? "italic" : "normal",
-                    direction: enableRtl ? "rtl" : "ltr",
-                  }}
-                >
-                  {formType === "popup" && (
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '-10px' }}>
-                      <Icon source={DeleteIcon} tone="base" />
-                    </div>
-                  )}
-                  
-                  <BlockStack gap="400">
-                    {fields.map((field) => (
-                      <div key={field.id}>
-                        {renderPreviewField(field)}
-                        {(field.type === "cart" || field.type === "summary" || field.type === "shipping") && (
-                          <div style={{ marginTop: '16px', borderBottom: `1px solid ${previewFormBorder}`, opacity: 0.5 }} />
-                        )}
-                      </div>
-                    ))}
-                  </BlockStack>
+            {/* Browser-chrome + store-page mockup */}
+            <div style={{
+              borderRadius: "12px",
+              overflow: "hidden",
+              border: "1px solid #d1d5db",
+              boxShadow: "0 2px 12px rgba(0,0,0,0.09)",
+            }}>
+              {/* Browser address bar */}
+              <div style={{
+                background: "#f1f3f4",
+                borderBottom: "1px solid #e5e7eb",
+                padding: "7px 10px",
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+              }}>
+                <div style={{ display: "flex", gap: "5px" }}>
+                  <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#ff5f57" }} />
+                  <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#ffbd2e" }} />
+                  <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#28c840" }} />
                 </div>
-              </Box>
-            </Card>
+                <div style={{
+                  flex: 1, background: "#fff", borderRadius: "4px", height: "20px",
+                  display: "flex", alignItems: "center", padding: "0 8px",
+                  border: "1px solid #d1d5db",
+                }}>
+                  <span style={{ fontSize: "10px", color: "#9ca3af" }}>yourstore.myshopify.com/products/example</span>
+                </div>
+              </div>
+
+              {/* Simulated store page */}
+              <div style={{
+                background: "#f9fafb",
+                position: "relative",
+                ...(formType === "popup"
+                  ? { height: "520px", overflow: "hidden" }
+                  : { maxHeight: "560px", overflowY: "auto" }),
+              }}>
+                {/* Store nav strip */}
+                <div style={{ background: "#fff", borderBottom: "1px solid #f3f4f6", padding: "10px 14px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <div style={{ height: 10, background: "#e5e7eb", borderRadius: 3, width: "28%" }} />
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <div style={{ height: 8, background: "#e5e7eb", borderRadius: 3, width: 30 }} />
+                    <div style={{ height: 8, background: "#e5e7eb", borderRadius: 3, width: 30 }} />
+                    <div style={{ height: 8, background: "#e5e7eb", borderRadius: 3, width: 30 }} />
+                  </div>
+                </div>
+
+                {/* Product section */}
+                <div style={{ padding: "14px 14px 10px" }}>
+                  <div style={{ display: "flex", gap: "10px", alignItems: "flex-start" }}>
+                    {/* Product image */}
+                    <div style={{
+                      width: 66, height: 66, background: "#e5e7eb", borderRadius: 8,
+                      flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center",
+                    }}>
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                        <rect x="3" y="3" width="18" height="18" rx="2" stroke="#9ca3af" strokeWidth="1.5"/>
+                        <circle cx="8.5" cy="8.5" r="1.5" fill="#9ca3af"/>
+                        <path d="M21 15L16 10L5 21" stroke="#9ca3af" strokeWidth="1.5" strokeLinecap="round"/>
+                      </svg>
+                    </div>
+                    {/* Product info skeleton */}
+                    <div style={{ flex: 1 }}>
+                      <div style={{ height: 11, background: "#d1d5db", borderRadius: 3, width: "68%", marginBottom: 7 }} />
+                      <div style={{ height: 9, background: "#e5e7eb", borderRadius: 3, width: "42%", marginBottom: 7 }} />
+                      <div style={{ height: 13, background: "#cbd5e1", borderRadius: 3, width: "26%" }} />
+                    </div>
+                  </div>
+                  {/* Add to cart skeleton */}
+                  <div style={{ marginTop: 12, height: 34, background: "#1f2937", borderRadius: 6, opacity: 0.1 }} />
+                </div>
+
+                {/* Popup: dark overlay + floating modal */}
+                {formType === "popup" && (
+                  <div style={{
+                    position: "absolute", inset: 0,
+                    background: "rgba(0,0,0,0.55)",
+                    display: "flex", alignItems: "flex-start", justifyContent: "center",
+                    padding: "18px 10px",
+                    overflowY: "auto",
+                    zIndex: 10,
+                  }}>
+                    <div style={{
+                      background: previewFormBg,
+                      border: `${formBorderWidth}px solid ${previewFormBorder}`,
+                      borderRadius: `${formBorderRadius}px`,
+                      padding: "20px",
+                      boxShadow: "0 20px 60px rgba(0,0,0,0.4)",
+                      color: previewFormText,
+                      fontFamily: "system-ui, -apple-system, sans-serif",
+                      fontSize: `${formTextSize}px`,
+                      direction: enableRtl ? "rtl" : "ltr",
+                      width: "100%",
+                      position: "relative",
+                    }}>
+                      {/* × close button */}
+                      <button style={{
+                        position: "absolute", top: "10px", right: "10px",
+                        background: "rgba(0,0,0,0.07)", border: "none", borderRadius: "50%",
+                        width: "26px", height: "26px", cursor: "default",
+                        fontSize: "15px", color: previewFormText,
+                        display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1,
+                      }}>×</button>
+                      {renderFormContent()}
+                    </div>
+                  </div>
+                )}
+
+                {/* Embedded: form inline on page */}
+                {formType === "embedded" && (
+                  <div style={{ padding: "0 14px 14px" }}>
+                    <div style={{
+                      background: previewFormBg,
+                      border: `${formBorderWidth}px solid ${previewFormBorder}`,
+                      borderRadius: `${formBorderRadius}px`,
+                      padding: "20px",
+                      boxShadow: `0 4px ${Math.max(formShadow * 2, 4)}px rgba(0,0,0,${Math.min(0.18, formShadow / 100)})`,
+                      color: previewFormText,
+                      fontFamily: "system-ui, -apple-system, sans-serif",
+                      fontSize: `${formTextSize}px`,
+                      direction: enableRtl ? "rtl" : "ltr",
+                    }}>
+                      {renderFormContent()}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
           </BlockStack>
         </Box>
       </InlineGrid>
