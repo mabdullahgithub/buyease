@@ -1222,7 +1222,7 @@ export function FormDesignerWorkspace({
                   display: "flex", alignItems: "center", padding: "0 8px",
                   border: "1px solid #d1d5db",
                 }}>
-                  <span style={{ fontSize: "10px", color: "#9ca3af" }}>{shopDomain || "yourstore.myshopify.com"}/products/example</span>
+                  <span style={{ fontSize: "10px", color: "#9ca3af" }}>{shopDomain || "yourstore.myshopify.com"}</span>
                 </div>
               </div>
 
