@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactElement } from "react";
 import {
   ActionList,
+  Badge,
   Banner,
   BlockStack,
   Box,
@@ -1113,7 +1114,11 @@ export function FormDesignerWorkspace({
         </Banner>
       )}
 
-      <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.35fr) minmax(0, 0.65fr)", gap: "16px", alignItems: "start" }}>
+      <InlineGrid
+        columns={{ xs: 1, md: ["twoThirds", "oneThird"] }}
+        gap="400"
+        alignItems="start"
+      >
         <BlockStack gap="400">
 
           {/* Form Type */}
@@ -1977,57 +1982,24 @@ export function FormDesignerWorkspace({
             </div>
           </BlockStack>
         </Box>
-      </div>
+      </InlineGrid>
 
       {/* Form Templates Modal */}
       <Modal
         open={showTemplatesModal}
         onClose={() => setShowTemplatesModal(false)}
-        title="Browse Templates"
+        title="Templates"
         size="large"
         primaryAction={{ content: "Done", onAction: () => setShowTemplatesModal(false) }}
       >
-        {/* ── Section header ── */}
-        <Modal.Section>
-          <div style={{
-            background: "linear-gradient(135deg, #f8fafc 0%, #f0f4ff 100%)",
-            borderRadius: "12px",
-            padding: "20px 24px",
-            border: "1px solid #e8ecf4",
-          }}>
-            <BlockStack gap="100">
-              <Text as="h2" variant="headingMd">Choose a template to apply</Text>
-              <Text as="p" variant="bodyMd" tone="subdued">
-                Click any template to instantly apply it to your form. Shape templates adjust border radius only. Advanced &amp; Premium templates apply a complete style.
-              </Text>
-            </BlockStack>
-          </div>
-        </Modal.Section>
-
         {/* ── Shape Templates ── */}
         <Modal.Section>
-          <BlockStack gap="400">
-            <InlineStack align="space-between" blockAlign="center">
-              <BlockStack gap="050">
-                <InlineStack gap="200" blockAlign="center">
-                  <div style={{
-                    width: "8px", height: "8px", borderRadius: "2px",
-                    background: "linear-gradient(135deg, #6b7280, #374151)",
-                  }} />
-                  <Text as="h3" variant="headingSm">Shape Templates</Text>
-                </InlineStack>
-                <Text as="p" variant="bodySm" tone="subdued">Adjust form and field corner radius</Text>
-              </BlockStack>
-              <div style={{
-                background: "#f3f4f6",
-                borderRadius: "100px",
-                padding: "2px 10px",
-              }}>
-                <Text as="span" variant="bodySm" tone="subdued">{SHAPE_TEMPLATES.length} styles</Text>
-              </div>
-            </InlineStack>
-
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: "12px" }}>
+          <BlockStack gap="300">
+            <BlockStack gap="050">
+              <Text as="h3" variant="headingSm">Shape</Text>
+              <Text as="p" variant="bodySm" tone="subdued">Corner radius presets</Text>
+            </BlockStack>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: "8px" }}>
               {SHAPE_TEMPLATES.map((tmpl) => {
                 const isActive = formBorderRadius === tmpl.formBorderRadius && fieldBorderRadius === tmpl.fieldBorderRadius;
                 return (
@@ -2036,44 +2008,41 @@ export function FormDesignerWorkspace({
                     onClick={() => applyShapeTemplate(tmpl)}
                     style={{
                       cursor: "pointer",
-                      borderRadius: "10px",
-                      border: `2px solid ${isActive ? "#2563eb" : "#e5e7eb"}`,
-                      padding: "10px 8px 8px",
-                      background: isActive ? "#eff6ff" : "#fff",
-                      transition: "all 0.15s ease",
+                      borderRadius: "8px",
+                      border: `1.5px solid ${isActive ? "#202223" : "#e1e3e5"}`,
+                      padding: "8px 6px 6px",
+                      background: "#fff",
+                      transition: "border-color 0.12s",
                       display: "flex",
                       flexDirection: "column",
                       alignItems: "center",
-                      gap: "8px",
-                      boxShadow: isActive ? "0 0 0 3px rgba(37,99,235,0.12)" : "0 1px 2px rgba(0,0,0,0.06)",
+                      gap: "6px",
                     }}
                   >
                     <div style={{
-                      background: "#f3f4f6",
+                      background: "#f6f6f7",
                       borderRadius: `${Math.min(tmpl.formBorderRadius, 10)}px`,
-                      border: "1px solid #e5e7eb",
-                      padding: "6px",
+                      border: "1px solid #e1e3e5",
+                      padding: "5px",
                       width: "100%",
                     }}>
                       {[1, 2].map((i) => (
                         <div key={i} style={{
-                          height: "10px",
+                          height: "9px",
                           background: "#fff",
-                          border: "1px solid #d1d5db",
+                          border: "1px solid #c9cccf",
                           borderRadius: `${tmpl.fieldBorderRadius}px`,
                           marginBottom: i === 1 ? "4px" : 0,
                         }} />
                       ))}
                       <div style={{
-                        height: "14px",
-                        background: isActive ? "#2563eb" : "#374151",
+                        height: "12px",
+                        background: isActive ? "#202223" : "#8c9196",
                         borderRadius: `${tmpl.fieldBorderRadius}px`,
                         marginTop: "4px",
                       }} />
                     </div>
-                    <Text as="span" variant="bodySm" alignment="center">
-                      {tmpl.name}
-                    </Text>
+                    <Text as="span" variant="bodySm" alignment="center">{tmpl.name}</Text>
                   </div>
                 );
               })}
@@ -2083,29 +2052,12 @@ export function FormDesignerWorkspace({
 
         {/* ── Advanced Form Templates ── */}
         <Modal.Section>
-          <BlockStack gap="400">
-            <InlineStack align="space-between" blockAlign="center">
-              <BlockStack gap="050">
-                <InlineStack gap="200" blockAlign="center">
-                  <div style={{
-                    width: "8px", height: "8px", borderRadius: "2px",
-                    background: "linear-gradient(135deg, #6366f1, #4f46e5)",
-                  }} />
-                  <Text as="h3" variant="headingSm">Advanced Form Templates</Text>
-                </InlineStack>
-                <Text as="p" variant="bodySm" tone="subdued">Full design presets — colors, borders, shadows &amp; spacing</Text>
-              </BlockStack>
-              <div style={{
-                background: "linear-gradient(135deg, #eef2ff, #e0e7ff)",
-                borderRadius: "100px",
-                padding: "2px 10px",
-                border: "1px solid #c7d2fe",
-              }}>
-                <Text as="span" variant="bodySm" tone="subdued">{ADVANCED_TEMPLATES.length} presets</Text>
-              </div>
-            </InlineStack>
-
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "14px" }}>
+          <BlockStack gap="300">
+            <BlockStack gap="050">
+              <Text as="h3" variant="headingSm">Advanced</Text>
+              <Text as="p" variant="bodySm" tone="subdued">Complete color &amp; style presets</Text>
+            </BlockStack>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "10px" }}>
               {ADVANCED_TEMPLATES.map((tmpl) => {
                 const isActive =
                   hsbToHex(formBgColor) === tmpl.formBgColor &&
@@ -2117,81 +2069,49 @@ export function FormDesignerWorkspace({
                     onClick={() => applyFullTemplate(tmpl)}
                     style={{
                       cursor: "pointer",
-                      borderRadius: "12px",
-                      border: `2px solid ${isActive ? "#4f46e5" : "#e5e7eb"}`,
+                      borderRadius: "8px",
+                      border: `1.5px solid ${isActive ? "#202223" : "#e1e3e5"}`,
                       overflow: "hidden",
-                      transition: "all 0.18s ease",
-                      boxShadow: isActive
-                        ? "0 0 0 4px rgba(79,70,229,0.15)"
-                        : "0 2px 6px rgba(0,0,0,0.07)",
+                      transition: "border-color 0.12s",
                       background: "#fff",
                     }}
                   >
-                    {/* Color preview strip */}
                     <div style={{
                       background: tmpl.formBgColor,
-                      padding: "14px",
-                      minHeight: "110px",
+                      padding: "12px",
+                      minHeight: "80px",
                       display: "flex",
-                      alignItems: "center",
+                      flexDirection: "column",
                       justifyContent: "center",
+                      gap: "5px",
                     }}>
                       <div style={{
-                        background: tmpl.formBgColor,
-                        border: `${tmpl.formBorderWidthPx}px solid ${tmpl.formBorderColor}`,
-                        borderRadius: `${Math.min(tmpl.formBorderRadiusPx, 14)}px`,
-                        padding: "10px",
-                        width: "100%",
-                        boxShadow: tmpl.formShadowPx > 0
-                          ? `0 ${Math.min(tmpl.formShadowPx / 3, 8)}px ${Math.min(tmpl.formShadowPx, 20)}px rgba(0,0,0,0.18)`
-                          : "none",
-                      }}>
-                        <div style={{
-                          height: "6px", width: "55%",
-                          background: tmpl.formTextColor,
-                          opacity: 0.7,
-                          borderRadius: "4px",
-                          marginBottom: "8px",
+                        height: "5px", width: "45%",
+                        background: tmpl.formTextColor,
+                        opacity: 0.6,
+                        borderRadius: "3px",
+                      }} />
+                      {[1, 2].map((i) => (
+                        <div key={i} style={{
+                          height: "12px",
+                          background: tmpl.fieldBgColor,
+                          border: `1px solid ${tmpl.fieldBorderColor}`,
+                          borderRadius: `${Math.min(tmpl.fieldBorderRadiusPx, 8)}px`,
                         }} />
-                        {[1, 2].map((i) => (
-                          <div key={i} style={{
-                            height: "14px",
-                            background: tmpl.fieldBgColor,
-                            border: `1px solid ${tmpl.fieldBorderColor}`,
-                            borderRadius: `${Math.min(tmpl.fieldBorderRadiusPx, 10)}px`,
-                            marginBottom: i === 1 ? "5px" : "7px",
-                          }} />
-                        ))}
-                        <div style={{
-                          height: "18px",
-                          background: tmpl.accentColor,
-                          borderRadius: `${Math.min(tmpl.fieldBorderRadiusPx, 10)}px`,
-                        }} />
-                      </div>
+                      ))}
+                      <div style={{
+                        height: "14px",
+                        background: tmpl.accentColor,
+                        borderRadius: `${Math.min(tmpl.fieldBorderRadiusPx, 8)}px`,
+                        marginTop: "2px",
+                      }} />
                     </div>
-
-                    {/* Card footer */}
-                    <div style={{
-                      padding: "10px 14px 12px",
-                      background: "#fff",
-                      borderTop: "1px solid #f3f4f6",
-                    }}>
+                    <Box padding="200" background="bg-surface-secondary" borderBlockStartWidth="025" borderColor="border-secondary">
                       <InlineStack align="space-between" blockAlign="center">
-                        <BlockStack gap="050">
-                          <Text as="p" variant="bodySm" fontWeight="semibold">{tmpl.name}</Text>
-                          <Text as="p" variant="bodyXs" tone="subdued">{tmpl.description}</Text>
-                        </BlockStack>
-                        {isActive && (
-                          <div style={{
-                            background: "#4f46e5",
-                            borderRadius: "100px",
-                            padding: "2px 8px",
-                          }}>
-                            <Text as="span" variant="bodyXs" tone="text-inverse">Applied</Text>
-                          </div>
-                        )}
+                        <Text as="p" variant="bodySm" fontWeight="semibold">{tmpl.name}</Text>
+                        {isActive && <Badge tone="success">Applied</Badge>}
                       </InlineStack>
-                    </div>
+                    </Box>
                   </div>
                 );
               })}
@@ -2201,29 +2121,15 @@ export function FormDesignerWorkspace({
 
         {/* ── Premium Templates ── */}
         <Modal.Section>
-          <BlockStack gap="400">
-            <InlineStack align="space-between" blockAlign="center">
-              <BlockStack gap="050">
-                <InlineStack gap="200" blockAlign="center">
-                  <div style={{
-                    width: "8px", height: "8px", borderRadius: "2px",
-                    background: "linear-gradient(135deg, #f59e0b, #d97706)",
-                  }} />
-                  <Text as="h3" variant="headingSm">Premium Templates</Text>
-                </InlineStack>
-                <Text as="p" variant="bodySm" tone="subdued">Distinctive, high-impact styles for standout stores</Text>
-              </BlockStack>
-              <div style={{
-                background: "linear-gradient(135deg, #fef9c3, #fef3c7)",
-                borderRadius: "100px",
-                padding: "2px 10px",
-                border: "1px solid #fde68a",
-              }}>
-                <Text as="span" variant="bodySm" tone="caution">{PREMIUM_TEMPLATES.length} exclusive</Text>
-              </div>
-            </InlineStack>
-
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "14px" }}>
+          <BlockStack gap="300">
+            <BlockStack gap="050">
+              <InlineStack gap="200" blockAlign="center">
+                <Text as="h3" variant="headingSm">Premium</Text>
+                <Badge tone="warning">Pro</Badge>
+              </InlineStack>
+              <Text as="p" variant="bodySm" tone="subdued">High-impact exclusive styles</Text>
+            </BlockStack>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "10px" }}>
               {PREMIUM_TEMPLATES.map((tmpl) => {
                 const isActive =
                   hsbToHex(formBgColor) === tmpl.formBgColor &&
@@ -2235,101 +2141,49 @@ export function FormDesignerWorkspace({
                     onClick={() => applyFullTemplate(tmpl)}
                     style={{
                       cursor: "pointer",
-                      borderRadius: "12px",
-                      border: `2px solid ${isActive ? "#d97706" : "#e5e7eb"}`,
+                      borderRadius: "8px",
+                      border: `1.5px solid ${isActive ? "#202223" : "#e1e3e5"}`,
                       overflow: "hidden",
-                      transition: "all 0.18s ease",
-                      boxShadow: isActive
-                        ? "0 0 0 4px rgba(217,119,6,0.18)"
-                        : "0 2px 6px rgba(0,0,0,0.07)",
+                      transition: "border-color 0.12s",
                       background: "#fff",
-                      position: "relative",
                     }}
                   >
-                    {/* PRO badge */}
-                    <div style={{
-                      position: "absolute",
-                      top: "8px",
-                      right: "8px",
-                      background: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
-                      color: "#fff",
-                      fontSize: "9px",
-                      fontWeight: 700,
-                      padding: "2px 8px",
-                      borderRadius: "100px",
-                      letterSpacing: "0.07em",
-                      textTransform: "uppercase" as const,
-                      zIndex: 1,
-                      boxShadow: "0 1px 4px rgba(217,119,6,0.4)",
-                    }}>
-                      PRO
-                    </div>
-
-                    {/* Color preview strip */}
                     <div style={{
                       background: tmpl.formBgColor,
-                      padding: "14px",
-                      minHeight: "110px",
+                      padding: "12px",
+                      minHeight: "80px",
                       display: "flex",
-                      alignItems: "center",
+                      flexDirection: "column",
                       justifyContent: "center",
+                      gap: "5px",
                     }}>
                       <div style={{
-                        background: tmpl.formBgColor,
-                        border: `${tmpl.formBorderWidthPx}px solid ${tmpl.formBorderColor}`,
-                        borderRadius: `${Math.min(tmpl.formBorderRadiusPx, 14)}px`,
-                        padding: "10px",
-                        width: "100%",
-                        boxShadow: tmpl.formShadowPx > 0
-                          ? `0 ${Math.min(tmpl.formShadowPx / 3, 8)}px ${Math.min(tmpl.formShadowPx, 20)}px rgba(0,0,0,0.35)`
-                          : "none",
-                      }}>
-                        <div style={{
-                          height: "6px", width: "55%",
-                          background: tmpl.formTextColor,
-                          opacity: 0.7,
-                          borderRadius: "4px",
-                          marginBottom: "8px",
+                        height: "5px", width: "45%",
+                        background: tmpl.formTextColor,
+                        opacity: 0.6,
+                        borderRadius: "3px",
+                      }} />
+                      {[1, 2].map((i) => (
+                        <div key={i} style={{
+                          height: "12px",
+                          background: tmpl.fieldBgColor,
+                          border: `1px solid ${tmpl.fieldBorderColor}`,
+                          borderRadius: `${Math.min(tmpl.fieldBorderRadiusPx, 8)}px`,
                         }} />
-                        {[1, 2].map((i) => (
-                          <div key={i} style={{
-                            height: "14px",
-                            background: tmpl.fieldBgColor,
-                            border: `1px solid ${tmpl.fieldBorderColor}`,
-                            borderRadius: `${Math.min(tmpl.fieldBorderRadiusPx, 10)}px`,
-                            marginBottom: i === 1 ? "5px" : "7px",
-                          }} />
-                        ))}
-                        <div style={{
-                          height: "18px",
-                          background: tmpl.accentColor,
-                          borderRadius: `${Math.min(tmpl.fieldBorderRadiusPx, 10)}px`,
-                        }} />
-                      </div>
+                      ))}
+                      <div style={{
+                        height: "14px",
+                        background: tmpl.accentColor,
+                        borderRadius: `${Math.min(tmpl.fieldBorderRadiusPx, 8)}px`,
+                        marginTop: "2px",
+                      }} />
                     </div>
-
-                    {/* Card footer */}
-                    <div style={{
-                      padding: "10px 14px 12px",
-                      background: "#fff",
-                      borderTop: "1px solid #f3f4f6",
-                    }}>
+                    <Box padding="200" background="bg-surface-secondary" borderBlockStartWidth="025" borderColor="border-secondary">
                       <InlineStack align="space-between" blockAlign="center">
-                        <BlockStack gap="050">
-                          <Text as="p" variant="bodySm" fontWeight="semibold">{tmpl.name}</Text>
-                          <Text as="p" variant="bodyXs" tone="subdued">{tmpl.description}</Text>
-                        </BlockStack>
-                        {isActive && (
-                          <div style={{
-                            background: "#d97706",
-                            borderRadius: "100px",
-                            padding: "2px 8px",
-                          }}>
-                            <Text as="span" variant="bodyXs" tone="text-inverse">Applied</Text>
-                          </div>
-                        )}
+                        <Text as="p" variant="bodySm" fontWeight="semibold">{tmpl.name}</Text>
+                        {isActive ? <Badge tone="success">Applied</Badge> : <Badge tone="warning">Pro</Badge>}
                       </InlineStack>
-                    </div>
+                    </Box>
                   </div>
                 );
               })}
