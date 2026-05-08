@@ -160,16 +160,23 @@ model FormDesignConfig {
   fieldBorderRadiusPx Int    @default(6)
   fieldFontSizePx     Int    @default(14)
 
-  textAlign   String  @default("left")
-  hideLabels  Boolean @default(false)
-  rtl         Boolean @default(false)
+  formBorderWidthPx   Int     @default(1)
+  formShadowPx        Int     @default(8)
+  formTextBold        Boolean @default(false)
+  formTextItalic      Boolean @default(false)
+  showIcons           Boolean @default(true)
+  stickyMobile        Boolean @default(true)
+
+  textAlign    String  @default("left")
+  hideLabels   Boolean @default(false)
+  rtl          Boolean @default(false)
   autocomplete Boolean @default(true)
 
   errorRequired String @default("This field is required")
   errorInvalid  String @default("Please enter a valid value")
   errorSoldOut  String @default("This product is sold out")
 
-  isVisible   Boolean @default(true)
+  isVisible Boolean @default(true)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

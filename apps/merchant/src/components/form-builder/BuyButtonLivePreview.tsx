@@ -5,8 +5,9 @@ import type { ReactElement } from "react";
 import { BlockStack, Box, SkeletonBodyText, Text } from "@shopify/polaris";
 
 import { useShopifyBridge } from "@/lib/use-shopify-bridge";
+import { hexToHsb } from "@/lib/color-utils";
 import { getBuyButtonIconDefinition } from "@/components/form-builder/buy-button-icon-registry";
-import { BuyButtonPreviewSvg, hexToHsb } from "@/components/form-builder/BuyButtonDesignerWorkspace";
+import { BuyButtonPreviewSvg } from "@/components/form-builder/BuyButtonDesignerWorkspace";
 
 type BuyButtonConfig = {
   buttonText: string;

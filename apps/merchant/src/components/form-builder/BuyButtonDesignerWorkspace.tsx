@@ -22,9 +22,6 @@ import {
   Select,
   Text,
   TextField,
-  hsbToRgb,
-  rgbToHsb,
-  rgbaString,
 } from "@shopify/polaris";
 import {
   BlankIcon,
@@ -36,6 +33,7 @@ import {
 import { SaveBar } from "@shopify/app-bridge-react";
 
 import { useShopifyBridge } from "@/lib/use-shopify-bridge";
+import { hexToHsb, hsbToHex, hsbaToRgbaString } from "@/lib/color-utils";
 import type { BuyButtonIconDefinition, BuyButtonIconId, SvgPathSpec } from "@/components/form-builder/buy-button-icon-registry";
 import { BUY_BUTTON_STORE_ICONS, getBuyButtonIconDefinition } from "@/components/form-builder/buy-button-icon-registry";
 
@@ -63,23 +61,6 @@ const STICKY_POSITION_OPTIONS = [
 
 const ICON_VIEWBOX = 20;
 
-function hsbaToRgbaString(color: HSBAColor): string {
-  return rgbaString(hsbToRgb(color));
-}
-
-export function hexToHsb(hex: string): HSBAColor {
-  const r = parseInt(hex.slice(1, 3), 16);
-  const g = parseInt(hex.slice(3, 5), 16);
-  const b = parseInt(hex.slice(5, 7), 16);
-  const hsb = rgbToHsb({ red: r, green: g, blue: b });
-  return { ...hsb, alpha: 1 };
-}
-
-function hsbToHex(color: HSBAColor): string {
-  const { red, green, blue } = hsbToRgb(color);
-  const toHex = (n: number): string => Math.round(n).toString(16).padStart(2, "0");
-  return `#${toHex(red)}${toHex(green)}${toHex(blue)}`;
-}
 
 const PREVIEW_LABEL_MAX_LINES = 8;
 const PREVIEW_SUBTITLE_MAX_LINES = 4;
