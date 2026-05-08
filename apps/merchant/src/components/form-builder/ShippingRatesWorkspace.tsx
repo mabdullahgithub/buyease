@@ -128,7 +128,7 @@ function toApiPayload(rates: ShippingRate[]): unknown[] {
     provincesEnabled: r.provinceRestrictionEnabled,
     provinces: r.selectedProvinces,
     importedFromShopify: r.importedFromShopify,
-    isActive: true,
+    isActive: r.isActive,
   }));
 }
 
@@ -150,6 +150,7 @@ function fromApiResponse(apiRates: ApiShippingRate[]): ShippingRate[] {
     selectedProvinces: r.provinces as string[],
     isEditing: false,
     importedFromShopify: r.importedFromShopify,
+    isActive: r.isActive,
   }));
 }
 
@@ -617,7 +618,8 @@ export function ShippingRatesWorkspace(): ReactElement {
           </Box>
           <Divider />
           <Box paddingInline="400" paddingBlock="300" background="bg-surface-secondary">
-            <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 3fr 120px", gap: "var(--p-space-300)", alignItems: "center" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 90px 3fr 120px", gap: "var(--p-space-300)", alignItems: "center" }}>
+              <SkeletonBodyText lines={1} />
               <SkeletonBodyText lines={1} />
               <SkeletonBodyText lines={1} />
               <SkeletonBodyText lines={1} />
@@ -630,7 +632,8 @@ export function ShippingRatesWorkspace(): ReactElement {
               <Box key={i}>
                 {i > 0 && <Divider />}
                 <Box paddingInline="400" paddingBlock="300">
-                  <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 3fr 120px", gap: "var(--p-space-300)", alignItems: "center" }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 90px 3fr 120px", gap: "var(--p-space-300)", alignItems: "center" }}>
+                    <SkeletonBodyText lines={1} />
                     <SkeletonBodyText lines={1} />
                     <SkeletonBodyText lines={1} />
                     <SkeletonBodyText lines={1} />
@@ -678,9 +681,10 @@ export function ShippingRatesWorkspace(): ReactElement {
 
         {/* Table header */}
         <Box paddingInline="400" paddingBlock="300" background="bg-surface-secondary">
-          <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 3fr 120px", gap: "var(--p-space-300)", alignItems: "center" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 90px 3fr 120px", gap: "var(--p-space-300)", alignItems: "center" }}>
             <Text as="span" variant="headingSm">Name</Text>
             <Text as="span" variant="headingSm">Price</Text>
+            <Text as="span" variant="headingSm">Status</Text>
             <Text as="span" variant="headingSm">Condition</Text>
             <Text as="span" variant="headingSm" alignment="end">Actions</Text>
           </div>
@@ -702,14 +706,40 @@ export function ShippingRatesWorkspace(): ReactElement {
               <Box key={rate.id}>
                 {idx > 0 && <Divider />}
                 <Box paddingInline="400" paddingBlock="300">
-                  <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 3fr 120px", gap: "var(--p-space-300)", alignItems: "center" }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 90px 3fr 120px", gap: "var(--p-space-300)", alignItems: "center" }}>
                     <InlineStack gap="200" blockAlign="center" wrap={false}>
                       <Text as="span" variant="bodyMd" fontWeight="semibold">
                         {rate.name || <Text as="span" tone="subdued" variant="bodyMd">Untitled</Text>}
                       </Text>
                       {rate.importedFromShopify && <Badge tone="info">Shopify</Badge>}
                     </InlineStack>
-                    <Text as="span" variant="bodyMd">{rate.price}</Text>
+                    <Text as="span" variant="bodyMd">
+                      {parseFloat(rate.price) === 0 ? "Free" : `$${parseFloat(rate.price).toFixed(2)}`}
+                    </Text>
+                    {/* Active / Inactive toggle pill */}
+                    <div>
+                      <button
+                        type="button"
+                        onClick={() => updateRate(rate.id, { isActive: !rate.isActive })}
+                        style={{
+                          display: "inline-flex", alignItems: "center", gap: "5px",
+                          padding: "3px 9px 3px 6px", borderRadius: "10px", border: "none",
+                          background: rate.isActive ? "#e8f5e9" : "#f3f4f6",
+                          cursor: "pointer", userSelect: "none",
+                          fontSize: "12px", fontWeight: 600,
+                          color: rate.isActive ? "#2e7d32" : "#6d7175",
+                          transition: "background 0.15s",
+                        }}
+                        title={rate.isActive ? "Click to deactivate" : "Click to activate"}
+                      >
+                        <span style={{
+                          width: 8, height: 8, borderRadius: "50%", flexShrink: 0,
+                          background: rate.isActive ? "#4caf50" : "#babec3",
+                          transition: "background 0.15s",
+                        }} />
+                        {rate.isActive ? "Active" : "Inactive"}
+                      </button>
+                    </div>
                     <ConditionBadges conditions={rate.conditions} />
                     <InlineStack gap="200" align="end">
                       {rate.isEditing ? (

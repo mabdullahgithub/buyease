@@ -33,6 +33,7 @@ export type ShippingRate = {
   isEditing: boolean;
   /** Rates imported from Shopify are flagged so we can show provenance. */
   importedFromShopify: boolean;
+  isActive: boolean;
 };
 
 export type CountryOption = {
@@ -94,6 +95,7 @@ export function createEmptyRate(): ShippingRate {
     selectedProvinces: [],
     isEditing: true,
     importedFromShopify: false,
+    isActive: true,
   };
 }
 

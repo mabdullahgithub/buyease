@@ -127,6 +127,10 @@ type FieldDef = {
 
 type ApiFieldDef = Omit<FieldDef, "options"> & { options?: string[] };
 
+const PREVIEW_SUBTOTAL = 29.99;
+
+type PreviewRate = { id: string; name: string; description: string; price: number; currency: string };
+
 type ApiConfig = {
   formType: string;
   fields: ApiFieldDef[];
@@ -318,6 +322,10 @@ export function FormDesignerWorkspace({
   const [invalidMsg,   setInvalidMsg]   = useState(DEFAULT_CONFIG.errorInvalid);
   const [soldOutLabel, setSoldOutLabel] = useState(DEFAULT_CONFIG.errorSoldOut);
 
+  // Shipping rates for preview
+  const [previewRates,          setPreviewRates]          = useState<PreviewRate[]>([]);
+  const [selectedPreviewRateId, setSelectedPreviewRateId] = useState<string | null>(null);
+
   // UI toggles
   const [draggedIndex,          setDraggedIndex]          = useState<number | null>(null);
   const [dragOverIndex,         setDragOverIndex]         = useState<number | null>(null);
@@ -335,6 +343,16 @@ export function FormDesignerWorkspace({
   const previewFieldBg    = useMemo(() => hsbaToRgbaString(fieldBgColor),    [fieldBgColor]);
   const previewFieldBorder= useMemo(() => hsbaToRgbaString(fieldBorderColor),[fieldBorderColor]);
   const previewFieldText  = useMemo(() => hsbaToRgbaString(fieldTextColor),  [fieldTextColor]);
+
+  // ── Shipping preview derived values ────────────────────────────────────────
+  const selectedRate = useMemo(
+    () => previewRates.find((r) => r.id === selectedPreviewRateId) ?? null,
+    [previewRates, selectedPreviewRateId],
+  );
+  const previewTotal = useMemo(
+    () => PREVIEW_SUBTOTAL + (selectedRate?.price ?? 0),
+    [selectedRate],
+  );
 
   // ── Build / apply ──────────────────────────────────────────────────────────
 
@@ -433,16 +451,27 @@ export function FormDesignerWorkspace({
     let cancelled = false;
     async function load(): Promise<void> {
       try {
-        const res = await fetch("/api/cod-form-config", {
-          headers: { Authorization: `Bearer ${await shopify.idToken()}` },
-        });
+        const token = await shopify.idToken();
+        const headers = { Authorization: `Bearer ${token}` };
+        const [formRes, shippingRes] = await Promise.all([
+          fetch("/api/cod-form-config", { headers }),
+          fetch("/api/shipping-rates", { headers }),
+        ]);
         if (cancelled) return;
-        if (res.ok) {
-          const data: ApiConfig = await res.json();
+        if (formRes.ok) {
+          const data: ApiConfig = await formRes.json();
           applyConfig(data);
           justAppliedRef.current = true;
-        } else if (res.status !== 404) {
+        } else if (formRes.status !== 404) {
           setError("Failed to load form configuration.");
+        }
+        if (shippingRes.ok) {
+          const shippingData: Array<{ id: string; name: string; description: string | null; price: number; currency: string; isActive: boolean }> = await shippingRes.json();
+          const active = shippingData
+            .filter((r) => r.isActive)
+            .map((r) => ({ id: r.id, name: r.name, description: r.description ?? "", price: r.price, currency: r.currency }));
+          setPreviewRates(active);
+          if (active.length > 0) setSelectedPreviewRateId(active[0]!.id);
         }
       } catch {
         if (!cancelled) setError("Unable to connect. Please check your connection and reload.");
@@ -633,54 +662,109 @@ export function FormDesignerWorkspace({
           </div>
         );
 
-      case "summary":
+      case "summary": {
+        const shippingDisplay = selectedRate
+          ? (selectedRate.price === 0 ? "Free" : `${selectedRate.currency} ${selectedRate.price.toFixed(2)}`)
+          : (previewRates.length > 0 ? "Select a method" : "Free");
+        const totalDisplay = `$${previewTotal.toFixed(2)}`;
         return (
           <div style={{ marginBottom: "14px" }}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px" }}>
               <span style={{ fontSize: 12, color: previewFormText, opacity: 0.6 }}>Subtotal</span>
-              <span style={{ fontSize: 12, color: previewFormText }}>$29.99</span>
+              <span style={{ fontSize: 12, color: previewFormText }}>${PREVIEW_SUBTOTAL.toFixed(2)}</span>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "10px" }}>
               <span style={{ fontSize: 12, color: previewFormText, opacity: 0.6 }}>Shipping</span>
-              <span style={{ fontSize: 12, color: previewFormText }}>Free</span>
+              <span style={{ fontSize: 12, color: previewFormText }}>{shippingDisplay}</span>
             </div>
             <div style={{ height: "1px", background: previewFormBorder, marginBottom: "10px", opacity: 0.35 }} />
             <div style={{ display: "flex", justifyContent: "space-between" }}>
               <span style={{ fontWeight: 700, fontSize: 14, color: previewFormText }}>Total</span>
-              <span style={{ fontWeight: 700, fontSize: 14, color: previewFormText }}>$29.99</span>
+              <span style={{ fontWeight: 700, fontSize: 14, color: previewFormText }}>{totalDisplay}</span>
             </div>
             <div style={{ height: "1px", background: previewFormBorder, margin: "12px 0 0", opacity: 0.35 }} />
           </div>
         );
+      }
 
-      case "shipping":
+      case "shipping": {
+        const hasRates = previewRates.length > 0;
         return (
           <div style={{ marginBottom: "14px" }}>
             <p style={{ margin: "0 0 8px", fontWeight: 600, fontSize: 12, color: previewFormText }}>
               {field.title}
             </p>
-            <div style={{
-              display: "flex", alignItems: "center", justifyContent: "space-between",
-              padding: "9px 12px",
-              border: `1.5px solid ${previewFormText}`,
-              borderRadius: `${fieldBorderRadius}px`,
-              cursor: "default",
-            }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <div style={{
-                  width: 15, height: 15, borderRadius: "50%",
-                  border: `2px solid ${previewFormText}`,
-                  display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-                }}>
-                  <div style={{ width: 7, height: 7, borderRadius: "50%", background: previewFormText }} />
-                </div>
-                <span style={{ fontSize: 12, color: previewFormText }}>Free Shipping</span>
+            {hasRates ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                {previewRates.map((rate) => {
+                  const isSelected = selectedPreviewRateId === rate.id;
+                  return (
+                    <div
+                      key={rate.id}
+                      onClick={() => setSelectedPreviewRateId(rate.id)}
+                      style={{
+                        display: "flex", alignItems: "center", justifyContent: "space-between",
+                        padding: "9px 12px",
+                        border: `1.5px solid ${isSelected ? previewFormText : previewFieldBorder}`,
+                        borderRadius: `${fieldBorderRadius}px`,
+                        cursor: "pointer",
+                        background: isSelected ? "rgba(0,0,0,0.04)" : "transparent",
+                        transition: "border-color 0.15s, background 0.15s",
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        <div style={{
+                          width: 15, height: 15, borderRadius: "50%",
+                          border: `2px solid ${previewFormText}`,
+                          display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+                        }}>
+                          {isSelected && (
+                            <div style={{ width: 7, height: 7, borderRadius: "50%", background: previewFormText }} />
+                          )}
+                        </div>
+                        <div>
+                          <span style={{ fontSize: 12, color: previewFormText, fontWeight: 500 }}>
+                            {rate.name}
+                          </span>
+                          {rate.description && (
+                            <span style={{ fontSize: 11, color: previewFormText, opacity: 0.55, marginLeft: 6 }}>
+                              {rate.description}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: previewFormText, flexShrink: 0 }}>
+                        {rate.price === 0 ? "Free" : `${rate.currency} ${rate.price.toFixed(2)}`}
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
-              <span style={{ fontSize: 12, fontWeight: 600, color: previewFormText }}>Free</span>
-            </div>
+            ) : (
+              <div style={{
+                display: "flex", alignItems: "center", justifyContent: "space-between",
+                padding: "9px 12px",
+                border: `1.5px solid ${previewFormText}`,
+                borderRadius: `${fieldBorderRadius}px`,
+                opacity: 0.55,
+              }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <div style={{
+                    width: 15, height: 15, borderRadius: "50%",
+                    border: `2px solid ${previewFormText}`,
+                    display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+                  }}>
+                    <div style={{ width: 7, height: 7, borderRadius: "50%", background: previewFormText }} />
+                  </div>
+                  <span style={{ fontSize: 12, color: previewFormText }}>Free Shipping</span>
+                </div>
+                <span style={{ fontSize: 12, fontWeight: 600, color: previewFormText }}>Free</span>
+              </div>
+            )}
             <div style={{ height: "1px", background: previewFormBorder, margin: "12px 0 0", opacity: 0.35 }} />
           </div>
         );
+      }
 
       case "input":
         if (field.hidden) return null;
@@ -777,7 +861,7 @@ export function FormDesignerWorkspace({
               cursor: "default",
               letterSpacing: "0.3px",
             }}>
-              {field.title.replace("{total}", "$29.99")}
+              {field.title.replace("{total}", `$${previewTotal.toFixed(2)}`)}
             </button>
           </div>
         );
@@ -790,6 +874,7 @@ export function FormDesignerWorkspace({
     hideLabels, showIcons,
     previewFormBg, previewFormBorder, previewFormText,
     previewFieldBg, previewFieldBorder, previewFieldText,
+    previewRates, selectedPreviewRateId, selectedRate, previewTotal,
   ]);
 
   const renderFormContent = useCallback((): ReactElement => (
