@@ -19,6 +19,7 @@ import {
   InlineStack,
   Labelled,
   Link,
+  Modal,
   Popover,
   RangeSlider,
   SkeletonBodyText,
@@ -86,13 +87,28 @@ function getFormIcon(id: string) {
   return FORM_ICONS.find((e) => e.id === id);
 }
 
-// ─── Colour templates ─────────────────────────────────────────────────────────
+// ─── Templates ────────────────────────────────────────────────────────────────
 
-const TEMPLATES = [
-  { id: "clean", name: "Clean", bg: "#ffffff", border: "#e1e3e5", text: "#202223" },
-  { id: "dark",  name: "Dark",  bg: "#111213", border: "#303236", text: "#ffffff" },
-  { id: "ocean", name: "Ocean", bg: "#f4f8fb", border: "#b4d5eb", text: "#005ea6" },
-  { id: "rose",  name: "Rose",  bg: "#fdf8f8", border: "#f3d1d1", text: "#8c2a2a" },
+type ShapeTemplate = { id: string; name: string; formBorderRadius: number; fieldBorderRadius: number };
+type ColorTemplate  = { id: string; name: string; formBg: string; formBorder: string; formText: string; fieldBg: string; fieldBorder: string; fieldText: string };
+
+const SHAPE_TEMPLATES: ShapeTemplate[] = [
+  { id: "square",     name: "Square",     formBorderRadius: 0,  fieldBorderRadius: 0  },
+  { id: "soft",       name: "Soft",       formBorderRadius: 6,  fieldBorderRadius: 4  },
+  { id: "elegant",    name: "Elegant",    formBorderRadius: 12, fieldBorderRadius: 6  },
+  { id: "rounded",    name: "Rounded",    formBorderRadius: 20, fieldBorderRadius: 10 },
+  { id: "pill",       name: "Pill",       formBorderRadius: 32, fieldBorderRadius: 20 },
+  { id: "full-round", name: "Full Round", formBorderRadius: 50, fieldBorderRadius: 50 },
+];
+
+const COLOR_TEMPLATES: ColorTemplate[] = [
+  { id: "basic",     name: "Basic",     formBg: "#ffffff", formBorder: "#e1e3e5", formText: "#202223", fieldBg: "#ffffff", fieldBorder: "#cccccc", fieldText: "#1a1a1a" },
+  { id: "emerald",   name: "Emerald",   formBg: "#f0fdf4", formBorder: "#a7f3d0", formText: "#065f46", fieldBg: "#ffffff", fieldBorder: "#6ee7b7", fieldText: "#065f46" },
+  { id: "ruby",      name: "Ruby",      formBg: "#fff1f2", formBorder: "#fecdd3", formText: "#881337", fieldBg: "#ffffff", fieldBorder: "#fda4af", fieldText: "#881337" },
+  { id: "excalibur", name: "Excalibur", formBg: "#0f172a", formBorder: "#1e293b", formText: "#f1f5f9", fieldBg: "#1e293b", fieldBorder: "#334155", fieldText: "#f1f5f9" },
+  { id: "sapphire",  name: "Sapphire",  formBg: "#eff6ff", formBorder: "#bfdbfe", formText: "#1e40af", fieldBg: "#ffffff", fieldBorder: "#93c5fd", fieldText: "#1e40af" },
+  { id: "aurora",    name: "Aurora",    formBg: "#faf5ff", formBorder: "#e9d5ff", formText: "#4c1d95", fieldBg: "#ffffff", fieldBorder: "#c4b5fd", fieldText: "#4c1d95" },
+  { id: "obsidian",  name: "Obsidian",  formBg: "#111827", formBorder: "#374151", formText: "#f9fafb", fieldBg: "#1f2937", fieldBorder: "#4b5563", fieldText: "#f9fafb" },
 ];
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -113,6 +129,7 @@ type FieldDef = {
   prefixText?: string;
   minLength?: number;
   maxLength?: number;
+  options?: string[];
 };
 
 type ApiConfig = {
@@ -257,6 +274,7 @@ export function FormDesignerWorkspace({
   const [addFieldPopoverActive, setAddFieldPopoverActive] = useState(false);
   const [addFieldTab,           setAddFieldTab]           = useState(0);
   const [openColorPicker,       setOpenColorPicker]       = useState<string | null>(null);
+  const [showTemplatesModal,    setShowTemplatesModal]    = useState(false);
 
   // ── Derived preview strings ────────────────────────────────────────────────
   const previewFormBg     = useMemo(() => hsbaToRgbaString(formBgColor),     [formBgColor]);
@@ -286,6 +304,7 @@ export function FormDesignerWorkspace({
       ...(f.prefixText   !== undefined && { prefixText:   f.prefixText }),
       ...(f.minLength    !== undefined && { minLength:    f.minLength }),
       ...(f.maxLength    !== undefined && { maxLength:    f.maxLength }),
+      ...(f.options      !== undefined && { options:      f.options }),
     })),
     formBgColor:         hsbToHex(formBgColor),
     formTextColor:       hsbToHex(formTextColor),
@@ -435,11 +454,14 @@ export function FormDesignerWorkspace({
     setFields((prev) => prev.filter((f) => f.id !== id));
   }, []);
 
-  const addField = useCallback((title: string, iconId?: string): void => {
+  const addField = useCallback((title: string, iconId?: string, extras?: Partial<FieldDef>): void => {
     setFields((prev) => [
       ...prev,
-      { id: `field_${Date.now()}`, title, type: "input", deletable: true,
-        required: false, hidden: false, iconId: iconId ?? "text", showIcon: !!iconId },
+      {
+        id: `field_${Date.now()}`, title, type: "input", deletable: true,
+        required: false, hidden: false, iconId: iconId ?? "text", showIcon: !!iconId,
+        ...extras,
+      },
     ]);
     setAddFieldPopoverActive(false);
   }, []);
@@ -475,13 +497,20 @@ export function FormDesignerWorkspace({
     setDragOverIndex(null);
   }, []);
 
-  const applyTemplate = useCallback((tmpl: typeof TEMPLATES[number]): void => {
-    setFormBgColor(hexToHsb(tmpl.bg));
-    setFormBorderColor(hexToHsb(tmpl.border));
-    setFormTextColor(hexToHsb(tmpl.text));
-    setFieldBgColor(hexToHsb(tmpl.bg));
-    setFieldBorderColor(hexToHsb(tmpl.border));
-    setFieldTextColor(hexToHsb(tmpl.text));
+  const applyShapeTemplate = useCallback((tmpl: ShapeTemplate): void => {
+    setFormBorderRadius(tmpl.formBorderRadius);
+    setFieldBorderRadius(tmpl.fieldBorderRadius);
+    setShowTemplatesModal(false);
+  }, []);
+
+  const applyColorTemplate = useCallback((tmpl: ColorTemplate): void => {
+    setFormBgColor(hexToHsb(tmpl.formBg));
+    setFormBorderColor(hexToHsb(tmpl.formBorder));
+    setFormTextColor(hexToHsb(tmpl.formText));
+    setFieldBgColor(hexToHsb(tmpl.fieldBg));
+    setFieldBorderColor(hexToHsb(tmpl.fieldBorder));
+    setFieldTextColor(hexToHsb(tmpl.fieldText));
+    setShowTemplatesModal(false);
   }, []);
 
   const toggleColorPicker = useCallback((id: string): void => {
@@ -635,7 +664,10 @@ export function FormDesignerWorkspace({
                     background: "transparent", color: previewFieldText,
                     fontSize: `${formTextSize}px`, outline: "none", appearance: "none",
                   }}>
-                    <option>{field.placeholder ?? field.title}</option>
+                    {field.options && field.options.length > 0
+                      ? field.options.map((opt, i) => <option key={i}>{opt}</option>)
+                      : <option>{field.placeholder ?? field.title}</option>
+                    }
                   </select>
                   <div style={{ padding: "0 10px", display: "flex", alignItems: "center", flexShrink: 0 }}>
                     <Icon source={ChevronDownIcon} tone="subdued" />
@@ -987,6 +1019,57 @@ export function FormDesignerWorkspace({
                                 checked={!!field.isSelect}
                                 onChange={(v) => updateField(field.id, { isSelect: v })}
                               />
+                              {field.isSelect && (
+                                <BlockStack gap="200">
+                                  <Text as="h4" variant="headingSm">Select Options</Text>
+                                  {(field.options ?? []).length === 0 && (
+                                    <Text as="p" variant="bodySm" tone="subdued">
+                                      No options yet. Add options for customers to choose from.
+                                    </Text>
+                                  )}
+                                  <BlockStack gap="150">
+                                    {(field.options ?? []).map((opt, idx) => (
+                                      <InlineStack key={idx} gap="200" blockAlign="center" wrap={false}>
+                                        <div style={{ flex: 1 }}>
+                                          <TextField
+                                            label=""
+                                            labelHidden
+                                            value={opt}
+                                            placeholder={`Option ${idx + 1}`}
+                                            autoComplete="off"
+                                            onChange={(v) => {
+                                              const next = [...(field.options ?? [])];
+                                              next[idx] = v;
+                                              updateField(field.id, { options: next });
+                                            }}
+                                          />
+                                        </div>
+                                        <Button
+                                          icon={DeleteIcon}
+                                          variant="plain"
+                                          tone="critical"
+                                          accessibilityLabel="Remove option"
+                                          onClick={() => {
+                                            const next = (field.options ?? []).filter((_, i) => i !== idx);
+                                            updateField(field.id, { options: next });
+                                          }}
+                                        />
+                                      </InlineStack>
+                                    ))}
+                                  </BlockStack>
+                                  <div>
+                                    <Button
+                                      icon={PlusIcon}
+                                      variant="plain"
+                                      onClick={() => {
+                                        updateField(field.id, { options: [...(field.options ?? []), ""] });
+                                      }}
+                                    >
+                                      Add option
+                                    </Button>
+                                  </div>
+                                </BlockStack>
+                              )}
                               <InlineStack gap="300" blockAlign="center">
                                 <Checkbox
                                   label="Show icon"
@@ -1101,7 +1184,7 @@ export function FormDesignerWorkspace({
                                 { content: "Multi-line input", icon: NoteIcon,      onAction: () => addField("Multi-line input", "note") },
                                 { content: "Single Choice",    icon: CheckIcon,     onAction: () => addField("Single Choice",    "note") },
                                 { content: "Multiple Choices", icon: NoteIcon,      onAction: () => addField("Multiple Choices", "note") },
-                                { content: "Drop-down List",   icon: CaretDownIcon, onAction: () => addField("Drop-down List",   "note") },
+                                { content: "Drop-down List",   icon: CaretDownIcon, onAction: () => addField("Drop-down List",   "note", { isSelect: true, options: [] }) },
                                 { content: "Date input",       icon: CalendarIcon,  onAction: () => addField("Date input",       "note") },
                                 { content: "Privacy Policy",   icon: LockIcon,      onAction: () => addField("Privacy Policy",   "note") },
                               ]},
@@ -1129,20 +1212,25 @@ export function FormDesignerWorkspace({
             <BlockStack gap="400">
               <Text as="h2" variant="headingSm">Design Settings</Text>
 
-              <Text as="h3" variant="headingSm">Templates</Text>
-              <InlineStack gap="300" wrap>
-                {TEMPLATES.map((tmpl) => (
+              <InlineStack align="space-between" blockAlign="center">
+                <Text as="h3" variant="headingSm">Templates</Text>
+                <Button variant="plain" onClick={() => setShowTemplatesModal(true)}>
+                  Browse all templates
+                </Button>
+              </InlineStack>
+              <InlineStack gap="200" wrap>
+                {COLOR_TEMPLATES.slice(0, 4).map((tmpl) => (
                   <Tooltip key={tmpl.id} content={tmpl.name}>
                     <div
-                      onClick={() => applyTemplate(tmpl)}
+                      onClick={() => applyColorTemplate(tmpl)}
                       style={{
-                        width: "40px", height: "40px", borderRadius: "50%",
-                        background: tmpl.bg, border: `2px solid ${tmpl.border}`,
+                        width: "36px", height: "36px", borderRadius: "50%",
+                        background: tmpl.formBg, border: `2px solid ${tmpl.formBorder}`,
                         display: "flex", alignItems: "center", justifyContent: "center",
                         cursor: "pointer", boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
                       }}
                     >
-                      <div style={{ width: "12px", height: "12px", borderRadius: "50%", background: tmpl.text }} />
+                      <div style={{ width: "11px", height: "11px", borderRadius: "50%", background: tmpl.formText }} />
                     </div>
                   </Tooltip>
                 ))}
@@ -1308,8 +1396,8 @@ export function FormDesignerWorkspace({
                   <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#ffbd2e" }} />
                   <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#28c840" }} />
                 </div>
-                <div style={{ flex: 1, background: "#fff", borderRadius: "4px", height: "20px", display: "flex", alignItems: "center", padding: "0 8px", border: "1px solid #d1d5db" }}>
-                  <span style={{ fontSize: "10px", color: "#9ca3af" }}>
+                <div style={{ flex: 1, minWidth: 0, background: "#fff", borderRadius: "4px", height: "20px", display: "flex", alignItems: "center", padding: "0 8px", border: "1px solid #d1d5db", overflow: "hidden" }}>
+                  <span style={{ fontSize: "10px", color: "#9ca3af", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "block", width: "100%" }}>
                     {shopDomain || "yourstore.myshopify.com"}/products/example
                   </span>
                 </div>
@@ -1393,6 +1481,122 @@ export function FormDesignerWorkspace({
           </BlockStack>
         </Box>
       </InlineGrid>
+
+      {/* Templates Modal */}
+      <Modal
+        open={showTemplatesModal}
+        onClose={() => setShowTemplatesModal(false)}
+        title="Form Templates"
+        size="large"
+        primaryAction={{ content: "Done", onAction: () => setShowTemplatesModal(false) }}
+      >
+        <Modal.Section>
+          <BlockStack gap="400">
+            <BlockStack gap="100">
+              <Text as="h3" variant="headingMd">Basic Shapes</Text>
+              <Text as="p" variant="bodyMd" tone="subdued">
+                Choose a template to apply border radius and styling presets to your form.
+              </Text>
+            </BlockStack>
+            <div style={{ display: "flex", gap: "20px", flexWrap: "wrap", justifyContent: "center" }}>
+              {SHAPE_TEMPLATES.map((tmpl) => (
+                <div key={tmpl.id} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "8px" }}>
+                  <div
+                    onClick={() => applyShapeTemplate(tmpl)}
+                    style={{
+                      cursor: "pointer",
+                      borderRadius: "10px",
+                      border: `2px solid ${
+                        formBorderRadius === tmpl.formBorderRadius && fieldBorderRadius === tmpl.fieldBorderRadius
+                          ? "#000"
+                          : "#e5e7eb"
+                      }`,
+                      padding: "10px",
+                      background: "#fff",
+                      transition: "border-color 0.15s",
+                    }}
+                  >
+                    <div style={{
+                      background: "#f9fafb",
+                      borderRadius: `${Math.min(tmpl.formBorderRadius, 16)}px`,
+                      border: "1px solid #e5e7eb",
+                      padding: "12px",
+                      width: "104px",
+                    }}>
+                      {[1, 2, 3].map((i) => (
+                        <div key={i} style={{
+                          height: "22px",
+                          background: "#fff",
+                          border: "1px solid #d1d5db",
+                          borderRadius: `${tmpl.fieldBorderRadius}px`,
+                          marginBottom: "7px",
+                        }} />
+                      ))}
+                      <div style={{
+                        height: "30px",
+                        background: "#111827",
+                        borderRadius: `${tmpl.fieldBorderRadius}px`,
+                      }} />
+                    </div>
+                  </div>
+                  <Text as="p" variant="bodySm" alignment="center">{tmpl.name}</Text>
+                </div>
+              ))}
+            </div>
+          </BlockStack>
+        </Modal.Section>
+
+        <Modal.Section>
+          <BlockStack gap="400">
+            <BlockStack gap="100">
+              <Text as="h3" variant="headingMd">Advanced Form Templates</Text>
+              <Text as="p" variant="bodyMd" tone="subdued">
+                Apply a complete color scheme to your form. All templates are free.
+              </Text>
+            </BlockStack>
+            <div style={{ display: "flex", gap: "16px", flexWrap: "wrap" }}>
+              {COLOR_TEMPLATES.map((tmpl) => (
+                <div key={tmpl.id} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "8px" }}>
+                  <div
+                    onClick={() => applyColorTemplate(tmpl)}
+                    style={{
+                      cursor: "pointer",
+                      borderRadius: "10px",
+                      border: `2px solid ${
+                        hsbToHex(formBgColor) === tmpl.formBg ? "#3b82f6" : "#e5e7eb"
+                      }`,
+                      padding: "8px",
+                      background: "#fff",
+                      transition: "border-color 0.15s",
+                    }}
+                  >
+                    <div style={{
+                      background: tmpl.formBg,
+                      border: `1px solid ${tmpl.formBorder}`,
+                      borderRadius: "8px",
+                      padding: "12px",
+                      width: "100px",
+                    }}>
+                      <div style={{ height: "6px", background: tmpl.formText, opacity: 0.6, borderRadius: "3px", width: "60%", marginBottom: "10px" }} />
+                      {[1, 2].map((i) => (
+                        <div key={i} style={{
+                          height: "20px",
+                          background: tmpl.fieldBg,
+                          border: `1px solid ${tmpl.fieldBorder}`,
+                          borderRadius: "4px",
+                          marginBottom: "6px",
+                        }} />
+                      ))}
+                      <div style={{ height: "24px", background: tmpl.formText, borderRadius: "4px" }} />
+                    </div>
+                  </div>
+                  <Text as="p" variant="bodySm" alignment="center">{tmpl.name}</Text>
+                </div>
+              ))}
+            </div>
+          </BlockStack>
+        </Modal.Section>
+      </Modal>
     </BlockStack>
   );
 }
