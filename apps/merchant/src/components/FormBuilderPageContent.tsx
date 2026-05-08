@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { ReactElement } from "react";
 import type { IconSource } from "@shopify/polaris";
 import {
@@ -23,6 +23,7 @@ import {
   DeliveryIcon,
   FormsIcon,
   TabletIcon,
+  ThemeEditIcon,
 } from "@shopify/polaris-icons";
 
 import { BuyButtonDesignerWorkspace } from "@/components/form-builder/BuyButtonDesignerWorkspace";
@@ -77,8 +78,23 @@ const MODES: ModeConfig[] = [
  * Form Builder workspace: Polaris-only layout aligned with Built for Shopify patterns
  * (page structure, cards, fitted tabs, EmptyState placeholder).
  */
+const SHOPIFY_API_KEY = process.env.NEXT_PUBLIC_SHOPIFY_API_KEY ?? "";
+const EXTENSION_HANDLE = "cod-form";
+
+function buildThemeEditorUrl(shopDomain: string): string {
+  if (!shopDomain) return "";
+  const storeName = shopDomain.replace(".myshopify.com", "");
+  return `https://admin.shopify.com/store/${storeName}/themes/current/editor?context=apps&appEmbed=${SHOPIFY_API_KEY}%2F${EXTENSION_HANDLE}`;
+}
+
 export function FormBuilderPageContent(): ReactElement {
   const [mode, setMode] = useState<FormBuilderMode>("buy-button");
+  const [themeEditorUrl, setThemeEditorUrl] = useState("");
+
+  useEffect(() => {
+    const domain: string = (window as Window & { shopify?: { config?: { shop?: string } } }).shopify?.config?.shop ?? "";
+    if (domain) setThemeEditorUrl(buildThemeEditorUrl(domain));
+  }, []);
 
   const handleModeChange = useCallback((next: FormBuilderMode): void => {
     setMode(next);
@@ -95,6 +111,15 @@ export function FormBuilderPageContent(): ReactElement {
           : undefined
       }
       titleMetadata={<Badge tone="success">New</Badge>}
+      secondaryActions={[
+        {
+          content: "Customize theme",
+          icon: ThemeEditIcon,
+          url: themeEditorUrl || undefined,
+          target: "_blank",
+          disabled: !themeEditorUrl,
+        },
+      ]}
     >
       <BlockStack gap="400">
         <Box

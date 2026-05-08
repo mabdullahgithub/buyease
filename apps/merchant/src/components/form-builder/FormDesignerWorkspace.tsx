@@ -416,9 +416,17 @@ export function FormDesignerWorkspace({
   const shopify = useShopifyBridge();
 
   const [shopDomain, setShopDomain] = useState("");
+  const [themeEditorUrl, setThemeEditorUrl] = useState("#buyease-visibility");
   useEffect(() => {
     const domain = window.shopify?.config?.shop ?? "";
-    if (domain) setShopDomain(domain);
+    if (domain) {
+      setShopDomain(domain);
+      const storeName = domain.replace(".myshopify.com", "");
+      const apiKey = process.env.NEXT_PUBLIC_SHOPIFY_API_KEY ?? "";
+      setThemeEditorUrl(
+        `https://admin.shopify.com/store/${storeName}/themes/current/editor?context=apps&appEmbed=${apiKey}%2Fcod-form`,
+      );
+    }
   }, []);
 
   // Remote state
@@ -1104,8 +1112,9 @@ export function FormDesignerWorkspace({
           tone="warning"
           icon={AlertCircleIcon}
           action={{
-            content: "Go to Visibility",
-            url: "#buyease-visibility",
+            content: "Customize theme",
+            url: themeEditorUrl,
+            target: "_blank",
           }}
         >
           <Text as="p" variant="bodyMd">
