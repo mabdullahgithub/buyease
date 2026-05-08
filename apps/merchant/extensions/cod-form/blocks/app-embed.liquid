@@ -1,0 +1,21 @@
+{% if product %}
+<div
+  id="buyease-cod-root"
+  data-product-id="{{ product.id }}"
+  data-product-title="{{ product.title | escape }}"
+  data-variant-id="{{ product.selected_or_first_available_variant.id }}"
+  data-price="{{ product.selected_or_first_available_variant.price }}"
+  data-currency="{{ shop.currency }}"
+  data-shop="{{ shop.permanent_domain }}"
+  data-api-base="{{ app.url }}"
+></div>
+{% endif %}
+{{ 'cod-form.js' | asset_url | script_tag }}
+
+{% schema %}
+{
+  "name": "BuyEase COD Form",
+  "target": "body",
+  "settings": []
+}
+{% endschema %}
