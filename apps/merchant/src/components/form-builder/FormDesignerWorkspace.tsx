@@ -100,6 +100,121 @@ const SHAPE_TEMPLATES: ShapeTemplate[] = [
   { id: "full-round", name: "Full Round", formBorderRadius: 50, fieldBorderRadius: 50 },
 ];
 
+type FullTemplate = {
+  id: string;
+  name: string;
+  description: string;
+  premium?: boolean;
+  formBgColor: string;
+  formTextColor: string;
+  formBorderColor: string;
+  formBorderRadiusPx: number;
+  formBorderWidthPx: number;
+  formShadowPx: number;
+  formPaddingPx: number;
+  fieldBgColor: string;
+  fieldTextColor: string;
+  fieldBorderColor: string;
+  fieldBorderRadiusPx: number;
+  accentColor: string;
+};
+
+const ADVANCED_TEMPLATES: FullTemplate[] = [
+  {
+    id: "minimalist", name: "Minimalist", description: "Ultra-clean, whitespace-first",
+    formBgColor: "#ffffff", formTextColor: "#111827", formBorderColor: "#f0f0f0",
+    formBorderRadiusPx: 8, formBorderWidthPx: 1, formShadowPx: 0, formPaddingPx: 28,
+    fieldBgColor: "#fafafa", fieldTextColor: "#111827", fieldBorderColor: "#e8e8e8",
+    fieldBorderRadiusPx: 6, accentColor: "#111827",
+  },
+  {
+    id: "dark-mode", name: "Dark Mode", description: "Sleek dark UI with purple accent",
+    formBgColor: "#1e1e2e", formTextColor: "#e8e8f0", formBorderColor: "#313147",
+    formBorderRadiusPx: 12, formBorderWidthPx: 1, formShadowPx: 24, formPaddingPx: 24,
+    fieldBgColor: "#2a2a3e", fieldTextColor: "#e8e8f0", fieldBorderColor: "#404060",
+    fieldBorderRadiusPx: 8, accentColor: "#6c63ff",
+  },
+  {
+    id: "ocean-blue", name: "Ocean Blue", description: "Professional blue-tinted form",
+    formBgColor: "#f0f7ff", formTextColor: "#1a3a5c", formBorderColor: "#b8d8f0",
+    formBorderRadiusPx: 12, formBorderWidthPx: 1, formShadowPx: 12, formPaddingPx: 20,
+    fieldBgColor: "#ffffff", fieldTextColor: "#1a3a5c", fieldBorderColor: "#c8e0f4",
+    fieldBorderRadiusPx: 6, accentColor: "#2563eb",
+  },
+  {
+    id: "warm-sand", name: "Warm Sand", description: "Earthy, warm tones",
+    formBgColor: "#fdf6ee", formTextColor: "#3d2b1f", formBorderColor: "#e8d5c0",
+    formBorderRadiusPx: 16, formBorderWidthPx: 1, formShadowPx: 8, formPaddingPx: 20,
+    fieldBgColor: "#fff9f4", fieldTextColor: "#3d2b1f", fieldBorderColor: "#dcc8b0",
+    fieldBorderRadiusPx: 10, accentColor: "#c87941",
+  },
+  {
+    id: "forest", name: "Forest", description: "Organic green, natural feel",
+    formBgColor: "#f3f9f5", formTextColor: "#1a3329", formBorderColor: "#c0dfc8",
+    formBorderRadiusPx: 12, formBorderWidthPx: 1, formShadowPx: 8, formPaddingPx: 20,
+    fieldBgColor: "#ffffff", fieldTextColor: "#1a3329", fieldBorderColor: "#b8d4c0",
+    fieldBorderRadiusPx: 6, accentColor: "#16a34a",
+  },
+  {
+    id: "slate", name: "Slate", description: "Modern, elevated gray palette",
+    formBgColor: "#f8fafc", formTextColor: "#0f172a", formBorderColor: "#e2e8f0",
+    formBorderRadiusPx: 10, formBorderWidthPx: 1, formShadowPx: 16, formPaddingPx: 20,
+    fieldBgColor: "#ffffff", fieldTextColor: "#334155", fieldBorderColor: "#cbd5e1",
+    fieldBorderRadiusPx: 6, accentColor: "#475569",
+  },
+];
+
+const PREMIUM_TEMPLATES: FullTemplate[] = [
+  {
+    id: "luxury-gold", name: "Luxury Gold", description: "Timeless black & gold elegance",
+    premium: true,
+    formBgColor: "#0d0d0d", formTextColor: "#f5e6c0", formBorderColor: "#b8922a",
+    formBorderRadiusPx: 4, formBorderWidthPx: 1, formShadowPx: 32, formPaddingPx: 28,
+    fieldBgColor: "#1a1a1a", fieldTextColor: "#f5e6c0", fieldBorderColor: "#8a6a18",
+    fieldBorderRadiusPx: 4, accentColor: "#d4a017",
+  },
+  {
+    id: "deep-ocean", name: "Deep Ocean", description: "Rich navy with electric cyan",
+    premium: true,
+    formBgColor: "#0a1628", formTextColor: "#e0f2fe", formBorderColor: "#1e3a5f",
+    formBorderRadiusPx: 16, formBorderWidthPx: 1, formShadowPx: 24, formPaddingPx: 24,
+    fieldBgColor: "#0f2039", fieldTextColor: "#e0f2fe", fieldBorderColor: "#2451a0",
+    fieldBorderRadiusPx: 10, accentColor: "#06b6d4",
+  },
+  {
+    id: "rose-quartz", name: "Rose Quartz", description: "Soft luxury pink, feminine & bold",
+    premium: true,
+    formBgColor: "#fff5f7", formTextColor: "#5a1a2e", formBorderColor: "#f9c0cc",
+    formBorderRadiusPx: 20, formBorderWidthPx: 1, formShadowPx: 16, formPaddingPx: 24,
+    fieldBgColor: "#fff9fa", fieldTextColor: "#5a1a2e", fieldBorderColor: "#f5b0c0",
+    fieldBorderRadiusPx: 12, accentColor: "#e11d48",
+  },
+  {
+    id: "midnight-purple", name: "Midnight Purple", description: "Deep velvet purple glow",
+    premium: true,
+    formBgColor: "#0f0a1e", formTextColor: "#e8d8ff", formBorderColor: "#3d1e6e",
+    formBorderRadiusPx: 12, formBorderWidthPx: 1, formShadowPx: 32, formPaddingPx: 24,
+    fieldBgColor: "#1a1030", fieldTextColor: "#e8d8ff", fieldBorderColor: "#5b3a9e",
+    fieldBorderRadiusPx: 8, accentColor: "#9333ea",
+  },
+  {
+    id: "arctic-frost", name: "Arctic Frost", description: "Icy clarity, premium white",
+    premium: true,
+    formBgColor: "#f0f8ff", formTextColor: "#0a2540", formBorderColor: "#b0d8f0",
+    formBorderRadiusPx: 24, formBorderWidthPx: 1, formShadowPx: 20, formPaddingPx: 24,
+    fieldBgColor: "#ffffff", fieldTextColor: "#0a2540", fieldBorderColor: "#a0c8e8",
+    fieldBorderRadiusPx: 16, accentColor: "#0ea5e9",
+  },
+  {
+    id: "ember-dark", name: "Ember Dark", description: "Fiery amber on deep charcoal",
+    premium: true,
+    formBgColor: "#1a0f00", formTextColor: "#ffe8c0", formBorderColor: "#6b3a00",
+    formBorderRadiusPx: 8, formBorderWidthPx: 1, formShadowPx: 28, formPaddingPx: 24,
+    fieldBgColor: "#261500", fieldTextColor: "#ffe8c0", fieldBorderColor: "#8a4c00",
+    fieldBorderRadiusPx: 6, accentColor: "#f97316",
+  },
+];
+
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -634,6 +749,21 @@ export function FormDesignerWorkspace({
     setShowTemplatesModal(false);
   }, []);
 
+  const applyFullTemplate = useCallback((tmpl: FullTemplate): void => {
+    setFormBgColor(hexToHsb(tmpl.formBgColor));
+    setFormTextColor(hexToHsb(tmpl.formTextColor));
+    setFormBorderColor(hexToHsb(tmpl.formBorderColor));
+    setFormBorderRadius(tmpl.formBorderRadiusPx);
+    setFormBorderWidth(tmpl.formBorderWidthPx);
+    setFormShadow(tmpl.formShadowPx);
+    setFormPaddingPx(tmpl.formPaddingPx);
+    setFieldBgColor(hexToHsb(tmpl.fieldBgColor));
+    setFieldTextColor(hexToHsb(tmpl.fieldTextColor));
+    setFieldBorderColor(hexToHsb(tmpl.fieldBorderColor));
+    setFieldBorderRadius(tmpl.fieldBorderRadiusPx);
+    setShowTemplatesModal(false);
+  }, []);
+
   const toggleColorPicker = useCallback((id: string): void => {
     setOpenColorPicker((prev) => (prev === id ? null : id));
   }, []);
@@ -983,11 +1113,7 @@ export function FormDesignerWorkspace({
         </Banner>
       )}
 
-      <InlineGrid
-        columns={{ xs: 1, md: ["oneHalf", "oneHalf"] }}
-        gap="400"
-        alignItems="start"
-      >
+      <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.35fr) minmax(0, 0.65fr)", gap: "16px", alignItems: "start" }}>
         <BlockStack gap="400">
 
           {/* Form Type */}
@@ -1851,60 +1977,359 @@ export function FormDesignerWorkspace({
             </div>
           </BlockStack>
         </Box>
-      </InlineGrid>
+      </div>
 
-      {/* Shape Templates Modal */}
+      {/* Form Templates Modal */}
       <Modal
         open={showTemplatesModal}
         onClose={() => setShowTemplatesModal(false)}
-        title="Shape Templates"
+        title="Browse Templates"
         size="large"
         primaryAction={{ content: "Done", onAction: () => setShowTemplatesModal(false) }}
       >
+        {/* ── Section header ── */}
         <Modal.Section>
-          <BlockStack gap="400">
+          <div style={{
+            background: "linear-gradient(135deg, #f8fafc 0%, #f0f4ff 100%)",
+            borderRadius: "12px",
+            padding: "20px 24px",
+            border: "1px solid #e8ecf4",
+          }}>
             <BlockStack gap="100">
-              <Text as="h3" variant="headingMd">All Shape Templates</Text>
+              <Text as="h2" variant="headingMd">Choose a template to apply</Text>
               <Text as="p" variant="bodyMd" tone="subdued">
-                Choose a shape style for your form. Click any template to apply it.
+                Click any template to instantly apply it to your form. Shape templates adjust border radius only. Advanced &amp; Premium templates apply a complete style.
               </Text>
             </BlockStack>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: "16px" }}>
+          </div>
+        </Modal.Section>
+
+        {/* ── Shape Templates ── */}
+        <Modal.Section>
+          <BlockStack gap="400">
+            <InlineStack align="space-between" blockAlign="center">
+              <BlockStack gap="050">
+                <InlineStack gap="200" blockAlign="center">
+                  <div style={{
+                    width: "8px", height: "8px", borderRadius: "2px",
+                    background: "linear-gradient(135deg, #6b7280, #374151)",
+                  }} />
+                  <Text as="h3" variant="headingSm">Shape Templates</Text>
+                </InlineStack>
+                <Text as="p" variant="bodySm" tone="subdued">Adjust form and field corner radius</Text>
+              </BlockStack>
+              <div style={{
+                background: "#f3f4f6",
+                borderRadius: "100px",
+                padding: "2px 10px",
+              }}>
+                <Text as="span" variant="bodySm" tone="subdued">{SHAPE_TEMPLATES.length} styles</Text>
+              </div>
+            </InlineStack>
+
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: "12px" }}>
               {SHAPE_TEMPLATES.map((tmpl) => {
                 const isActive = formBorderRadius === tmpl.formBorderRadius && fieldBorderRadius === tmpl.fieldBorderRadius;
                 return (
-                  <div key={tmpl.id} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "8px" }}>
-                    <div
-                      onClick={() => applyShapeTemplate(tmpl)}
-                      style={{
-                        cursor: "pointer",
-                        borderRadius: "10px",
-                        border: `2px solid ${isActive ? "#3b82f6" : "#e5e7eb"}`,
-                        padding: "12px",
-                        background: "#fff",
-                        transition: "border-color 0.15s",
-                        width: "100%",
-                      }}
-                    >
+                  <div
+                    key={tmpl.id}
+                    onClick={() => applyShapeTemplate(tmpl)}
+                    style={{
+                      cursor: "pointer",
+                      borderRadius: "10px",
+                      border: `2px solid ${isActive ? "#2563eb" : "#e5e7eb"}`,
+                      padding: "10px 8px 8px",
+                      background: isActive ? "#eff6ff" : "#fff",
+                      transition: "all 0.15s ease",
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      gap: "8px",
+                      boxShadow: isActive ? "0 0 0 3px rgba(37,99,235,0.12)" : "0 1px 2px rgba(0,0,0,0.06)",
+                    }}
+                  >
+                    <div style={{
+                      background: "#f3f4f6",
+                      borderRadius: `${Math.min(tmpl.formBorderRadius, 10)}px`,
+                      border: "1px solid #e5e7eb",
+                      padding: "6px",
+                      width: "100%",
+                    }}>
+                      {[1, 2].map((i) => (
+                        <div key={i} style={{
+                          height: "10px",
+                          background: "#fff",
+                          border: "1px solid #d1d5db",
+                          borderRadius: `${tmpl.fieldBorderRadius}px`,
+                          marginBottom: i === 1 ? "4px" : 0,
+                        }} />
+                      ))}
                       <div style={{
-                        background: "#f9fafb",
-                        borderRadius: `${Math.min(tmpl.formBorderRadius, 14)}px`,
-                        border: "1px solid #e5e7eb",
+                        height: "14px",
+                        background: isActive ? "#2563eb" : "#374151",
+                        borderRadius: `${tmpl.fieldBorderRadius}px`,
+                        marginTop: "4px",
+                      }} />
+                    </div>
+                    <Text as="span" variant="bodySm" alignment="center">
+                      {tmpl.name}
+                    </Text>
+                  </div>
+                );
+              })}
+            </div>
+          </BlockStack>
+        </Modal.Section>
+
+        {/* ── Advanced Form Templates ── */}
+        <Modal.Section>
+          <BlockStack gap="400">
+            <InlineStack align="space-between" blockAlign="center">
+              <BlockStack gap="050">
+                <InlineStack gap="200" blockAlign="center">
+                  <div style={{
+                    width: "8px", height: "8px", borderRadius: "2px",
+                    background: "linear-gradient(135deg, #6366f1, #4f46e5)",
+                  }} />
+                  <Text as="h3" variant="headingSm">Advanced Form Templates</Text>
+                </InlineStack>
+                <Text as="p" variant="bodySm" tone="subdued">Full design presets — colors, borders, shadows &amp; spacing</Text>
+              </BlockStack>
+              <div style={{
+                background: "linear-gradient(135deg, #eef2ff, #e0e7ff)",
+                borderRadius: "100px",
+                padding: "2px 10px",
+                border: "1px solid #c7d2fe",
+              }}>
+                <Text as="span" variant="bodySm" tone="subdued">{ADVANCED_TEMPLATES.length} presets</Text>
+              </div>
+            </InlineStack>
+
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "14px" }}>
+              {ADVANCED_TEMPLATES.map((tmpl) => {
+                const isActive =
+                  hsbToHex(formBgColor) === tmpl.formBgColor &&
+                  hsbToHex(fieldBgColor) === tmpl.fieldBgColor &&
+                  formBorderRadius === tmpl.formBorderRadiusPx;
+                return (
+                  <div
+                    key={tmpl.id}
+                    onClick={() => applyFullTemplate(tmpl)}
+                    style={{
+                      cursor: "pointer",
+                      borderRadius: "12px",
+                      border: `2px solid ${isActive ? "#4f46e5" : "#e5e7eb"}`,
+                      overflow: "hidden",
+                      transition: "all 0.18s ease",
+                      boxShadow: isActive
+                        ? "0 0 0 4px rgba(79,70,229,0.15)"
+                        : "0 2px 6px rgba(0,0,0,0.07)",
+                      background: "#fff",
+                    }}
+                  >
+                    {/* Color preview strip */}
+                    <div style={{
+                      background: tmpl.formBgColor,
+                      padding: "14px",
+                      minHeight: "110px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}>
+                      <div style={{
+                        background: tmpl.formBgColor,
+                        border: `${tmpl.formBorderWidthPx}px solid ${tmpl.formBorderColor}`,
+                        borderRadius: `${Math.min(tmpl.formBorderRadiusPx, 14)}px`,
                         padding: "10px",
+                        width: "100%",
+                        boxShadow: tmpl.formShadowPx > 0
+                          ? `0 ${Math.min(tmpl.formShadowPx / 3, 8)}px ${Math.min(tmpl.formShadowPx, 20)}px rgba(0,0,0,0.18)`
+                          : "none",
                       }}>
+                        <div style={{
+                          height: "6px", width: "55%",
+                          background: tmpl.formTextColor,
+                          opacity: 0.7,
+                          borderRadius: "4px",
+                          marginBottom: "8px",
+                        }} />
                         {[1, 2].map((i) => (
                           <div key={i} style={{
-                            height: "16px",
-                            background: "#fff",
-                            border: "1px solid #d1d5db",
-                            borderRadius: `${tmpl.fieldBorderRadius}px`,
-                            marginBottom: i === 1 ? "6px" : 0,
+                            height: "14px",
+                            background: tmpl.fieldBgColor,
+                            border: `1px solid ${tmpl.fieldBorderColor}`,
+                            borderRadius: `${Math.min(tmpl.fieldBorderRadiusPx, 10)}px`,
+                            marginBottom: i === 1 ? "5px" : "7px",
                           }} />
                         ))}
-                        <div style={{ height: "20px", background: "#111827", borderRadius: `${tmpl.fieldBorderRadius}px`, marginTop: "6px" }} />
+                        <div style={{
+                          height: "18px",
+                          background: tmpl.accentColor,
+                          borderRadius: `${Math.min(tmpl.fieldBorderRadiusPx, 10)}px`,
+                        }} />
                       </div>
                     </div>
-                    <Text as="p" variant="bodySm" alignment="center">{tmpl.name}</Text>
+
+                    {/* Card footer */}
+                    <div style={{
+                      padding: "10px 14px 12px",
+                      background: "#fff",
+                      borderTop: "1px solid #f3f4f6",
+                    }}>
+                      <InlineStack align="space-between" blockAlign="center">
+                        <BlockStack gap="050">
+                          <Text as="p" variant="bodySm" fontWeight="semibold">{tmpl.name}</Text>
+                          <Text as="p" variant="bodyXs" tone="subdued">{tmpl.description}</Text>
+                        </BlockStack>
+                        {isActive && (
+                          <div style={{
+                            background: "#4f46e5",
+                            borderRadius: "100px",
+                            padding: "2px 8px",
+                          }}>
+                            <Text as="span" variant="bodyXs" tone="text-inverse">Applied</Text>
+                          </div>
+                        )}
+                      </InlineStack>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </BlockStack>
+        </Modal.Section>
+
+        {/* ── Premium Templates ── */}
+        <Modal.Section>
+          <BlockStack gap="400">
+            <InlineStack align="space-between" blockAlign="center">
+              <BlockStack gap="050">
+                <InlineStack gap="200" blockAlign="center">
+                  <div style={{
+                    width: "8px", height: "8px", borderRadius: "2px",
+                    background: "linear-gradient(135deg, #f59e0b, #d97706)",
+                  }} />
+                  <Text as="h3" variant="headingSm">Premium Templates</Text>
+                </InlineStack>
+                <Text as="p" variant="bodySm" tone="subdued">Distinctive, high-impact styles for standout stores</Text>
+              </BlockStack>
+              <div style={{
+                background: "linear-gradient(135deg, #fef9c3, #fef3c7)",
+                borderRadius: "100px",
+                padding: "2px 10px",
+                border: "1px solid #fde68a",
+              }}>
+                <Text as="span" variant="bodySm" tone="caution">{PREMIUM_TEMPLATES.length} exclusive</Text>
+              </div>
+            </InlineStack>
+
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "14px" }}>
+              {PREMIUM_TEMPLATES.map((tmpl) => {
+                const isActive =
+                  hsbToHex(formBgColor) === tmpl.formBgColor &&
+                  hsbToHex(fieldBgColor) === tmpl.fieldBgColor &&
+                  formBorderRadius === tmpl.formBorderRadiusPx;
+                return (
+                  <div
+                    key={tmpl.id}
+                    onClick={() => applyFullTemplate(tmpl)}
+                    style={{
+                      cursor: "pointer",
+                      borderRadius: "12px",
+                      border: `2px solid ${isActive ? "#d97706" : "#e5e7eb"}`,
+                      overflow: "hidden",
+                      transition: "all 0.18s ease",
+                      boxShadow: isActive
+                        ? "0 0 0 4px rgba(217,119,6,0.18)"
+                        : "0 2px 6px rgba(0,0,0,0.07)",
+                      background: "#fff",
+                      position: "relative",
+                    }}
+                  >
+                    {/* PRO badge */}
+                    <div style={{
+                      position: "absolute",
+                      top: "8px",
+                      right: "8px",
+                      background: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
+                      color: "#fff",
+                      fontSize: "9px",
+                      fontWeight: 700,
+                      padding: "2px 8px",
+                      borderRadius: "100px",
+                      letterSpacing: "0.07em",
+                      textTransform: "uppercase" as const,
+                      zIndex: 1,
+                      boxShadow: "0 1px 4px rgba(217,119,6,0.4)",
+                    }}>
+                      PRO
+                    </div>
+
+                    {/* Color preview strip */}
+                    <div style={{
+                      background: tmpl.formBgColor,
+                      padding: "14px",
+                      minHeight: "110px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}>
+                      <div style={{
+                        background: tmpl.formBgColor,
+                        border: `${tmpl.formBorderWidthPx}px solid ${tmpl.formBorderColor}`,
+                        borderRadius: `${Math.min(tmpl.formBorderRadiusPx, 14)}px`,
+                        padding: "10px",
+                        width: "100%",
+                        boxShadow: tmpl.formShadowPx > 0
+                          ? `0 ${Math.min(tmpl.formShadowPx / 3, 8)}px ${Math.min(tmpl.formShadowPx, 20)}px rgba(0,0,0,0.35)`
+                          : "none",
+                      }}>
+                        <div style={{
+                          height: "6px", width: "55%",
+                          background: tmpl.formTextColor,
+                          opacity: 0.7,
+                          borderRadius: "4px",
+                          marginBottom: "8px",
+                        }} />
+                        {[1, 2].map((i) => (
+                          <div key={i} style={{
+                            height: "14px",
+                            background: tmpl.fieldBgColor,
+                            border: `1px solid ${tmpl.fieldBorderColor}`,
+                            borderRadius: `${Math.min(tmpl.fieldBorderRadiusPx, 10)}px`,
+                            marginBottom: i === 1 ? "5px" : "7px",
+                          }} />
+                        ))}
+                        <div style={{
+                          height: "18px",
+                          background: tmpl.accentColor,
+                          borderRadius: `${Math.min(tmpl.fieldBorderRadiusPx, 10)}px`,
+                        }} />
+                      </div>
+                    </div>
+
+                    {/* Card footer */}
+                    <div style={{
+                      padding: "10px 14px 12px",
+                      background: "#fff",
+                      borderTop: "1px solid #f3f4f6",
+                    }}>
+                      <InlineStack align="space-between" blockAlign="center">
+                        <BlockStack gap="050">
+                          <Text as="p" variant="bodySm" fontWeight="semibold">{tmpl.name}</Text>
+                          <Text as="p" variant="bodyXs" tone="subdued">{tmpl.description}</Text>
+                        </BlockStack>
+                        {isActive && (
+                          <div style={{
+                            background: "#d97706",
+                            borderRadius: "100px",
+                            padding: "2px 8px",
+                          }}>
+                            <Text as="span" variant="bodyXs" tone="text-inverse">Applied</Text>
+                          </div>
+                        )}
+                      </InlineStack>
+                    </div>
                   </div>
                 );
               })}
