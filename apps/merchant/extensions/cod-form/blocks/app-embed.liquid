@@ -10,7 +10,7 @@
   data-api-base="{{ app.url }}"
 ></div>
 {% endif %}
-{{ 'cod-form.js' | asset_url | script_tag }}
+<script src="{{ 'cod-form.js' | asset_url }}" defer></script>
 
 {% schema %}
 {

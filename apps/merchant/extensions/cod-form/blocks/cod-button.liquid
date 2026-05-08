@@ -9,14 +9,13 @@
   data-shop="{{ shop.permanent_domain }}"
   data-api-base="{{ app.url }}"
 ></div>
-{{ 'cod-form.js' | asset_url | script_tag }}
+<script src="{{ 'cod-form.js' | asset_url }}" defer></script>
 {% endif %}
 
 {% schema %}
 {
   "name": "COD Buy Button",
   "target": "section",
-  "javascript": "cod-form.js",
   "settings": [
     {
       "type": "checkbox",
