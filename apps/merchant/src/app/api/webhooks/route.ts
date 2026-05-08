@@ -186,7 +186,31 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         }
         break;
       }
-      case "orders/create":
+      case "orders/create": {
+        const orderPayload = payload as {
+          id?: number;
+          name?: string;
+          total_price?: string;
+          currency?: string;
+          financial_status?: string;
+        };
+        if (headerShop && orderPayload.id) {
+          const shopifyOrderId = String(orderPayload.id);
+          const draftFallbackId = `draft_${orderPayload.id}`;
+          await prisma.order
+            .updateMany({
+              where: {
+                shopId: headerShop,
+                orderId: { in: [shopifyOrderId, draftFallbackId] },
+              },
+              data: { status: "CONFIRMED" },
+            })
+            .catch((err: unknown) =>
+              console.error("orders/create: DB update failed", { shop: headerShop, orderId: shopifyOrderId, err }),
+            );
+        }
+        break;
+      }
       case "orders/updated":
       case "customers/data_request":
       case "customers/redact":

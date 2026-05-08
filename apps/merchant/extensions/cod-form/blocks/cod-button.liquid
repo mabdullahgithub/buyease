@@ -1,1 +1,29 @@
-{% comment %}TODO: App block replacing Buy Now button.{% endcomment %}
+{% if block.settings.enabled %}
+<div
+  id="buyease-cod-root"
+  data-product-id="{{ product.id }}"
+  data-product-title="{{ product.title | escape }}"
+  data-variant-id="{{ product.selected_or_first_available_variant.id }}"
+  data-price="{{ product.selected_or_first_available_variant.price }}"
+  data-currency="{{ shop.currency }}"
+  data-shop="{{ shop.permanent_domain }}"
+  data-api-base="{{ app.url }}"
+></div>
+{{ 'cod-form.js' | asset_url | script_tag }}
+{% endif %}
+
+{% schema %}
+{
+  "name": "COD Buy Button",
+  "target": "section",
+  "javascript": "cod-form.js",
+  "settings": [
+    {
+      "type": "checkbox",
+      "id": "enabled",
+      "label": "Enable COD button",
+      "default": true
+    }
+  ]
+}
+{% endschema %}

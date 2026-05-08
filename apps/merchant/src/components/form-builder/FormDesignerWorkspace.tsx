@@ -1104,8 +1104,8 @@ export function FormDesignerWorkspace({
           tone="warning"
           icon={AlertCircleIcon}
           action={{
-            content: "Visibility",
-            onAction: () => preferencesRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }),
+            content: "Go to Visibility",
+            url: "#buyease-visibility",
           }}
         >
           <Text as="p" variant="bodyMd">
@@ -1687,7 +1687,7 @@ export function FormDesignerWorkspace({
           </Card>
 
           {/* Preferences */}
-          <div ref={preferencesRef}>
+          <div ref={preferencesRef} id="buyease-visibility">
           <Card padding="0">
             {/* Header */}
             <Box padding="400">
