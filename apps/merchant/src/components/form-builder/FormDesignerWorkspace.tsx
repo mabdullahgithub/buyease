@@ -90,7 +90,6 @@ function getFormIcon(id: string) {
 // ─── Templates ────────────────────────────────────────────────────────────────
 
 type ShapeTemplate = { id: string; name: string; formBorderRadius: number; fieldBorderRadius: number };
-type ColorTemplate  = { id: string; name: string; formBg: string; formBorder: string; formText: string; fieldBg: string; fieldBorder: string; fieldText: string };
 
 const SHAPE_TEMPLATES: ShapeTemplate[] = [
   { id: "square",     name: "Square",     formBorderRadius: 0,  fieldBorderRadius: 0  },
@@ -101,25 +100,6 @@ const SHAPE_TEMPLATES: ShapeTemplate[] = [
   { id: "full-round", name: "Full Round", formBorderRadius: 50, fieldBorderRadius: 50 },
 ];
 
-const COLOR_TEMPLATES: ColorTemplate[] = [
-  { id: "basic",     name: "Basic",     formBg: "#ffffff", formBorder: "#e1e3e5", formText: "#202223", fieldBg: "#ffffff", fieldBorder: "#cccccc", fieldText: "#1a1a1a" },
-  { id: "emerald",   name: "Emerald",   formBg: "#f0fdf4", formBorder: "#a7f3d0", formText: "#065f46", fieldBg: "#ffffff", fieldBorder: "#6ee7b7", fieldText: "#065f46" },
-  { id: "ruby",      name: "Ruby",      formBg: "#fff1f2", formBorder: "#fecdd3", formText: "#881337", fieldBg: "#ffffff", fieldBorder: "#fda4af", fieldText: "#881337" },
-  { id: "excalibur", name: "Excalibur", formBg: "#0f172a", formBorder: "#1e293b", formText: "#f1f5f9", fieldBg: "#1e293b", fieldBorder: "#334155", fieldText: "#f1f5f9" },
-  { id: "sapphire",  name: "Sapphire",  formBg: "#eff6ff", formBorder: "#bfdbfe", formText: "#1e40af", fieldBg: "#ffffff", fieldBorder: "#93c5fd", fieldText: "#1e40af" },
-  { id: "aurora",    name: "Aurora",    formBg: "#faf5ff", formBorder: "#e9d5ff", formText: "#4c1d95", fieldBg: "#ffffff", fieldBorder: "#c4b5fd", fieldText: "#4c1d95" },
-  { id: "obsidian",  name: "Obsidian",  formBg: "#111827", formBorder: "#374151", formText: "#f9fafb", fieldBg: "#1f2937", fieldBorder: "#4b5563", fieldText: "#f9fafb" },
-];
-
-const PREMIUM_COLOR_TEMPLATES: ColorTemplate[] = [
-  { id: "neon",       name: "Neon",      formBg: "#0a0a0a", formBorder: "#00ff87", formText: "#00ff87", fieldBg: "#111111", fieldBorder: "#00cc6a", fieldText: "#00ff87" },
-  { id: "sunset",     name: "Sunset",    formBg: "#fff7ed", formBorder: "#f97316", formText: "#7c2d12", fieldBg: "#ffffff", fieldBorder: "#fb923c", fieldText: "#7c2d12" },
-  { id: "ocean",      name: "Ocean",     formBg: "#0c1a2e", formBorder: "#0ea5e9", formText: "#e0f2fe", fieldBg: "#0f2744", fieldBorder: "#38bdf8", fieldText: "#e0f2fe" },
-  { id: "mint",       name: "Mint",      formBg: "#f0fdfa", formBorder: "#14b8a6", formText: "#134e4a", fieldBg: "#ffffff", fieldBorder: "#2dd4bf", fieldText: "#134e4a" },
-  { id: "onyx",       name: "Onyx",      formBg: "#09090b", formBorder: "#27272a", formText: "#fafafa", fieldBg: "#18181b", fieldBorder: "#3f3f46", fieldText: "#fafafa" },
-  { id: "rose-gold",  name: "Rose Gold", formBg: "#fff1f2", formBorder: "#f43f5e", formText: "#9f1239", fieldBg: "#fff5f7", fieldBorder: "#fb7185", fieldText: "#9f1239" },
-  { id: "slate-pro",  name: "Slate Pro", formBg: "#1e293b", formBorder: "#475569", formText: "#f1f5f9", fieldBg: "#0f172a", fieldBorder: "#334155", fieldText: "#f1f5f9" },
-];
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -589,16 +569,6 @@ export function FormDesignerWorkspace({
   const applyShapeTemplate = useCallback((tmpl: ShapeTemplate): void => {
     setFormBorderRadius(tmpl.formBorderRadius);
     setFieldBorderRadius(tmpl.fieldBorderRadius);
-    setShowTemplatesModal(false);
-  }, []);
-
-  const applyColorTemplate = useCallback((tmpl: ColorTemplate): void => {
-    setFormBgColor(hexToHsb(tmpl.formBg));
-    setFormBorderColor(hexToHsb(tmpl.formBorder));
-    setFormTextColor(hexToHsb(tmpl.formText));
-    setFieldBgColor(hexToHsb(tmpl.fieldBg));
-    setFieldBorderColor(hexToHsb(tmpl.fieldBorder));
-    setFieldTextColor(hexToHsb(tmpl.fieldText));
     setShowTemplatesModal(false);
   }, []);
 
@@ -1294,7 +1264,12 @@ export function FormDesignerWorkspace({
               <Text as="h2" variant="headingSm">Design Settings</Text>
 
               {/* ── Shape templates (all 6 inline) ── */}
-              <Text as="h3" variant="headingSm">Shapes</Text>
+              <InlineStack align="space-between" blockAlign="center">
+                <Text as="h3" variant="headingSm">Template Shapes</Text>
+                <Button variant="plain" onClick={() => setShowTemplatesModal(true)}>
+                  Browse advanced
+                </Button>
+              </InlineStack>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: "8px" }}>
                 {SHAPE_TEMPLATES.map((tmpl) => {
                   const isActive = formBorderRadius === tmpl.formBorderRadius && fieldBorderRadius === tmpl.fieldBorderRadius;
@@ -1340,34 +1315,6 @@ export function FormDesignerWorkspace({
                 })}
               </div>
 
-              <Divider />
-
-              {/* ── Color templates ── */}
-              <InlineStack align="space-between" blockAlign="center">
-                <Text as="h3" variant="headingSm">Color Templates</Text>
-                <Button variant="plain" onClick={() => setShowTemplatesModal(true)}>
-                  Browse advanced
-                </Button>
-              </InlineStack>
-              <InlineStack gap="200" wrap>
-                {COLOR_TEMPLATES.map((tmpl) => (
-                  <Tooltip key={tmpl.id} content={tmpl.name}>
-                    <div
-                      onClick={() => applyColorTemplate(tmpl)}
-                      style={{
-                        width: "32px", height: "32px", borderRadius: "50%",
-                        background: tmpl.formBg, border: `2px solid ${tmpl.formBorder}`,
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        cursor: "pointer", boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
-                        outline: hsbToHex(formBgColor) === tmpl.formBg ? "3px solid #000" : "none",
-                        outlineOffset: "2px",
-                      }}
-                    >
-                      <div style={{ width: "10px", height: "10px", borderRadius: "50%", background: tmpl.formText }} />
-                    </div>
-                  </Tooltip>
-                ))}
-              </InlineStack>
 
               <Divider />
 
@@ -1615,108 +1562,61 @@ export function FormDesignerWorkspace({
         </Box>
       </InlineGrid>
 
-      {/* Templates Modal */}
+      {/* Shape Templates Modal */}
       <Modal
         open={showTemplatesModal}
         onClose={() => setShowTemplatesModal(false)}
-        title="Advanced Color Templates"
+        title="Shape Templates"
         size="large"
         primaryAction={{ content: "Done", onAction: () => setShowTemplatesModal(false) }}
       >
         <Modal.Section>
           <BlockStack gap="400">
             <BlockStack gap="100">
-              <Text as="h3" variant="headingMd">Advanced Templates</Text>
+              <Text as="h3" variant="headingMd">All Shape Templates</Text>
               <Text as="p" variant="bodyMd" tone="subdued">
-                Apply a complete color scheme to your form instantly. Click any template to apply it.
+                Choose a shape style for your form. Click any template to apply it.
               </Text>
             </BlockStack>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(110px, 1fr))", gap: "16px" }}>
-              {COLOR_TEMPLATES.map((tmpl) => (
-                <div key={tmpl.id} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "8px" }}>
-                  <div
-                    onClick={() => applyColorTemplate(tmpl)}
-                    style={{
-                      cursor: "pointer",
-                      borderRadius: "10px",
-                      border: `2px solid ${hsbToHex(formBgColor) === tmpl.formBg ? "#3b82f6" : "#e5e7eb"}`,
-                      padding: "8px",
-                      background: "#fff",
-                      transition: "border-color 0.15s",
-                      width: "100%",
-                    }}
-                  >
-                    <div style={{
-                      background: tmpl.formBg,
-                      border: `1px solid ${tmpl.formBorder}`,
-                      borderRadius: "8px",
-                      padding: "12px",
-                    }}>
-                      <div style={{ height: "6px", background: tmpl.formText, opacity: 0.6, borderRadius: "3px", width: "60%", marginBottom: "10px" }} />
-                      {[1, 2].map((i) => (
-                        <div key={i} style={{
-                          height: "20px",
-                          background: tmpl.fieldBg,
-                          border: `1px solid ${tmpl.fieldBorder}`,
-                          borderRadius: "4px",
-                          marginBottom: "6px",
-                        }} />
-                      ))}
-                      <div style={{ height: "24px", background: tmpl.formText, borderRadius: "4px" }} />
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: "16px" }}>
+              {SHAPE_TEMPLATES.map((tmpl) => {
+                const isActive = formBorderRadius === tmpl.formBorderRadius && fieldBorderRadius === tmpl.fieldBorderRadius;
+                return (
+                  <div key={tmpl.id} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "8px" }}>
+                    <div
+                      onClick={() => applyShapeTemplate(tmpl)}
+                      style={{
+                        cursor: "pointer",
+                        borderRadius: "10px",
+                        border: `2px solid ${isActive ? "#3b82f6" : "#e5e7eb"}`,
+                        padding: "12px",
+                        background: "#fff",
+                        transition: "border-color 0.15s",
+                        width: "100%",
+                      }}
+                    >
+                      <div style={{
+                        background: "#f9fafb",
+                        borderRadius: `${Math.min(tmpl.formBorderRadius, 14)}px`,
+                        border: "1px solid #e5e7eb",
+                        padding: "10px",
+                      }}>
+                        {[1, 2].map((i) => (
+                          <div key={i} style={{
+                            height: "16px",
+                            background: "#fff",
+                            border: "1px solid #d1d5db",
+                            borderRadius: `${tmpl.fieldBorderRadius}px`,
+                            marginBottom: i === 1 ? "6px" : 0,
+                          }} />
+                        ))}
+                        <div style={{ height: "20px", background: "#111827", borderRadius: `${tmpl.fieldBorderRadius}px`, marginTop: "6px" }} />
+                      </div>
                     </div>
+                    <Text as="p" variant="bodySm" alignment="center">{tmpl.name}</Text>
                   </div>
-                  <Text as="p" variant="bodySm" alignment="center">{tmpl.name}</Text>
-                </div>
-              ))}
-            </div>
-          </BlockStack>
-        </Modal.Section>
-
-        <Modal.Section>
-          <BlockStack gap="400">
-            <BlockStack gap="100">
-              <Text as="h3" variant="headingMd">Premium Templates</Text>
-              <Text as="p" variant="bodyMd" tone="subdued">
-                High-contrast and dark-mode themes for bold, conversion-focused designs.
-              </Text>
-            </BlockStack>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(110px, 1fr))", gap: "16px" }}>
-              {PREMIUM_COLOR_TEMPLATES.map((tmpl) => (
-                <div key={tmpl.id} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "8px" }}>
-                  <div
-                    onClick={() => applyColorTemplate(tmpl)}
-                    style={{
-                      cursor: "pointer",
-                      borderRadius: "10px",
-                      border: `2px solid ${hsbToHex(formBgColor) === tmpl.formBg ? "#3b82f6" : "#e5e7eb"}`,
-                      padding: "8px",
-                      background: "#fff",
-                      transition: "border-color 0.15s",
-                      width: "100%",
-                    }}
-                  >
-                    <div style={{
-                      background: tmpl.formBg,
-                      border: `1px solid ${tmpl.formBorder}`,
-                      borderRadius: "8px",
-                      padding: "12px",
-                    }}>
-                      <div style={{ height: "6px", background: tmpl.formText, opacity: 0.6, borderRadius: "3px", width: "60%", marginBottom: "10px" }} />
-                      {[1, 2].map((i) => (
-                        <div key={i} style={{
-                          height: "20px",
-                          background: tmpl.fieldBg,
-                          border: `1px solid ${tmpl.fieldBorder}`,
-                          borderRadius: "4px",
-                          marginBottom: "6px",
-                        }} />
-                      ))}
-                      <div style={{ height: "24px", background: tmpl.formText, borderRadius: "4px" }} />
-                    </div>
-                  </div>
-                  <Text as="p" variant="bodySm" alignment="center">{tmpl.name}</Text>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </BlockStack>
         </Modal.Section>
