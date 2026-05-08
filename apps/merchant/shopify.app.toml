@@ -5,6 +5,9 @@ name = "BuyEase COD Form"
 application_url = "https://buyease-merchant-4st4.vercel.app"
 embedded = true
 
+[build]
+include_paths = ["extensions/**"]
+
 [webhooks]
 api_version = "2026-04"
 
