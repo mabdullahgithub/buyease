@@ -58,6 +58,7 @@ const formFieldSchema = z.object({
   minLength: z.number().int().min(0).max(10000).optional(),
   maxLength: z.number().int().min(0).max(10000).optional(),
   options: z.array(z.string().max(200)).max(50).optional(),
+  noneOptionLabel: z.string().max(200).optional(),
   validation: z.enum(["none", "phone", "email", "number", "postalCode"]).optional(),
 });
 

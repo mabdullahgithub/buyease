@@ -94,13 +94,7 @@ export function FormBuilderPageContent(): ReactElement {
           ? "Design your COD buy button and preview it before publishing to your storefront."
           : undefined
       }
-      titleMetadata={
-        mode === "buy-button" || mode === "shipping-rates" ? (
-          <Badge tone="success">New</Badge>
-        ) : (
-          <Badge tone="info">Coming soon</Badge>
-        )
-      }
+      titleMetadata={<Badge tone="success">New</Badge>}
     >
       <BlockStack gap="400">
         <Box
