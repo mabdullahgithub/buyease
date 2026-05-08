@@ -294,8 +294,9 @@ export function FormDesignerWorkspace({
   const [saving,   setSaving]   = useState(false);
   const [error,    setError]    = useState<string | null>(null);
   const [dirty,    setDirty]    = useState(false);
-  const savedRef      = useRef<string | null>(null);
-  const dirtyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const savedRef        = useRef<string | null>(null);
+  const justAppliedRef  = useRef(false);
+  const dirtyTimerRef   = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Form type
   const [formType, setFormType] = useState<"popup" | "embedded">(DEFAULT_CONFIG.formType);
@@ -459,7 +460,7 @@ export function FormDesignerWorkspace({
         if (res.ok) {
           const data: ApiConfig = await res.json();
           applyConfig(data);
-          savedRef.current = JSON.stringify(data);
+          justAppliedRef.current = true;
         } else if (res.status !== 404) {
           setError("Failed to load form configuration.");
         }
@@ -479,9 +480,11 @@ export function FormDesignerWorkspace({
     if (dirtyTimerRef.current) clearTimeout(dirtyTimerRef.current);
     dirtyTimerRef.current = setTimeout(() => {
       const current = JSON.stringify(buildPayload());
-      if (savedRef.current === null) {
-        // New merchant (404): use current defaults as the baseline — no dirty on first load.
+      if (savedRef.current === null || justAppliedRef.current) {
+        // New merchant (404) or just loaded: derive baseline from buildPayload() so the
+        // hex→HSB→hex round-trip doesn't cause a false dirty on every visit.
         savedRef.current = current;
+        justAppliedRef.current = false;
         setDirty(false);
         return;
       }
