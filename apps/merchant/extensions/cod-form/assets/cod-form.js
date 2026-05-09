@@ -466,24 +466,42 @@
     return btn;
   }
 
+  function isVisible(el) {
+    if (!el) return false;
+    if (el.offsetParent !== null) return true;
+    var rects = el.getClientRects();
+    return rects.length > 0 && rects[0].width > 0 && rects[0].height > 0;
+  }
+
   function findCartForm() {
     var forms = document.querySelectorAll('form[action*="/cart/add"]');
     if (!forms.length) return null;
-    // Prefer a form that has a visible submit / add-to-cart control
     for (var i = 0; i < forms.length; i++) {
-      var f = forms[i];
-      if (f.offsetParent !== null || f.getClientRects().length > 0) return f;
+      if (isVisible(forms[i])) return forms[i];
     }
     return forms[0];
   }
 
   function findAddToCartButton(form) {
     if (!form) return null;
-    return form.querySelector(
+    var candidates = form.querySelectorAll(
       '[name="add"], ' +
       '[data-add-to-cart], ' +
       'button[type="submit"]:not(.shopify-payment-button__button):not(.shopify-payment-button__more-options), ' +
       'input[type="submit"]'
+    );
+    // Prefer the first visible candidate — themes with sticky add-to-cart bars
+    // often have a hidden duplicate button earlier in the DOM.
+    for (var i = 0; i < candidates.length; i++) {
+      if (isVisible(candidates[i])) return candidates[i];
+    }
+    return candidates[0] || null;
+  }
+
+  function findDynamicCheckoutBlock(form) {
+    if (!form) return null;
+    return form.querySelector(
+      '.shopify-payment-button, [data-shopify="payment-button"]'
     );
   }
 
@@ -491,7 +509,6 @@
     var existing = document.getElementById('buyease-btn');
     if (existing) return true;
 
-    var root = document.getElementById(ROOT_ID);
     var btn = buildButtonElement();
 
     // Sticky mode: anchor to body
@@ -514,13 +531,23 @@
     // Mark page as BuyEase-active so the CSS hides Shopify's dynamic checkout button
     document.documentElement.classList.add('buyease-active');
 
+    // Preferred anchor: the dynamic checkout block (.shopify-payment-button).
+    // It sits AFTER the Add to Cart button in every standard theme, so inserting
+    // right after it places BuyEase below ATC (matching Releasit/EasySell layout).
+    var paymentBlock = findDynamicCheckoutBlock(form);
+    if (paymentBlock && paymentBlock.parentNode) {
+      paymentBlock.parentNode.insertBefore(btn, paymentBlock.nextSibling);
+      return true;
+    }
+
+    // Fallback: insert immediately after the visible ATC button
     var atcBtn = findAddToCartButton(form);
     if (atcBtn && atcBtn.parentNode) {
       atcBtn.parentNode.insertBefore(btn, atcBtn.nextSibling);
       return true;
     }
 
-    // Fallback: append to product form itself
+    // Last resort: append to the product form
     form.appendChild(btn);
     return true;
   }

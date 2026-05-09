@@ -1,3 +1,12 @@
+{%- comment -%}
+  BuyEase COD Form — app embed
+  Note: Theme App Extensions Liquid does NOT expose `app.url`, only `app.metafields`.
+  We pass the API base via the block setting (defaults to production) so merchants
+  on dev tunnels can override it without rebuilding the extension.
+{%- endcomment -%}
+
+{%- assign buyease_api_base = block.settings.api_base | default: 'https://buyease-merchant-4st4.vercel.app' -%}
+
 <div
   id="buyease-cod-root"
   data-product-id="{{ product.id }}"
@@ -6,7 +15,7 @@
   data-price="{{ product.selected_or_first_available_variant.price }}"
   data-currency="{{ shop.currency }}"
   data-shop="{{ shop.permanent_domain }}"
-  data-api-base="{{ app.url }}"
+  data-api-base="{{ buyease_api_base }}"
 ></div>
 <script src="{{ 'cod-form.js' | asset_url }}" defer></script>
 
@@ -14,6 +23,13 @@
 {
   "name": "BuyEase COD Form",
   "target": "body",
-  "settings": []
+  "settings": [
+    {
+      "type": "url",
+      "id": "api_base",
+      "label": "API base URL (advanced)",
+      "info": "Leave empty unless instructed by BuyEase support."
+    }
+  ]
 }
 {% endschema %}
