@@ -15,6 +15,69 @@
   var _rates = [];
   var _overlay = null;
 
+  // ─── Fallback defaults (used when API is unreachable or shop has no saved config) ─
+  var DEFAULT_BTN_CFG = {
+    buttonText: 'Order via COD',
+    buttonSubtitle: null,
+    iconId: 'cart',
+    iconAlign: 'start',
+    showIcon: true,
+    animation: 'none',
+    stickyPosition: 'off',
+    stickyMobile: true,
+    mobileFullWidth: false,
+    bgColor: '#000000',
+    textColor: '#FFFFFF',
+    borderColor: '#000000',
+    fontSizePx: 16,
+    borderRadiusPx: 8,
+    borderWidthPx: 0,
+    shadowStrength: 0,
+    isBold: false,
+    isItalic: false,
+    isVisible: true,
+  };
+
+  var DEFAULT_FORM_CFG = {
+    formType: 'popup',
+    fields: [
+      { id: 'header', type: 'header', title: 'Please fill in the form to order', hidden: false },
+      { id: 'cart', type: 'cart', hidden: false },
+      { id: 'first_name', type: 'input', title: 'First Name', placeholder: 'Enter your first name', required: true, iconId: 'user', hidden: false },
+      { id: 'phone', type: 'input', title: 'Phone', placeholder: 'Enter your phone number', required: true, iconId: 'phone', hidden: false },
+      { id: 'address', type: 'input', title: 'Address', placeholder: 'Enter your full address', required: true, iconId: 'map-pin', hidden: false },
+      { id: 'city', type: 'input', title: 'City', placeholder: 'Enter your city', required: true, iconId: 'building', hidden: false },
+      { id: 'postal_code', type: 'input', title: 'Postal Code', placeholder: 'Enter your postal code', required: false, hidden: false },
+      { id: 'shipping', type: 'shipping', title: 'Shipping Method', hidden: false },
+      { id: 'summary', type: 'summary', hidden: false },
+      { id: 'submit', type: 'submit', title: 'Place Order', hidden: false },
+    ],
+    formBgColor: '#FFFFFF',
+    formTextColor: '#000000',
+    formBorderColor: '#E5E5E5',
+    formBorderRadiusPx: 12,
+    formBorderWidthPx: 1,
+    formShadowPx: 8,
+    formPaddingPx: 24,
+    formTextBold: false,
+    formTextItalic: false,
+    fieldBgColor: '#FFFFFF',
+    fieldTextColor: '#000000',
+    fieldBorderColor: '#D1D5DB',
+    fieldBorderRadiusPx: 6,
+    fieldFontSizePx: 14,
+    textAlign: 'left',
+    hideLabels: false,
+    showIcons: true,
+    rtl: false,
+    autocomplete: true,
+    stickyMobile: true,
+    errorRequired: 'This field is required',
+    errorInvalid: 'Please enter a valid value',
+    errorSoldOut: 'This product is sold out',
+    isVisible: true,
+  };
+
   // ─── SVG Icons ───────────────────────────────────────────────────────────────
   var ICONS = {
     cart: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>',
@@ -329,18 +392,20 @@
         return Promise.all(responses.map(function (r) { return r.ok ? r.json() : null; }));
       })
       .then(function (results) {
-        _btnCfg = results[0];
-        _formCfg = results[1];
+        _btnCfg = results[0] || DEFAULT_BTN_CFG;
+        _formCfg = results[1] || DEFAULT_FORM_CFG;
         _rates = (results[2] && results[2].rates) ? results[2].rates : [];
 
-        if (!_btnCfg || !_formCfg) return;
         if (_btnCfg.isVisible === false) return;
 
         injectStyles(_btnCfg, _formCfg);
         renderButton(root);
       })
       .catch(function () {
-        /* Fail silently — never break the merchant storefront */
+        _btnCfg = DEFAULT_BTN_CFG;
+        _formCfg = DEFAULT_FORM_CFG;
+        injectStyles(_btnCfg, _formCfg);
+        renderButton(root);
       });
   }
 
@@ -375,7 +440,32 @@
       wrap.appendChild(btn);
       document.body.appendChild(wrap);
     } else {
-      root.appendChild(btn);
+      var inserted = false;
+
+      // Try to insert after the Add to Cart button (works across most themes)
+      var atcBtn = document.querySelector(
+        'form[action*="/cart/add"] [name="add"], ' +
+        'form[action*="/cart/add"] [data-add-to-cart], ' +
+        'form[action*="/cart/add"] button[type="submit"]'
+      );
+      if (atcBtn && atcBtn.parentNode) {
+        atcBtn.parentNode.insertBefore(btn, atcBtn.nextSibling);
+        inserted = true;
+      }
+
+      // Fallback: append to product form
+      if (!inserted) {
+        var productForm = document.querySelector('form[action*="/cart/add"]');
+        if (productForm) {
+          productForm.appendChild(btn);
+          inserted = true;
+        }
+      }
+
+      // Last resort: append to root (still visible at bottom of page)
+      if (!inserted) {
+        root.appendChild(btn);
+      }
     }
   }
 
