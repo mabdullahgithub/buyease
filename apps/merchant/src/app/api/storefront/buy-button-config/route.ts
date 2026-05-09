@@ -44,9 +44,27 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     },
   });
 
-  if (!config) {
-    return NextResponse.json({ error: "Config not found" }, { status: 404, headers: CORS });
-  }
+  const defaults = {
+    buttonText: "Order via COD",
+    buttonSubtitle: null,
+    iconId: "cart",
+    iconAlign: "start",
+    showIcon: true,
+    animation: "none",
+    stickyPosition: "off",
+    stickyMobile: true,
+    mobileFullWidth: false,
+    bgColor: "#000000",
+    textColor: "#FFFFFF",
+    borderColor: "#000000",
+    fontSizePx: 16,
+    borderRadiusPx: 8,
+    borderWidthPx: 0,
+    shadowStrength: 0,
+    isBold: false,
+    isItalic: false,
+    isVisible: true,
+  };
 
-  return NextResponse.json(config, { headers: CORS });
+  return NextResponse.json(config ?? defaults, { headers: CORS });
 }
