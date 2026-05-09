@@ -164,14 +164,15 @@
       /* Note: Shopify's dynamic checkout block is hidden by an inline <style>
          in the Liquid block, so it never flashes on page load. */
 
-      /* Tight padding so the button matches a typical Add-to-Cart height even
-         at the merchant's max font size (28px). All design tokens — color,
-         weight, italic, radius, animation — still come from merchant config. */
+      /* Tokens mirror apps/merchant/src/components/form-builder/BuyButtonDesignerWorkspace.tsx:
+         padX = round(fontSize * 0.75), padY = round(fontSize * 0.55), min-height 52,
+         gap 8px, weight 600 (700 bold), subtitle = max(11, fontSize * 0.78). The
+         button is width:100% so it inherits the same width as the Add-to-Cart sibling. */
       '#buyease-btn {',
-      '  display: inline-flex;',
+      '  display: flex;',
       '  align-items: center;',
       '  justify-content: center;',
-      '  gap: 0.45em;',
+      '  gap: 8px;',
       '  width: 100%;',
       '  cursor: pointer;',
       '  border: ' + btnCfg.borderWidthPx + 'px solid ' + esc(btnCfg.borderColor) + ';',
@@ -180,29 +181,31 @@
       '  color: ' + esc(btnCfg.textColor) + ';',
       '  font-size: ' + btnCfg.fontSizePx + 'px;',
       '  font-family: inherit;',
-      '  line-height: 1;',
-      '  font-weight: ' + (btnCfg.isBold ? '700' : '500') + ';',
+      '  line-height: 1.15;',
+      '  font-weight: ' + (btnCfg.isBold ? '700' : '600') + ';',
       '  font-style: ' + (btnCfg.isItalic ? 'italic' : 'normal') + ';',
       '  letter-spacing: 0.01em;',
-      '  padding: 0.45em 0.9em;',
-      '  min-height: 44px;',
+      '  padding: ' + Math.round(btnCfg.fontSizePx * 0.55) + 'px ' + Math.round(btnCfg.fontSizePx * 0.75) + 'px;',
+      '  min-height: 52px;',
       '  box-shadow: ' + shadow + ';',
-      '  transition: transform 0.12s ease, opacity 0.15s ease, box-shadow 0.15s ease;',
+      '  transition: opacity 0.15s ease, box-shadow 0.15s ease, transform 0.12s ease;',
       '  box-sizing: border-box;',
-      '  margin-top: 8px;',
+      '  margin-top: 10px;',
       '  -webkit-appearance: none;',
       '  appearance: none;',
       '  text-decoration: none;',
       '  vertical-align: middle;',
       '  transform-origin: center;',
+      '  text-align: center;',
       '}',
       '#buyease-btn:hover { opacity: 0.92; }',
-      '#buyease-btn:active { transform: translateY(1px); opacity: 0.85; }',
+      '#buyease-btn:active:not(.buyease-animating) { transform: translateY(1px); opacity: 0.85; }',
       '#buyease-btn:focus-visible { outline: 2px solid ' + esc(btnCfg.borderColor || btnCfg.bgColor) + '; outline-offset: 2px; }',
       '#buyease-btn svg { flex-shrink: 0; display: block; }',
-      '.buye-btn-icon { display: inline-flex; align-items: center; }',
+      '.buye-btn-icon { display: inline-flex; align-items: center; line-height: 0; }',
       '.buyease-btn-text { display: inline-flex; flex-direction: column; align-items: center; line-height: 1.15; }',
-      '.buyease-btn-sub { font-size: 0.7em; opacity: 0.78; margin-top: 2px; font-weight: 400; font-style: normal; letter-spacing: 0; }',
+      /* Subtitle font-size = max(11, fontSize * 0.78); weight 500 (600 bold), opacity 0.92 */
+      '.buyease-btn-sub { font-size: ' + Math.max(11, Math.round(btnCfg.fontSizePx * 0.78)) + 'px; opacity: 0.92; margin-top: 4px; font-weight: ' + (btnCfg.isBold ? '600' : '500') + '; font-style: ' + (btnCfg.isItalic ? 'italic' : 'normal') + '; letter-spacing: 0; line-height: 1.1; }',
       btnAnimation,
 
       /* Sticky button */
@@ -458,11 +461,15 @@
       /* Animations */
       '@keyframes buye-fadein { from { opacity: 0; } to { opacity: 1; } }',
       '@keyframes buye-slidein { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }',
-      '@keyframes buye-shake-lr { 0%,90%,100%{transform:translateX(0)} 92%{transform:translateX(-5px)} 94%{transform:translateX(5px)} 96%{transform:translateX(-4px)} 98%{transform:translateX(4px)} }',
-      '@keyframes buye-shake-ud { 0%,90%,100%{transform:translateY(0)} 92%{transform:translateY(-4px)} 94%{transform:translateY(4px)} 96%{transform:translateY(-3px)} 98%{transform:translateY(3px)} }',
-      '@keyframes buye-pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.035)} }',
-      '@keyframes buye-bounce { 0%,80%,100%{transform:translateY(0)} 40%{transform:translateY(-6px)} 60%{transform:translateY(-3px)} }',
-      '@keyframes buye-fanfare { 0%,100%{transform:scale(1);box-shadow:' + shadow + '} 50%{transform:scale(1.04);box-shadow:0 0 0 6px rgba(0,0,0,0.06),' + shadow + '} }',
+      /* Keyframe values mirror the admin SVG <animateTransform> values verbatim
+         (see PreviewMotionWrapper). Times are computed from `keyTimes` defaults
+         (even spacing across N values). */
+      '@keyframes buye-shake-lr { 0%{transform:translateX(0)} 20%{transform:translateX(-4px)} 40%{transform:translateX(4px)} 60%{transform:translateX(-3px)} 80%{transform:translateX(3px)} 100%{transform:translateX(0)} }',
+      '@keyframes buye-shake-ud { 0%{transform:translateY(0)} 20%{transform:translateY(-4px)} 40%{transform:translateY(4px)} 60%{transform:translateY(-3px)} 80%{transform:translateY(3px)} 100%{transform:translateY(0)} }',
+      '@keyframes buye-shake-bottom { 0%{transform:translateY(0)} 25%{transform:translateY(4px)} 50%{transform:translateY(1px)} 75%{transform:translateY(5px)} 100%{transform:translateY(0)} }',
+      '@keyframes buye-pulse { 0%{transform:scale(1)} 25%{transform:scale(1.03)} 50%{transform:scale(1)} 75%{transform:scale(0.98)} 100%{transform:scale(1)} }',
+      '@keyframes buye-bounce { 0%{transform:translateY(0)} 25%{transform:translateY(-8px)} 50%{transform:translateY(0)} 75%{transform:translateY(-4px)} 100%{transform:translateY(0)} }',
+      '@keyframes buye-fanfare { 0%{transform:translateX(0)} 20%{transform:translateX(4px)} 40%{transform:translateX(-4px)} 60%{transform:translateX(3px)} 80%{transform:translateX(-3px)} 100%{transform:translateX(0)} }',
       '@keyframes buye-spin { to { transform: rotate(360deg); } }',
     ].join('\n');
 
@@ -473,16 +480,15 @@
   }
 
   function buildAnimationCSS(anim) {
-    /* Each entry runs continuously so the merchant's choice stays visible
-       on the storefront. The shake/bounce keyframes have idle pauses built
-       in so they feel intentional rather than nervy. */
+    /* Durations match the admin SVG <animateTransform dur=""> values verbatim,
+       so the storefront animation timing is identical to the admin live preview. */
     var map = {
-      'shake-lr':     'buye-shake-lr 3s ease-in-out infinite',
-      'shake-ud':     'buye-shake-ud 3s ease-in-out infinite',
-      'shake-bottom': 'buye-shake-ud 3s ease-in-out infinite',
-      'pulse':        'buye-pulse 1.6s ease-in-out infinite',
-      'bounce':       'buye-bounce 1.8s ease-in-out infinite',
-      'fanfare':      'buye-fanfare 1.6s ease-in-out infinite',
+      'shake-lr':     'buye-shake-lr 0.65s linear infinite',
+      'shake-ud':     'buye-shake-ud 0.65s linear infinite',
+      'shake-bottom': 'buye-shake-bottom 0.55s linear infinite',
+      'pulse':        'buye-pulse 1.5s ease-in-out infinite',
+      'bounce':       'buye-bounce 1.1s ease-in-out infinite',
+      'fanfare':      'buye-fanfare 1.15s linear infinite',
     };
     var value = map[anim];
     if (!value) return '';
@@ -559,7 +565,8 @@
     btn.id = 'buyease-btn';
     btn.setAttribute('aria-label', _btnCfg.buttonText);
 
-    var iconSize = Math.round((_btnCfg.fontSizePx || 16) * 1.05);
+    /* Icon size formula matches admin BuyButtonPreviewSvg: min(28, fontSize * 1.3) */
+    var iconSize = Math.min(28, Math.round((_btnCfg.fontSizePx || 16) * 1.3));
     var iconSvg = (_btnCfg.showIcon !== false && _btnCfg.iconId && _btnCfg.iconId !== 'none')
       ? renderButtonIcon(_btnCfg.iconId, iconSize)
       : '';
@@ -643,22 +650,36 @@
     var form = findCartForm();
     if (!form) return false;
 
-    // Mark page as BuyEase-active so the CSS hides Shopify's dynamic checkout button
+    // Mark page as BuyEase-active so any extra hide rules can target this state.
     document.documentElement.classList.add('buyease-active');
 
-    // Preferred anchor: the dynamic checkout block (.shopify-payment-button).
-    // It sits AFTER the Add to Cart button in every standard theme, so inserting
-    // right after it places BuyEase below ATC (matching Releasit/EasySell layout).
-    var paymentBlock = findDynamicCheckoutBlock(form);
-    if (paymentBlock && paymentBlock.parentNode) {
-      paymentBlock.parentNode.insertBefore(btn, paymentBlock.nextSibling);
+    /* The BuyEase button must live in the SAME DOM parent as the visible
+       Add-to-Cart so it inherits the exact same width / flex sizing — this is
+       what makes the two buttons match width on the page.
+
+       Strategy:
+       1) Find the visible ATC button.
+       2) Insert into ATC.parentNode, after either the dynamic-checkout block
+          (if it's a sibling of ATC) or after ATC itself. This keeps BuyEase
+          flush with ATC visually.
+       3) Fall back to inserting after the dynamic-checkout block in its own
+          parent for non-standard themes.
+       4) Last resort: append to the product form. */
+    var atcBtn = findAddToCartButton(form);
+    if (atcBtn && atcBtn.parentNode) {
+      var atcParent = atcBtn.parentNode;
+      // If the dynamic-checkout block is a sibling of ATC, insert AFTER it so
+      // BuyEase ends up directly under ATC (since the block is hidden).
+      var siblingPaymentBlock = atcParent.querySelector(':scope > .shopify-payment-button, :scope > [data-shopify="payment-button"]');
+      var anchor = siblingPaymentBlock || atcBtn;
+      atcParent.insertBefore(btn, anchor.nextSibling);
       return true;
     }
 
-    // Fallback: insert immediately after the visible ATC button
-    var atcBtn = findAddToCartButton(form);
-    if (atcBtn && atcBtn.parentNode) {
-      atcBtn.parentNode.insertBefore(btn, atcBtn.nextSibling);
+    // ATC not found — fall back to inserting after the dynamic-checkout block.
+    var paymentBlock = findDynamicCheckoutBlock(form);
+    if (paymentBlock && paymentBlock.parentNode) {
+      paymentBlock.parentNode.insertBefore(btn, paymentBlock.nextSibling);
       return true;
     }
 
