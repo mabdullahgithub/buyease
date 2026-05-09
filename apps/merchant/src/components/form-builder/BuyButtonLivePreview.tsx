@@ -23,6 +23,7 @@ type BuyButtonConfig = {
   borderRadiusPx: number;
   borderWidthPx: number;
   shadowStrength: number;
+  widthPercent?: number;
   isBold: boolean;
   isItalic: boolean;
 };
@@ -82,6 +83,7 @@ export function BuyButtonLivePreview(): ReactElement {
           borderRadiusPx={config.borderRadiusPx}
           borderWidthPx={config.borderWidthPx}
           shadowStrength={config.shadowStrength}
+          widthPercent={config.widthPercent ?? 100}
           fontBold={config.isBold}
           fontItalic={config.isItalic}
           cropToButton

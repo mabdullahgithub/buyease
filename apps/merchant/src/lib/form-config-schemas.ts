@@ -21,6 +21,7 @@ export const buyButtonConfigSchema = z.object({
   borderRadiusPx: z.number().int().min(0).max(50).default(8),
   borderWidthPx: z.number().int().min(0).max(10).default(0),
   shadowStrength: z.number().int().min(0).max(24).default(0),
+  widthPercent: z.number().int().min(40).max(100).default(100),
   isBold: z.boolean().default(false),
   isItalic: z.boolean().default(false),
   isVisible: z.boolean().default(true),

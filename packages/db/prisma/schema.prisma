@@ -14,27 +14,27 @@ datasource db {
 // Shopify OAuth sessions (used by apps/merchant)
 // ---------------------------------------------------------------------------
 model Session {
-  id          String    @id
-  shop        String
-  state       String
-  isOnline    Boolean   @default(false)
-  scope       String?
-  expires     DateTime?
-  accessToken String
+  id                    String    @id
+  shop                  String
+  state                 String
+  isOnline              Boolean   @default(false)
+  scope                 String?
+  expires               DateTime?
+  accessToken           String
   /// Refresh token for expiring offline tokens (shprt_…)
-  refreshToken            String?
+  refreshToken          String?
   /// When the access token expires (null = non-expiring)
-  tokenExpiresAt          DateTime?
+  tokenExpiresAt        DateTime?
   /// When the refresh token expires (90 days from issue)
-  refreshTokenExpiresAt   DateTime?
-  userId      BigInt?
-  firstName   String?
-  lastName    String?
-  email       String?
-  accountOwner Boolean  @default(false)
-  locale      String?
-  collaborator Boolean?  @default(false)
-  emailVerified Boolean? @default(false)
+  refreshTokenExpiresAt DateTime?
+  userId                BigInt?
+  firstName             String?
+  lastName              String?
+  email                 String?
+  accountOwner          Boolean   @default(false)
+  locale                String?
+  collaborator          Boolean?  @default(false)
+  emailVerified         Boolean?  @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -46,31 +46,31 @@ model Session {
 // Merchants — one row per installed Shopify store
 // ---------------------------------------------------------------------------
 model Merchant {
-  id          String   @id @default(cuid())
-  shop        String   @unique
-  installedAt DateTime @default(now())
-  isActive    Boolean  @default(true)
-  uninstalledAt DateTime?
-  accessToken String?
+  id                    String    @id @default(cuid())
+  shop                  String    @unique
+  installedAt           DateTime  @default(now())
+  isActive              Boolean   @default(true)
+  uninstalledAt         DateTime?
+  accessToken           String?
   /// Refresh token for expiring offline tokens (shprt_…)
-  refreshToken String?
+  refreshToken          String?
   /// When the access token expires (null = non-expiring)
-  tokenExpiresAt DateTime?
+  tokenExpiresAt        DateTime?
   /// When the refresh token expires (90 days from issue)
   refreshTokenExpiresAt DateTime?
-  scopes      String?
-  planBillingId String?
-  billingCycleStart DateTime @default(now())
-  ordersThisCycle Int @default(0)
+  scopes                String?
+  planBillingId         String?
+  billingCycleStart     DateTime  @default(now())
+  ordersThisCycle       Int       @default(0)
 
   planId String?
   plan   Plan?   @relation(fields: [planId], references: [id])
 
-  orders          Order[]
-  settings        MerchantSettings?
-  buyButtonConfig BuyButtonConfig?
+  orders           Order[]
+  settings         MerchantSettings?
+  buyButtonConfig  BuyButtonConfig?
   formDesignConfig FormDesignConfig?
-  shippingRates   ShippingRate[]
+  shippingRates    ShippingRate[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -84,12 +84,12 @@ model Merchant {
 // MerchantSettings — per-shop configuration persisted from the settings page
 // ---------------------------------------------------------------------------
 model MerchantSettings {
-  id                String   @id @default(cuid())
-  shop              String   @unique
-  merchant          Merchant @relation(fields: [shop], references: [shop], onDelete: Cascade)
+  id       String   @id @default(cuid())
+  shop     String   @unique
+  merchant Merchant @relation(fields: [shop], references: [shop], onDelete: Cascade)
 
-  defaultCurrency   String   @default("USD")
-  timezone          String   @default("UTC")
+  defaultCurrency   String  @default("USD")
+  timezone          String  @default("UTC")
   notificationEmail String?
   webhookUrl        String?
 
@@ -103,32 +103,33 @@ model MerchantSettings {
 // BuyButtonConfig — customization settings for the COD buy button on storefront
 // ---------------------------------------------------------------------------
 model BuyButtonConfig {
-  id          String   @id @default(cuid())
-  shop        String   @unique
-  merchant    Merchant @relation(fields: [shop], references: [shop], onDelete: Cascade)
+  id       String   @id @default(cuid())
+  shop     String   @unique
+  merchant Merchant @relation(fields: [shop], references: [shop], onDelete: Cascade)
 
-  buttonText      String  @default("Order via COD")
-  buttonSubtitle  String?
-  iconId          String  @default("cart")
-  iconAlign       String  @default("start")
-  showIcon        Boolean @default(true)
-  animation       String  @default("none")
+  buttonText     String  @default("Order via COD")
+  buttonSubtitle String?
+  iconId         String  @default("cart")
+  iconAlign      String  @default("start")
+  showIcon       Boolean @default(true)
+  animation      String  @default("none")
 
   stickyPosition  String  @default("off")
   stickyMobile    Boolean @default(true)
   mobileFullWidth Boolean @default(false)
 
-  bgColor         String  @default("#000000")
-  textColor       String  @default("#FFFFFF")
-  borderColor     String  @default("#000000")
-  fontSizePx      Int     @default(16)
-  borderRadiusPx  Int     @default(8)
-  borderWidthPx   Int     @default(0)
-  shadowStrength  Int     @default(0)
+  bgColor        String @default("#000000")
+  textColor      String @default("#FFFFFF")
+  borderColor    String @default("#000000")
+  fontSizePx     Int    @default(16)
+  borderRadiusPx Int    @default(8)
+  borderWidthPx  Int    @default(0)
+  shadowStrength Int    @default(0)
+  widthPercent   Int    @default(100)
 
-  isBold          Boolean @default(false)
-  isItalic        Boolean @default(false)
-  isVisible       Boolean @default(true)
+  isBold    Boolean @default(false)
+  isItalic  Boolean @default(false)
+  isVisible Boolean @default(true)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -141,18 +142,18 @@ model BuyButtonConfig {
 // FormDesignConfig — layout, fields, and styling for the checkout form
 // ---------------------------------------------------------------------------
 model FormDesignConfig {
-  id          String   @id @default(cuid())
-  shop        String   @unique
-  merchant    Merchant @relation(fields: [shop], references: [shop], onDelete: Cascade)
+  id       String   @id @default(cuid())
+  shop     String   @unique
+  merchant Merchant @relation(fields: [shop], references: [shop], onDelete: Cascade)
 
-  formType    String   @default("popup")
-  fields      Json     @default("[]")
+  formType String @default("popup")
+  fields   Json   @default("[]")
 
-  formBgColor         String @default("#FFFFFF")
-  formTextColor       String @default("#000000")
-  formBorderColor     String @default("#E5E5E5")
-  formBorderRadiusPx  Int    @default(12)
-  formPaddingPx       Int    @default(24)
+  formBgColor        String @default("#FFFFFF")
+  formTextColor      String @default("#000000")
+  formBorderColor    String @default("#E5E5E5")
+  formBorderRadiusPx Int    @default(12)
+  formPaddingPx      Int    @default(24)
 
   fieldBgColor        String @default("#FFFFFF")
   fieldTextColor      String @default("#000000")
@@ -160,12 +161,12 @@ model FormDesignConfig {
   fieldBorderRadiusPx Int    @default(6)
   fieldFontSizePx     Int    @default(14)
 
-  formBorderWidthPx   Int     @default(1)
-  formShadowPx        Int     @default(8)
-  formTextBold        Boolean @default(false)
-  formTextItalic      Boolean @default(false)
-  showIcons           Boolean @default(true)
-  stickyMobile        Boolean @default(true)
+  formBorderWidthPx Int     @default(1)
+  formShadowPx      Int     @default(8)
+  formTextBold      Boolean @default(false)
+  formTextItalic    Boolean @default(false)
+  showIcons         Boolean @default(true)
+  stickyMobile      Boolean @default(true)
 
   textAlign    String  @default("left")
   hideLabels   Boolean @default(false)
@@ -189,16 +190,16 @@ model FormDesignConfig {
 // ShippingRate — configurable shipping options displayed in the checkout form
 // ---------------------------------------------------------------------------
 model ShippingRate {
-  id          String   @id @default(cuid())
-  shop        String
-  merchant    Merchant @relation(fields: [shop], references: [shop], onDelete: Cascade)
+  id       String   @id @default(cuid())
+  shop     String
+  merchant Merchant @relation(fields: [shop], references: [shop], onDelete: Cascade)
 
   name        String
   description String?
-  price       Decimal  @db.Decimal(10, 2)
-  currency    String   @default("USD")
+  price       Decimal @db.Decimal(10, 2)
+  currency    String  @default("USD")
 
-  conditions  Json     @default("[]")
+  conditions Json @default("[]")
 
   countriesEnabled Boolean @default(false)
   countries        Json    @default("[]")
@@ -221,16 +222,16 @@ model ShippingRate {
 // Orders — COD orders placed via BuyEase forms
 // ---------------------------------------------------------------------------
 model Order {
-  id         String      @id @default(cuid())
-  shopId     String
-  merchant   Merchant    @relation(fields: [shopId], references: [shop])
-  orderId    String
-  codAmount  Decimal     @db.Decimal(10, 2)
-  status     OrderStatus @default(PENDING)
+  id            String      @id @default(cuid())
+  shopId        String
+  merchant      Merchant    @relation(fields: [shopId], references: [shop])
+  orderId       String
+  codAmount     Decimal     @db.Decimal(10, 2)
+  status        OrderStatus @default(PENDING)
   customerName  String?
   customerPhone String?
   customerEmail String?
-  metadata   Json?
+  metadata      Json?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -254,13 +255,13 @@ enum OrderStatus {
 // Plans — subscription tiers
 // ---------------------------------------------------------------------------
 model Plan {
-  id          String   @id @default(cuid())
-  name        String   @unique
-  price       Decimal  @db.Decimal(10, 2)
-  interval    PlanInterval @default(MONTHLY)
-  isActive    Boolean  @default(true)
-  features    Json
-  limits      Json
+  id       String       @id @default(cuid())
+  name     String       @unique
+  price    Decimal      @db.Decimal(10, 2)
+  interval PlanInterval @default(MONTHLY)
+  isActive Boolean      @default(true)
+  features Json
+  limits   Json
 
   merchants Merchant[]
 
@@ -277,25 +278,25 @@ enum PlanInterval {
 // AdminUser — super admin panel users
 // ---------------------------------------------------------------------------
 model AdminUser {
-  id           String    @id @default(cuid())
-  email        String    @unique
-  displayName  String?
-  profileImage Bytes?
-  profileImageMimeType String?
-  passwordHash String
-  role         AdminRole @default(VIEWER)
-  passwordReminderDays Int @default(30)
-  twoFactorEnabled Boolean @default(false)
-  twoFactorSecretEncrypted String?
-  twoFactorEnabledAt DateTime?
-  lastLoginAt  DateTime?
-  isActive     Boolean   @default(true)
-  loginActivities AdminLoginActivity[]
-  createdIpAllowlistEntries AdminIpAllowlist[] @relation("AdminIpAllowlistCreatedBy")
-  createdIpBlocklistEntries AdminIpBlocklist[] @relation("AdminIpBlocklistCreatedBy")
-  updatedIpAccessSettings AdminIpAccessSetting[] @relation("AdminIpAccessSettingUpdatedBy")
-  twoFactorRecoveryCodes AdminTwoFactorBackupCode[]
-  trustedDevices AdminTrustedDevice[]
+  id                        String                     @id @default(cuid())
+  email                     String                     @unique
+  displayName               String?
+  profileImage              Bytes?
+  profileImageMimeType      String?
+  passwordHash              String
+  role                      AdminRole                  @default(VIEWER)
+  passwordReminderDays      Int                        @default(30)
+  twoFactorEnabled          Boolean                    @default(false)
+  twoFactorSecretEncrypted  String?
+  twoFactorEnabledAt        DateTime?
+  lastLoginAt               DateTime?
+  isActive                  Boolean                    @default(true)
+  loginActivities           AdminLoginActivity[]
+  createdIpAllowlistEntries AdminIpAllowlist[]         @relation("AdminIpAllowlistCreatedBy")
+  createdIpBlocklistEntries AdminIpBlocklist[]         @relation("AdminIpBlocklistCreatedBy")
+  updatedIpAccessSettings   AdminIpAccessSetting[]     @relation("AdminIpAccessSettingUpdatedBy")
+  twoFactorRecoveryCodes    AdminTwoFactorBackupCode[]
+  trustedDevices            AdminTrustedDevice[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -330,10 +331,10 @@ enum AdminIpAccessMode {
 }
 
 model AdminIpAllowlist {
-  id          String   @id @default(cuid())
-  ip          String   @unique
+  id          String     @id @default(cuid())
+  ip          String     @unique
   label       String?
-  isActive    Boolean  @default(true)
+  isActive    Boolean    @default(true)
   createdById String?
   createdBy   AdminUser? @relation("AdminIpAllowlistCreatedBy", fields: [createdById], references: [id])
 
@@ -344,17 +345,17 @@ model AdminIpAllowlist {
 }
 
 model AdminLoginActivity {
-  id             String   @id @default(cuid())
-  adminUserId    String?
-  adminUser      AdminUser? @relation(fields: [adminUserId], references: [id])
-  email          String?
-  ip             String
-  userAgent      String?
-  locationCity   String?
-  locationRegion String?
+  id              String     @id @default(cuid())
+  adminUserId     String?
+  adminUser       AdminUser? @relation(fields: [adminUserId], references: [id])
+  email           String?
+  ip              String
+  userAgent       String?
+  locationCity    String?
+  locationRegion  String?
   locationCountry String?
-  successful     Boolean  @default(false)
-  failureReason  String?
+  successful      Boolean    @default(false)
+  failureReason   String?
 
   createdAt DateTime @default(now())
 
@@ -364,10 +365,10 @@ model AdminLoginActivity {
 }
 
 model AdminTwoFactorBackupCode {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   adminUserId String
   adminUser   AdminUser @relation(fields: [adminUserId], references: [id], onDelete: Cascade)
-  codeHash    String   @unique
+  codeHash    String    @unique
   usedAt      DateTime?
 
   createdAt DateTime @default(now())
@@ -377,10 +378,10 @@ model AdminTwoFactorBackupCode {
 }
 
 model AdminTrustedDevice {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   adminUserId String
   adminUser   AdminUser @relation(fields: [adminUserId], references: [id], onDelete: Cascade)
-  tokenHash   String   @unique
+  tokenHash   String    @unique
   userAgent   String?
   expiresAt   DateTime
   lastUsedAt  DateTime?
@@ -392,10 +393,10 @@ model AdminTrustedDevice {
 }
 
 model AdminIpBlocklist {
-  id          String   @id @default(cuid())
-  ip          String   @unique
+  id          String     @id @default(cuid())
+  ip          String     @unique
   label       String?
-  isActive    Boolean  @default(true)
+  isActive    Boolean    @default(true)
   createdById String?
   createdBy   AdminUser? @relation("AdminIpBlocklistCreatedBy", fields: [createdById], references: [id])
 
@@ -422,10 +423,10 @@ model AdminIpAccessSetting {
 // Controlled by admin panel. Cached in-memory with short TTL.
 // ---------------------------------------------------------------------------
 model AppSettings {
-  id                     Int      @id @default(1)
-  maintenanceEnabled     Boolean  @default(false)
-  maintenanceMessage     String   @default("BuyEase is undergoing scheduled maintenance. Please try again shortly.")
-  maintenanceRetryAfter  Int      @default(300)
+  id                    Int     @id @default(1)
+  maintenanceEnabled    Boolean @default(false)
+  maintenanceMessage    String  @default("BuyEase is undergoing scheduled maintenance. Please try again shortly.")
+  maintenanceRetryAfter Int     @default(300)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

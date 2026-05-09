@@ -122,6 +122,7 @@ export async function seedDefaultFormConfig(shop: string): Promise<void> {
         borderRadiusPx: 8,
         borderWidthPx: 0,
         shadowStrength: 0,
+        widthPercent: 100,
         isBold: false,
         isItalic: false,
         isVisible: true,

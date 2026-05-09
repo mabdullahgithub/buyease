@@ -34,6 +34,7 @@
     borderRadiusPx: 8,
     borderWidthPx: 0,
     shadowStrength: 0,
+    widthPercent: 100,
     isBold: false,
     isItalic: false,
     isVisible: true,
@@ -144,14 +145,88 @@
     }
   }
 
+  /* Build a shipping-rates request URL with the current cart context so the
+     server can apply country, region, and condition filters that mirror what
+     Shopify would accept. country comes from the shop's localization (the
+     embed reads it once at page render); province is read from the form when
+     available so user-typed regions also filter live. */
+  function buildShippingRatesURL() {
+    var subtotalMajor = (_ctx.priceInCents * (_ctx.quantity || 1)) / 100;
+
+    var province = '';
+    var form = document.getElementById('buyease-form');
+    if (form) {
+      var pInput = form.querySelector('[data-field-id="province"], [data-field-id="state"]');
+      if (pInput && typeof pInput.value === 'string') province = pInput.value.trim().toUpperCase();
+    }
+
+    var qs = [
+      'shop=' + encodeURIComponent(_ctx.shop),
+      'country=' + encodeURIComponent(_ctx.country || ''),
+      'subtotal=' + encodeURIComponent(subtotalMajor.toFixed(2)),
+      'quantity=' + encodeURIComponent(_ctx.quantity || 1),
+    ];
+    if (province) qs.push('province=' + encodeURIComponent(province));
+    return _ctx.apiBase + '/api/storefront/shipping-rates?' + qs.join('&');
+  }
+
+  /* Re-pull eligible rates whenever cart state changes (qty change, province
+     edit). Runs in the background — UI shows the previously selected option
+     until the response arrives, then re-renders the shipping section in place
+     so the user sees an authoritative list. */
+  var _ratesAbort = null;
+  function refreshShippingRates() {
+    if (!_ctx.apiBase || !_ctx.shop) return;
+    if (_ratesAbort && typeof _ratesAbort.abort === 'function') _ratesAbort.abort();
+    _ratesAbort = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+
+    var opts = _ratesAbort ? { signal: _ratesAbort.signal } : undefined;
+    fetch(buildShippingRatesURL(), opts)
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (json) {
+        if (!json || !Array.isArray(json.rates)) return;
+        _rates = json.rates;
+        rerenderShippingSection();
+      })
+      .catch(function () { /* aborted or network */ });
+  }
+
+  function rerenderShippingSection() {
+    var form = document.getElementById('buyease-form');
+    if (!form) return;
+    var fields = Array.isArray(_formCfg.fields) ? _formCfg.fields : [];
+    var shippingField = fields.filter(function (f) { return f.type === 'shipping' && !f.hidden; })[0];
+    if (!shippingField) return;
+    var existing = form.querySelector('.buye-shipping-block');
+    if (!existing) return;
+    var divider = existing.nextElementSibling;
+    var fragment = document.createElement('div');
+    fragment.innerHTML = renderShippingField(shippingField);
+    var newBlock = fragment.querySelector('.buye-shipping-block');
+    if (!newBlock) return;
+    existing.replaceWith(newBlock);
+    if (divider && divider.classList && divider.classList.contains('buye-section-divider')) {
+      // divider already follows; leave it
+    }
+    bindShippingHandlers(form);
+    refreshCartTotals();
+  }
+
 
   // ─── Styles ──────────────────────────────────────────────────────────────────
   function injectStyles(btnCfg, formCfg) {
     if (document.getElementById(STYLE_ID)) return;
 
+    /* Mirrors the admin SVG preview formula in BuyButtonDesignerWorkspace.tsx
+       (blur = min(14, shadowStrength / 2), dy = min(6, blur / 2)) so the
+       storefront shadow visually matches what the merchant configured. */
+    var shadowBlur = Math.min(14, Math.max(0, btnCfg.shadowStrength / 2));
+    var shadowDy = Math.min(6, shadowBlur / 2);
     var shadow = btnCfg.shadowStrength > 0
-      ? '0 ' + Math.round(btnCfg.shadowStrength / 3) + 'px ' + btnCfg.shadowStrength + 'px rgba(0,0,0,0.2)'
+      ? '0 ' + shadowDy + 'px ' + shadowBlur + 'px rgba(0,0,0,0.22)'
       : 'none';
+
+    var widthPercent = Math.max(40, Math.min(100, Number(btnCfg.widthPercent) || 100));
 
     var btnAnimation = '';
     if (btnCfg.animation && btnCfg.animation !== 'none') {
@@ -173,7 +248,9 @@
       '  align-items: center;',
       '  justify-content: center;',
       '  gap: 8px;',
-      '  width: 100%;',
+      '  width: ' + widthPercent + '%;',
+      '  margin-left: auto;',
+      '  margin-right: auto;',
       '  cursor: pointer;',
       '  border: ' + btnCfg.borderWidthPx + 'px solid ' + esc(btnCfg.borderColor) + ';',
       '  border-radius: ' + btnCfg.borderRadiusPx + 'px;',
@@ -529,7 +606,7 @@
     Promise.all([
       fetch(_ctx.apiBase + '/api/storefront/buy-button-config?shop=' + encodeURIComponent(_ctx.shop)),
       fetch(_ctx.apiBase + '/api/storefront/form-config?shop=' + encodeURIComponent(_ctx.shop)),
-      fetch(_ctx.apiBase + '/api/storefront/shipping-rates?shop=' + encodeURIComponent(_ctx.shop)),
+      fetch(buildShippingRatesURL()),
     ])
       .then(function (responses) {
         return Promise.all(responses.map(function (r) { return r.ok ? r.json() : null; }));
@@ -658,21 +735,16 @@
        what makes the two buttons match width on the page.
 
        Strategy:
-       1) Find the visible ATC button.
-       2) Insert into ATC.parentNode, after either the dynamic-checkout block
-          (if it's a sibling of ATC) or after ATC itself. This keeps BuyEase
-          flush with ATC visually.
-       3) Fall back to inserting after the dynamic-checkout block in its own
-          parent for non-standard themes.
-       4) Last resort: append to the product form. */
+       1) Find the visible ATC button. Always insert AFTER it. The dynamic-
+          checkout block (.shopify-payment-button) is hidden via inline CSS
+          regardless of where it sits in the DOM, so we don't need to skip
+          past it — and skipping it can place BuyEase ABOVE ATC on themes
+          that render the payment block before ATC.
+       2) Fall back to inserting after the (hidden) dynamic-checkout block.
+       3) Last resort: append to the product form. */
     var atcBtn = findAddToCartButton(form);
     if (atcBtn && atcBtn.parentNode) {
-      var atcParent = atcBtn.parentNode;
-      // If the dynamic-checkout block is a sibling of ATC, insert AFTER it so
-      // BuyEase ends up directly under ATC (since the block is hidden).
-      var siblingPaymentBlock = atcParent.querySelector(':scope > .shopify-payment-button, :scope > [data-shopify="payment-button"]');
-      var anchor = siblingPaymentBlock || atcBtn;
-      atcParent.insertBefore(btn, anchor.nextSibling);
+      atcBtn.parentNode.insertBefore(btn, atcBtn.nextSibling);
       return true;
     }
 
@@ -849,11 +921,11 @@
 
     dec.addEventListener('click', function () {
       if (_ctx.quantity <= 1) return;
-      _ctx.quantity -= 1; sync(); refreshCartTotals();
+      _ctx.quantity -= 1; sync(); refreshCartTotals(); refreshShippingRates();
     });
     inc.addEventListener('click', function () {
       if (_ctx.quantity >= 10) return;
-      _ctx.quantity += 1; sync(); refreshCartTotals();
+      _ctx.quantity += 1; sync(); refreshCartTotals(); refreshShippingRates();
     });
   }
 
@@ -1141,10 +1213,7 @@
     bindQuantityEvents(card);
 
     // Shipping rate selection
-    var shippingRadios = card.querySelectorAll('input[name="buye-shipping"]');
-    shippingRadios.forEach(function (radio) {
-      radio.addEventListener('change', handleShippingChange);
-    });
+    bindShippingHandlers(card);
 
     // Live-clear errors as the user fixes them
     var fieldInputs = card.querySelectorAll('input[data-field-id], textarea[data-field-id], select[data-field-id]');
@@ -1156,6 +1225,15 @@
       input.addEventListener('blur', function () {
         // Only validate on blur if the user has typed something or the field is required.
         if ((input.value || '').trim() || input.dataset.required === 'true') validateField(input);
+        /* When the merchant restricts rates by region, the user typing a
+           province / country into the form may make new rates eligible (or
+           hide ones that no longer match). Re-pull on blur — debounced via
+           AbortController in refreshShippingRates so rapid edits don't stack
+           in-flight requests. */
+        var fieldId = input.dataset.fieldId || '';
+        if (fieldId === 'province' || fieldId === 'state' || fieldId === 'country') {
+          refreshShippingRates();
+        }
       });
     });
 
@@ -1173,6 +1251,13 @@
       closeForm();
       document.removeEventListener('keydown', handleEscape);
     }
+  }
+
+  function bindShippingHandlers(scope) {
+    var shippingRadios = scope.querySelectorAll('input[name="buye-shipping"]');
+    shippingRadios.forEach(function (radio) {
+      radio.addEventListener('change', handleShippingChange);
+    });
   }
 
   function handleShippingChange(e) {

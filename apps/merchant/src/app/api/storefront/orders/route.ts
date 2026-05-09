@@ -6,6 +6,7 @@ import { prisma } from "@/lib/db";
 import shopify from "@/lib/shopify";
 import { parseBody } from "@/lib/validation";
 import { checkAndIncrementOrderCount } from "@/lib/order-counter";
+import { ensureFreshToken } from "@/lib/token-refresh";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -143,6 +144,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     where: { shop: data.shop },
     select: {
       accessToken: true,
+      tokenExpiresAt: true,
       isActive: true,
       billingCycleStart: true,
       plan: { select: { name: true, limits: true } },
@@ -217,13 +219,34 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     },
   };
 
-  const session = new Session({
-    id: `offline_${data.shop}`,
+  /* Build the offline session with the stored expiry so ensureFreshToken can
+     decide whether a refresh is needed. Token-exchange-issued offline tokens
+     expire after 24h; legacy install-flow tokens have no expiry. Without this
+     refresh step, expired tokens reach Shopify and fail with a confusing
+     "Invalid API key or access token (unrecognized login or wrong password)"
+     surfaced to the storefront. */
+  let session = new Session({
+    id: shopify.session.getOfflineId(data.shop),
     shop: data.shop,
     state: "",
     isOnline: false,
     accessToken: merchant.accessToken,
+    expires: merchant.tokenExpiresAt ?? undefined,
   });
+
+  try {
+    session = await ensureFreshToken(session);
+  } catch (refreshErr) {
+    const message = refreshErr instanceof Error ? refreshErr.message : "";
+    console.error("Storefront order: token refresh failed", {
+      shop: data.shop,
+      message,
+    });
+    return NextResponse.json(
+      { error: "Could not place order. The store needs to reconnect BuyEase." },
+      { status: 502, headers: CORS },
+    );
+  }
 
   const client = new shopify.clients.Rest({ session });
 

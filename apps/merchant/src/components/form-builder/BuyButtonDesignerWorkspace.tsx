@@ -189,6 +189,7 @@ export type BuyButtonPreviewSvgProps = {
   borderRadiusPx: number;
   borderWidthPx: number;
   shadowStrength: number;
+  widthPercent?: number;
   fontBold: boolean;
   fontItalic: boolean;
   cropToButton?: boolean;
@@ -312,6 +313,7 @@ export function BuyButtonPreviewSvg({
   borderRadiusPx,
   borderWidthPx,
   shadowStrength,
+  widthPercent = 100,
   fontBold,
   fontItalic,
   cropToButton = false,
@@ -330,7 +332,9 @@ export function BuyButtonPreviewSvg({
   const subFontSize = Math.max(11, Math.round(fontSizePx * 0.78));
   const lineGap = 6;
 
-  const btnWidth = PRODUCT_PREVIEW_VIEW_WIDTH - PRODUCT_PREVIEW_SIDE_PAD * 2;
+  const containerWidth = PRODUCT_PREVIEW_VIEW_WIDTH - PRODUCT_PREVIEW_SIDE_PAD * 2;
+  const widthScale = Math.max(40, Math.min(100, widthPercent)) / 100;
+  const btnWidth = Math.round(containerWidth * widthScale);
   const innerContentWidth = Math.max(8, btnWidth - padX * 2);
 
   const subtitleTrim = subtitle.trim();
@@ -393,7 +397,10 @@ export function BuyButtonPreviewSvg({
 
   const viewHeight = btnHeight + 16;
   const blur = Math.min(14, Math.max(0, shadowStrength / 2));
-  const originX = PRODUCT_PREVIEW_SIDE_PAD;
+  // Centre the (possibly narrower) button within the preview frame so
+  // widthPercent < 100 visibly shrinks toward the middle, matching the
+  // storefront where margin: 0 auto centres the button.
+  const originX = PRODUCT_PREVIEW_SIDE_PAD + (containerWidth - btnWidth) / 2;
   const originY = 8;
 
   const viewBoxRect = cropToButton
@@ -550,6 +557,7 @@ type BuyButtonConfig = {
   borderRadiusPx: number;
   borderWidthPx: number;
   shadowStrength: number;
+  widthPercent: number;
   isBold: boolean;
   isItalic: boolean;
   isVisible: boolean;
@@ -572,6 +580,7 @@ const DEFAULT_BUY_BUTTON_CONFIG: BuyButtonConfig = {
   borderRadiusPx: 8,
   borderWidthPx: 0,
   shadowStrength: 0,
+  widthPercent: 100,
   isBold: false,
   isItalic: false,
   isVisible: true,
@@ -610,6 +619,7 @@ export function BuyButtonDesignerWorkspace(): ReactElement {
   const [borderRadiusPx, setBorderRadiusPx] = useState(DEFAULT_BUY_BUTTON_CONFIG.borderRadiusPx);
   const [borderWidthPx, setBorderWidthPx] = useState(DEFAULT_BUY_BUTTON_CONFIG.borderWidthPx);
   const [shadowStrength, setShadowStrength] = useState(DEFAULT_BUY_BUTTON_CONFIG.shadowStrength);
+  const [widthPercent, setWidthPercent] = useState(DEFAULT_BUY_BUTTON_CONFIG.widthPercent);
 
   const savedConfigRef = useRef<BuyButtonConfig | null>(null);
 
@@ -639,6 +649,7 @@ export function BuyButtonDesignerWorkspace(): ReactElement {
     setBorderRadiusPx(config.borderRadiusPx);
     setBorderWidthPx(config.borderWidthPx);
     setShadowStrength(config.shadowStrength);
+    setWidthPercent(config.widthPercent ?? 100);
   }, []);
 
   const populateFromConfig = useCallback((config: BuyButtonConfig): void => {
@@ -664,6 +675,7 @@ export function BuyButtonDesignerWorkspace(): ReactElement {
       borderRadiusPx,
       borderWidthPx,
       shadowStrength,
+      widthPercent,
       isBold: textBold,
       isItalic: textItalic,
       isVisible,
@@ -672,7 +684,7 @@ export function BuyButtonDesignerWorkspace(): ReactElement {
     buttonText, buttonSubtitle, buttonIconId, iconAlign, showIcon,
     animation, stickyPosition, stickyMobile, mobileFullWidth, bgColor,
     textColor, borderColor, fontSizePx, borderRadiusPx, borderWidthPx,
-    shadowStrength, textBold, textItalic, isVisible,
+    shadowStrength, widthPercent, textBold, textItalic, isVisible,
   ]);
 
   useEffect(() => {
@@ -786,6 +798,10 @@ export function BuyButtonDesignerWorkspace(): ReactElement {
 
   const handleShadowChange = useCallback((value: number | [number, number]): void => {
     if (typeof value === "number") setShadowStrength(value);
+  }, []);
+
+  const handleWidthChange = useCallback((value: number | [number, number]): void => {
+    if (typeof value === "number") setWidthPercent(value);
   }, []);
 
   const iconActivatorSource = activeIcon?.source;
@@ -1085,6 +1101,19 @@ export function BuyButtonDesignerWorkspace(): ReactElement {
                 onChange={handleShadowChange}
               />
 
+              <RangeSlider
+                id="buy-button-width"
+                label="Button width"
+                helpText="Percentage of the available space the button occupies. 100% matches Add to cart."
+                min={40}
+                max={100}
+                step={5}
+                value={widthPercent}
+                output
+                onChange={handleWidthChange}
+                suffix={<Text as="span">{`${widthPercent}%`}</Text>}
+              />
+
               <Checkbox
                 id="buy-button-sticky-mobile"
                 label="Enable sticky button on mobile devices (product pages only)"
@@ -1146,6 +1175,7 @@ export function BuyButtonDesignerWorkspace(): ReactElement {
                   borderRadiusPx={borderRadiusPx}
                   borderWidthPx={borderWidthPx}
                   shadowStrength={shadowStrength}
+                  widthPercent={widthPercent}
                   fontBold={textBold}
                   fontItalic={textItalic}
                   cropToButton
