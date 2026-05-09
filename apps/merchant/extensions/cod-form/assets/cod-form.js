@@ -381,7 +381,15 @@
       productTitle: root.dataset.productTitle || 'Product',
     };
 
-    if (!_ctx.shop || !_ctx.apiBase || !_ctx.variantId) return;
+    // On non-product pages variantId is empty — nothing to do
+    if (!_ctx.variantId) return;
+
+    // If apiBase is missing, render with defaults immediately (theme editor preview / offline)
+    if (!_ctx.apiBase || !_ctx.shop) {
+      injectStyles(DEFAULT_BTN_CFG, DEFAULT_FORM_CFG);
+      renderButton(root);
+      return;
+    }
 
     Promise.all([
       fetch(_ctx.apiBase + '/api/storefront/buy-button-config?shop=' + encodeURIComponent(_ctx.shop)),
