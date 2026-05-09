@@ -161,28 +161,17 @@
     var css = [
       '/* BuyEase Widget */',
 
-      /* Hide Shopify's default dynamic checkout (Buy it now / Shop Pay / GPay / etc.)
-         when BuyEase replaces it. Scoped to product forms only. */
-      'html.buyease-active form[action*="/cart/add"] .shopify-payment-button,',
-      'html.buyease-active form[action*="/cart/add"] [data-shopify="payment-button"],',
-      'html.buyease-active form[action*="/cart/add"] .shopify-payment-button__button,',
-      'html.buyease-active form[action*="/cart/add"] .shopify-payment-button__more-options,',
-      'html.buyease-active form[action*="/cart/add"] [data-testid="Checkout-button"] {',
-      '  display: none !important;',
-      '  visibility: hidden !important;',
-      '  height: 0 !important;',
-      '  margin: 0 !important;',
-      '  padding: 0 !important;',
-      '  overflow: hidden !important;',
-      '}',
+      /* Note: Shopify's dynamic checkout block is hidden by an inline <style>
+         in the Liquid block, so it never flashes on page load. */
 
-      /* Padding/gap/icon all scale with the merchant's font size via em units, so
-         the button stays visually balanced whether the merchant picks 12px or 28px. */
+      /* Tight padding so the button matches a typical Add-to-Cart height even
+         at the merchant's max font size (28px). All design tokens — color,
+         weight, italic, radius, animation — still come from merchant config. */
       '#buyease-btn {',
       '  display: inline-flex;',
       '  align-items: center;',
       '  justify-content: center;',
-      '  gap: 0.5em;',
+      '  gap: 0.45em;',
       '  width: 100%;',
       '  cursor: pointer;',
       '  border: ' + btnCfg.borderWidthPx + 'px solid ' + esc(btnCfg.borderColor) + ';',
@@ -191,20 +180,21 @@
       '  color: ' + esc(btnCfg.textColor) + ';',
       '  font-size: ' + btnCfg.fontSizePx + 'px;',
       '  font-family: inherit;',
-      '  line-height: 1.2;',
+      '  line-height: 1;',
       '  font-weight: ' + (btnCfg.isBold ? '700' : '500') + ';',
       '  font-style: ' + (btnCfg.isItalic ? 'italic' : 'normal') + ';',
       '  letter-spacing: 0.01em;',
-      '  padding: 0.7em 1.1em;',
+      '  padding: 0.45em 0.9em;',
       '  min-height: 44px;',
       '  box-shadow: ' + shadow + ';',
       '  transition: transform 0.12s ease, opacity 0.15s ease, box-shadow 0.15s ease;',
       '  box-sizing: border-box;',
-      '  margin-top: 10px;',
+      '  margin-top: 8px;',
       '  -webkit-appearance: none;',
       '  appearance: none;',
       '  text-decoration: none;',
       '  vertical-align: middle;',
+      '  transform-origin: center;',
       '}',
       '#buyease-btn:hover { opacity: 0.92; }',
       '#buyease-btn:active { transform: translateY(1px); opacity: 0.85; }',
@@ -212,7 +202,7 @@
       '#buyease-btn svg { flex-shrink: 0; display: block; }',
       '.buye-btn-icon { display: inline-flex; align-items: center; }',
       '.buyease-btn-text { display: inline-flex; flex-direction: column; align-items: center; line-height: 1.15; }',
-      '.buyease-btn-sub { font-size: 0.72em; opacity: 0.78; margin-top: 2px; font-weight: 400; font-style: normal; letter-spacing: 0; }',
+      '.buyease-btn-sub { font-size: 0.7em; opacity: 0.78; margin-top: 2px; font-weight: 400; font-style: normal; letter-spacing: 0; }',
       btnAnimation,
 
       /* Sticky button */
@@ -468,10 +458,11 @@
       /* Animations */
       '@keyframes buye-fadein { from { opacity: 0; } to { opacity: 1; } }',
       '@keyframes buye-slidein { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }',
-      '@keyframes shake-lr { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)} }',
-      '@keyframes shake-ud { 0%,100%{transform:translateY(0)} 25%{transform:translateY(-4px)} 75%{transform:translateY(4px)} }',
-      '@keyframes buye-pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.04)} }',
-      '@keyframes buye-bounce { 0%,100%{transform:translateY(0)} 40%{transform:translateY(-8px)} 60%{transform:translateY(-4px)} }',
+      '@keyframes buye-shake-lr { 0%,90%,100%{transform:translateX(0)} 92%{transform:translateX(-5px)} 94%{transform:translateX(5px)} 96%{transform:translateX(-4px)} 98%{transform:translateX(4px)} }',
+      '@keyframes buye-shake-ud { 0%,90%,100%{transform:translateY(0)} 92%{transform:translateY(-4px)} 94%{transform:translateY(4px)} 96%{transform:translateY(-3px)} 98%{transform:translateY(3px)} }',
+      '@keyframes buye-pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.035)} }',
+      '@keyframes buye-bounce { 0%,80%,100%{transform:translateY(0)} 40%{transform:translateY(-6px)} 60%{transform:translateY(-3px)} }',
+      '@keyframes buye-fanfare { 0%,100%{transform:scale(1);box-shadow:' + shadow + '} 50%{transform:scale(1.04);box-shadow:0 0 0 6px rgba(0,0,0,0.06),' + shadow + '} }',
       '@keyframes buye-spin { to { transform: rotate(360deg); } }',
     ].join('\n');
 
@@ -482,13 +473,16 @@
   }
 
   function buildAnimationCSS(anim) {
+    /* Each entry runs continuously so the merchant's choice stays visible
+       on the storefront. The shake/bounce keyframes have idle pauses built
+       in so they feel intentional rather than nervy. */
     var map = {
-      'shake-lr': 'shake-lr 0.6s ease infinite',
-      'shake-ud': 'shake-ud 0.6s ease infinite',
-      'shake-bottom': 'shake-ud 0.6s ease infinite',
-      'pulse': 'buye-pulse 1.4s ease infinite',
-      'bounce': 'buye-bounce 1.2s ease infinite',
-      'fanfare': 'buye-pulse 0.8s ease 3',
+      'shake-lr':     'buye-shake-lr 3s ease-in-out infinite',
+      'shake-ud':     'buye-shake-ud 3s ease-in-out infinite',
+      'shake-bottom': 'buye-shake-ud 3s ease-in-out infinite',
+      'pulse':        'buye-pulse 1.6s ease-in-out infinite',
+      'bounce':       'buye-bounce 1.8s ease-in-out infinite',
+      'fanfare':      'buye-fanfare 1.6s ease-in-out infinite',
     };
     var value = map[anim];
     if (!value) return '';
@@ -764,6 +758,12 @@
   }
 
   function renderField(field) {
+    /* Admin treats selects as `type: "input"` with `isSelect: true`, so we have
+       to route on isSelect first. The discriminated `select` type is also
+       supported for forward compatibility. */
+    if ((field.type === 'input' || field.type === 'select') && field.isSelect === true) {
+      return renderSelectField(field);
+    }
     switch (field.type) {
       case 'header':   return renderHeaderField(field);
       case 'cart':     return renderCartField(field);
@@ -1015,16 +1015,30 @@
   function renderSelectField(field) {
     var fieldId = 'buye-' + esc(field.id);
     var label = renderFieldLabel(field, fieldId);
-    var options = Array.isArray(field.options) ? field.options : [];
+    /* Schema stores options as `string[]`. Admin passes objects `{id,value}`
+       in its UI but the API serializes them to strings before the form-config
+       endpoint returns them. Handle both shapes defensively. */
+    var rawOptions = Array.isArray(field.options) ? field.options : [];
+    var options = rawOptions
+      .map(function (o) {
+        if (o == null) return null;
+        if (typeof o === 'string') return { value: o, label: o };
+        if (typeof o === 'object') {
+          var value = (o.value != null && o.value !== '') ? String(o.value) : '';
+          var lbl = (o.label != null && o.label !== '') ? String(o.label) : value;
+          if (!value && !lbl) return null;
+          return { value: value || lbl, label: lbl || value };
+        }
+        return null;
+      })
+      .filter(function (o) { return o !== null; });
 
-    var optionHtml = (field.noneOptionLabel
-      ? '<option value="">' + esc(field.noneOptionLabel) + '</option>'
-      : '<option value="" disabled selected>' + esc(field.placeholder || 'Select...') + '</option>') +
-      options.map(function (o) {
-        var value = typeof o === 'string' ? o : (o.value || o.label || '');
-        var labelText = typeof o === 'string' ? o : (o.label || o.value || '');
-        return '<option value="' + esc(value) + '">' + esc(labelText) + '</option>';
-      }).join('');
+    var placeholderText = field.noneOptionLabel || field.placeholder || ('Select ' + (field.title || 'an option'));
+    var placeholderOption = '<option value="" disabled' + (field.required ? '' : '') + ' selected hidden>' + esc(placeholderText) + '</option>';
+
+    var optionHtml = placeholderOption + options.map(function (o) {
+      return '<option value="' + esc(o.value) + '">' + esc(o.label) + '</option>';
+    }).join('');
 
     var iconHtml = renderFieldIcon(field);
 
@@ -1033,7 +1047,7 @@
       label,
       '<div class="buye-input-wrap">',
       iconHtml,
-      '<select id="' + fieldId + '" name="' + esc(field.id) + '" class="buye-select" data-field-id="' + esc(field.id) + '" data-required="' + (field.required ? 'true' : 'false') + '" ' + (field.required ? 'required' : '') + '>',
+      '<select id="' + fieldId + '" name="' + esc(field.id) + '" class="buye-select" data-field-id="' + esc(field.id) + '" data-required="' + (field.required ? 'true' : 'false') + '"' + (field.required ? ' required' : '') + '>',
       optionHtml,
       '</select>',
       '<span class="buye-select-chevron"><svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M5.22 7.22a.75.75 0 0 1 1.06 0L10 10.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 8.28a.75.75 0 0 1 0-1.06Z"/></svg></span>',

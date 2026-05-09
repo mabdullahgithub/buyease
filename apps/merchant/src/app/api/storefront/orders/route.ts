@@ -86,6 +86,42 @@ type ShopifyOrderResponse = {
   };
 };
 
+/**
+ * Pulls a human-readable error message out of a Shopify REST client error.
+ * Shopify wraps validation errors as either a string, an array of strings,
+ * or an object keyed by field. Walk the structure and return the first
+ * meaningful string we find — keeps the storefront message actionable.
+ */
+function extractShopifyErrorMessage(err: unknown): string | null {
+  if (!err || typeof err !== "object") return null;
+  const e = err as Record<string, unknown>;
+
+  // shopify-api-js HttpResponseError shape: { response: { body: { errors: ... } } }
+  const body =
+    (e.response as { body?: unknown } | undefined)?.body ??
+    (e as { body?: unknown }).body;
+  if (!body || typeof body !== "object") {
+    return typeof e.message === "string" ? e.message : null;
+  }
+  const errors = (body as { errors?: unknown }).errors;
+  if (!errors) {
+    return typeof e.message === "string" ? e.message : null;
+  }
+  if (typeof errors === "string") return errors;
+  if (Array.isArray(errors)) {
+    return errors.length > 0 && typeof errors[0] === "string" ? errors[0] : null;
+  }
+  if (typeof errors === "object") {
+    for (const [field, value] of Object.entries(errors)) {
+      const first = Array.isArray(value) ? value[0] : value;
+      if (typeof first === "string" && first.length > 0) {
+        return field === "base" ? first : `${field} ${first}`;
+      }
+    }
+  }
+  return null;
+}
+
 export async function OPTIONS(): Promise<NextResponse> {
   return new NextResponse(null, { status: 204, headers: CORS });
 }
@@ -209,9 +245,22 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     totalPrice = draft.total_price;
     currency = draft.currency;
   } catch (err) {
-    console.error("Shopify draft order creation failed", { shop: data.shop, err });
+    // Shopify SDK errors typically expose `response.body` with `errors`.
+    // Surface the first error to the storefront so the user gets actionable
+    // feedback (e.g. "variant not found", "address invalid") instead of a
+    // generic message they can't act on.
+    const shopifyMessage = extractShopifyErrorMessage(err);
+    console.error("Shopify draft order creation failed", {
+      shop: data.shop,
+      message: shopifyMessage,
+      err,
+    });
     return NextResponse.json(
-      { error: "Could not create order. Please try again." },
+      {
+        error: shopifyMessage
+          ? `Could not place order: ${shopifyMessage}`
+          : "Could not place order. Please try again.",
+      },
       { status: 502, headers: CORS },
     );
   }
