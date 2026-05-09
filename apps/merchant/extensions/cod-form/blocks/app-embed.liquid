@@ -6,14 +6,26 @@
 {%- endcomment -%}
 
 {%- assign buyease_api_base = block.settings.api_base | default: 'https://buyease-merchant-4st4.vercel.app' -%}
+{%- assign buyease_variant = product.selected_or_first_available_variant -%}
+{%- assign buyease_image = buyease_variant.featured_image | default: product.featured_image -%}
+{%- if buyease_image -%}
+  {%- assign buyease_image_url = buyease_image | image_url: width: 200 -%}
+{%- else -%}
+  {%- assign buyease_image_url = '' -%}
+{%- endif -%}
+{%- assign buyease_variant_title = buyease_variant.title | default: '' -%}
+{%- if buyease_variant_title == 'Default Title' -%}{%- assign buyease_variant_title = '' -%}{%- endif -%}
 
 <div
   id="buyease-cod-root"
   data-product-id="{{ product.id }}"
   data-product-title="{{ product.title | escape }}"
-  data-variant-id="{{ product.selected_or_first_available_variant.id }}"
-  data-price="{{ product.selected_or_first_available_variant.price }}"
+  data-product-image="{{ buyease_image_url }}"
+  data-variant-id="{{ buyease_variant.id }}"
+  data-variant-title="{{ buyease_variant_title | escape }}"
+  data-price="{{ buyease_variant.price }}"
   data-currency="{{ shop.currency }}"
+  data-country="{{ localization.country.iso_code | default: shop.country_code | default: 'US' }}"
   data-shop="{{ shop.permanent_domain }}"
   data-api-base="{{ buyease_api_base }}"
 ></div>
