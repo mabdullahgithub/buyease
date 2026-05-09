@@ -139,6 +139,22 @@
 
     var css = [
       '/* BuyEase Widget */',
+
+      /* Hide Shopify's default dynamic checkout (Buy it now / Shop Pay / GPay / etc.)
+         when BuyEase replaces it. Scoped to product forms only. */
+      'html.buyease-active form[action*="/cart/add"] .shopify-payment-button,',
+      'html.buyease-active form[action*="/cart/add"] [data-shopify="payment-button"],',
+      'html.buyease-active form[action*="/cart/add"] .shopify-payment-button__button,',
+      'html.buyease-active form[action*="/cart/add"] .shopify-payment-button__more-options,',
+      'html.buyease-active form[action*="/cart/add"] [data-testid="Checkout-button"] {',
+      '  display: none !important;',
+      '  visibility: hidden !important;',
+      '  height: 0 !important;',
+      '  margin: 0 !important;',
+      '  padding: 0 !important;',
+      '  overflow: hidden !important;',
+      '}',
+
       '#buyease-btn {',
       '  display: flex;',
       '  align-items: center;',
@@ -386,8 +402,10 @@
 
     // If apiBase is missing, render with defaults immediately (theme editor preview / offline)
     if (!_ctx.apiBase || !_ctx.shop) {
-      injectStyles(DEFAULT_BTN_CFG, DEFAULT_FORM_CFG);
-      renderButton(root);
+      _btnCfg = DEFAULT_BTN_CFG;
+      _formCfg = DEFAULT_FORM_CFG;
+      injectStyles(_btnCfg, _formCfg);
+      renderButton();
       return;
     }
 
@@ -404,21 +422,27 @@
         _formCfg = results[1] || DEFAULT_FORM_CFG;
         _rates = (results[2] && results[2].rates) ? results[2].rates : [];
 
-        if (_btnCfg.isVisible === false) return;
+        if (_btnCfg.isVisible === false) {
+          unmountButton();
+          return;
+        }
 
         injectStyles(_btnCfg, _formCfg);
-        renderButton(root);
+        renderButton();
       })
       .catch(function () {
         _btnCfg = DEFAULT_BTN_CFG;
         _formCfg = DEFAULT_FORM_CFG;
         injectStyles(_btnCfg, _formCfg);
-        renderButton(root);
+        renderButton();
       });
   }
 
   // ─── Button ───────────────────────────────────────────────────────────────────
-  function renderButton(root) {
+  var _mountObserver = null;
+  var _mountRetryTimer = null;
+
+  function buildButtonElement() {
     var btn = document.createElement('button');
     btn.type = 'button';
     btn.id = 'buyease-btn';
@@ -439,42 +463,102 @@
       : iconHtml + textHtml;
 
     btn.addEventListener('click', openForm);
+    return btn;
+  }
 
+  function findCartForm() {
+    var forms = document.querySelectorAll('form[action*="/cart/add"]');
+    if (!forms.length) return null;
+    // Prefer a form that has a visible submit / add-to-cart control
+    for (var i = 0; i < forms.length; i++) {
+      var f = forms[i];
+      if (f.offsetParent !== null || f.getClientRects().length > 0) return f;
+    }
+    return forms[0];
+  }
+
+  function findAddToCartButton(form) {
+    if (!form) return null;
+    return form.querySelector(
+      '[name="add"], ' +
+      '[data-add-to-cart], ' +
+      'button[type="submit"]:not(.shopify-payment-button__button):not(.shopify-payment-button__more-options), ' +
+      'input[type="submit"]'
+    );
+  }
+
+  function mountButton() {
+    var existing = document.getElementById('buyease-btn');
+    if (existing) return true;
+
+    var root = document.getElementById(ROOT_ID);
+    var btn = buildButtonElement();
+
+    // Sticky mode: anchor to body
     if (_btnCfg.stickyPosition && _btnCfg.stickyPosition !== 'off') {
+      var existingWrap = document.getElementById('buyease-sticky-wrap');
+      if (existingWrap) existingWrap.remove();
       var wrap = document.createElement('div');
       wrap.id = 'buyease-sticky-wrap';
       wrap.className = 'sticky-' + _btnCfg.stickyPosition;
       if (_btnCfg.mobileFullWidth) wrap.style.padding = '10px 0';
       wrap.appendChild(btn);
       document.body.appendChild(wrap);
-    } else {
-      var inserted = false;
-
-      // Try to insert after the Add to Cart button (works across most themes)
-      var atcBtn = document.querySelector(
-        'form[action*="/cart/add"] [name="add"], ' +
-        'form[action*="/cart/add"] [data-add-to-cart], ' +
-        'form[action*="/cart/add"] button[type="submit"]'
-      );
-      if (atcBtn && atcBtn.parentNode) {
-        atcBtn.parentNode.insertBefore(btn, atcBtn.nextSibling);
-        inserted = true;
-      }
-
-      // Fallback: append to product form
-      if (!inserted) {
-        var productForm = document.querySelector('form[action*="/cart/add"]');
-        if (productForm) {
-          productForm.appendChild(btn);
-          inserted = true;
-        }
-      }
-
-      // Last resort: append to root (still visible at bottom of page)
-      if (!inserted) {
-        root.appendChild(btn);
-      }
+      document.documentElement.classList.add('buyease-active');
+      return true;
     }
+
+    var form = findCartForm();
+    if (!form) return false;
+
+    // Mark page as BuyEase-active so the CSS hides Shopify's dynamic checkout button
+    document.documentElement.classList.add('buyease-active');
+
+    var atcBtn = findAddToCartButton(form);
+    if (atcBtn && atcBtn.parentNode) {
+      atcBtn.parentNode.insertBefore(btn, atcBtn.nextSibling);
+      return true;
+    }
+
+    // Fallback: append to product form itself
+    form.appendChild(btn);
+    return true;
+  }
+
+  function ensureButtonMounted() {
+    if (mountButton()) return;
+
+    // Cart form not in DOM yet — observe and retry. Some themes lazy-render
+    // the product form, or theme editor swaps sections async.
+    if (_mountObserver) return;
+
+    _mountObserver = new MutationObserver(function () {
+      if (mountButton()) {
+        if (_mountObserver) { _mountObserver.disconnect(); _mountObserver = null; }
+        if (_mountRetryTimer) { clearTimeout(_mountRetryTimer); _mountRetryTimer = null; }
+      }
+    });
+    _mountObserver.observe(document.body, { childList: true, subtree: true });
+
+    // Hard stop after 10s so the observer doesn't run forever on non-product pages
+    _mountRetryTimer = setTimeout(function () {
+      if (_mountObserver) { _mountObserver.disconnect(); _mountObserver = null; }
+      _mountRetryTimer = null;
+    }, 10000);
+  }
+
+  function unmountButton() {
+    var btn = document.getElementById('buyease-btn');
+    if (btn) btn.remove();
+    var wrap = document.getElementById('buyease-sticky-wrap');
+    if (wrap) wrap.remove();
+    document.documentElement.classList.remove('buyease-active');
+    if (_mountObserver) { _mountObserver.disconnect(); _mountObserver = null; }
+    if (_mountRetryTimer) { clearTimeout(_mountRetryTimer); _mountRetryTimer = null; }
+  }
+
+  function renderButton() {
+    ensureButtonMounted();
   }
 
   // ─── Form ─────────────────────────────────────────────────────────────────────
@@ -965,9 +1049,38 @@
   }
 
   // ─── Boot ─────────────────────────────────────────────────────────────────────
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
+  function boot() {
     init();
   }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', boot);
+  } else {
+    boot();
+  }
+
+  // Theme editor: re-mount when the merchant toggles app embed or edits sections.
+  // Shopify dispatches these events in the editor preview frame.
+  document.addEventListener('shopify:section:load', function () {
+    unmountButton();
+    boot();
+  });
+  document.addEventListener('shopify:section:unload', function () {
+    unmountButton();
+  });
+  document.addEventListener('shopify:block:select', function () {
+    if (!document.getElementById('buyease-btn')) ensureButtonMounted();
+  });
+
+  // SPA-style themes (Hydrogen, Dawn with Section Rendering API, etc.) often
+  // swap the product form without a full page load. Re-attempt mount on URL
+  // change so the BuyEase button follows the user.
+  var _lastHref = location.href;
+  setInterval(function () {
+    if (location.href !== _lastHref) {
+      _lastHref = location.href;
+      unmountButton();
+      boot();
+    }
+  }, 800);
 })();
