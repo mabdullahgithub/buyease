@@ -12,13 +12,14 @@ import {
   ButtonGroup,
   Card,
   Checkbox,
+  ChoiceList,
   Divider,
   Icon,
   InlineGrid,
   InlineStack,
   Link,
+  List,
   Page,
-  RadioButton,
   Text,
 } from "@shopify/polaris";
 import {
@@ -90,30 +91,15 @@ const PLACEMENT_INFO: Record<FormPlacement, string> = {
     "The form appears only on the cart page, not in the cart drawer or other pages.",
 };
 
-function StepNumber({ value }: { value: number }): ReactElement {
-  return (
-    <Box
-      background="bg-fill-info"
-      borderRadius="full"
-      minWidth="24px"
-      width="24px"
-      minHeight="24px"
-    >
-      <Box paddingBlock="050">
-        <InlineStack align="center" blockAlign="center">
-          <Text
-            as="span"
-            variant="bodySm"
-            fontWeight="semibold"
-            tone="text-inverse"
-          >
-            {value}
-          </Text>
-        </InlineStack>
-      </Box>
-    </Box>
-  );
-}
+type DisableInKey = keyof DisableInState;
+
+const DISABLE_IN_CHOICES: { label: string; value: DisableInKey }[] = [
+  { label: "Home page", value: "homePage" },
+  { label: "Collection page", value: "collectionPage" },
+  { label: "Regular page", value: "regularPage" },
+  { label: "Search result page", value: "searchResultPage" },
+  { label: "Cart drawer", value: "cartDrawer" },
+];
 
 function VisibilityTabContent(): ReactElement {
   const [themeEditorUrl, setThemeEditorUrl] = useState("");
@@ -149,13 +135,6 @@ function VisibilityTabContent(): ReactElement {
       ).shopify?.config?.shop ?? "";
     if (domain) setThemeEditorUrl(buildThemeEditorUrl(domain));
   }, []);
-
-  const toggleDisableIn = useCallback(
-    (key: keyof DisableInState, value: boolean): void => {
-      setDisableIn((prev) => ({ ...prev, [key]: value }));
-    },
-    [],
-  );
 
   const toggleRestrict = useCallback(
     (key: keyof RestrictState, value: boolean): void => {
@@ -199,14 +178,13 @@ function VisibilityTabContent(): ReactElement {
                   </Link>
                 </InlineStack>
 
-                <BlockStack gap="400">
-                  <InlineStack gap="300" blockAlign="center" wrap={false}>
-                    <StepNumber value={1} />
-                    <Box>
-                      <InlineStack gap="300" blockAlign="center" wrap={false}>
-                        <Text as="p" variant="bodyMd">
-                          First, open your theme by clicking this button:
-                        </Text>
+                <List type="number" gap="loose">
+                  <List.Item>
+                    <BlockStack gap="200">
+                      <Text as="span" variant="bodyMd">
+                        First, open your theme by clicking this button.
+                      </Text>
+                      <InlineStack>
                         <Button
                           icon={ExternalIcon}
                           variant="primary"
@@ -217,24 +195,21 @@ function VisibilityTabContent(): ReactElement {
                           Open theme
                         </Button>
                       </InlineStack>
-                    </Box>
-                  </InlineStack>
-
-                  <InlineStack gap="300" blockAlign="start" wrap={false}>
-                    <Box paddingBlockStart="050">
-                      <StepNumber value={2} />
-                    </Box>
+                    </BlockStack>
+                  </List.Item>
+                  <List.Item>
                     <BlockStack gap="300">
-                      <Text as="p" variant="bodyMd">
+                      <Text as="span" variant="bodyMd">
                         In the theme editor, click the{" "}
-                        <strong>Save</strong> button at the top-right corner.
+                        <Text as="span" variant="bodyMd" fontWeight="semibold">
+                          Save
+                        </Text>{" "}
+                        button at the top-right corner.
                       </Text>
                       <Box
-                        background="bg-surface-secondary"
                         borderRadius="200"
                         borderWidth="025"
                         borderColor="border"
-                        padding="300"
                         overflowX="hidden"
                         overflowY="hidden"
                       >
@@ -247,13 +222,12 @@ function VisibilityTabContent(): ReactElement {
                             width: "100%",
                             height: "auto",
                             display: "block",
-                            borderRadius: 4,
                           }}
                         />
                       </Box>
                     </BlockStack>
-                  </InlineStack>
-                </BlockStack>
+                  </List.Item>
+                </List>
               </BlockStack>
             </Box>
 
@@ -336,7 +310,7 @@ function VisibilityTabContent(): ReactElement {
             paddingBlock="300"
             paddingInline="400"
           >
-            <InlineStack gap="200" blockAlign="start">
+            <InlineStack gap="200" blockAlign="start" wrap={false}>
               <Icon source={InfoIcon} tone="info" />
               <Text as="p" variant="bodyMd">
                 {PLACEMENT_INFO[formPlacement]}
@@ -349,66 +323,51 @@ function VisibilityTabContent(): ReactElement {
           {/* Button visibility + when opened / cart-page fallback */}
           <Box padding="400">
             {isFullPlacement ? (
-              <BlockStack gap="400">
-                <Checkbox
-                  label={
-                    <>
-                      Hide <strong>Checkout</strong> button
-                    </>
-                  }
-                  checked={hideCheckout}
-                  onChange={setHideCheckout}
-                />
-                <Checkbox
-                  label={
-                    <>
-                      Hide <strong>Add to Cart</strong> button
-                    </>
-                  }
-                  checked={hideAddToCart}
-                  onChange={setHideAddToCart}
-                />
-                <Checkbox
-                  label={
-                    <>
-                      Hide <strong>Buy Now</strong> button
-                    </>
-                  }
-                  checked={hideBuyNow}
-                  onChange={setHideBuyNow}
-                />
-
-                <InlineStack gap="400" blockAlign="start" wrap={false}>
-                  <Box minWidth="fit-content">
-                    <Text as="p" variant="bodyMd">
-                      When the form is opened:
-                    </Text>
-                  </Box>
+              <BlockStack gap="500">
+                <BlockStack gap="300">
+                  <Text as="h3" variant="headingSm">
+                    Hide storefront buttons
+                  </Text>
                   <BlockStack gap="200">
-                    <RadioButton
-                      label="Buy only the product on page"
-                      id="product-only"
-                      name="whenOpened"
-                      checked={whenOpened === "product-only"}
-                      onChange={() => setWhenOpened("product-only")}
+                    <Checkbox
+                      label="Hide Checkout button"
+                      checked={hideCheckout}
+                      onChange={setHideCheckout}
                     />
-                    <RadioButton
-                      label="Buy the product on page + items in cart"
-                      id="product-and-cart"
-                      name="whenOpened"
-                      checked={whenOpened === "product-and-cart"}
-                      onChange={() => setWhenOpened("product-and-cart")}
+                    <Checkbox
+                      label="Hide Add to Cart button"
+                      checked={hideAddToCart}
+                      onChange={setHideAddToCart}
+                    />
+                    <Checkbox
+                      label="Hide Buy Now button"
+                      checked={hideBuyNow}
+                      onChange={setHideBuyNow}
                     />
                   </BlockStack>
-                </InlineStack>
+                </BlockStack>
+
+                <ChoiceList
+                  title="When the form is opened"
+                  choices={[
+                    {
+                      label: "Buy only the product on page",
+                      value: "product-only",
+                    },
+                    {
+                      label: "Buy the product on page and items in cart",
+                      value: "product-and-cart",
+                    },
+                  ]}
+                  selected={[whenOpened]}
+                  onChange={(values) =>
+                    setWhenOpened(values[0] as WhenOpened)
+                  }
+                />
               </BlockStack>
             ) : (
               <Checkbox
-                label={
-                  <>
-                    Hide <strong>Checkout</strong> button
-                  </>
-                }
+                label="Hide Checkout button"
                 checked={hideCheckout}
                 onChange={setHideCheckout}
               />
@@ -420,36 +379,23 @@ function VisibilityTabContent(): ReactElement {
             <>
               <Divider />
               <Box padding="400">
-                <InlineStack gap="300" blockAlign="center" wrap>
-                  <Text as="p" variant="bodyMd">
-                    Disable form in:
-                  </Text>
-                  <Checkbox
-                    label="Home page"
-                    checked={disableIn.homePage}
-                    onChange={(v) => toggleDisableIn("homePage", v)}
-                  />
-                  <Checkbox
-                    label="Collection page"
-                    checked={disableIn.collectionPage}
-                    onChange={(v) => toggleDisableIn("collectionPage", v)}
-                  />
-                  <Checkbox
-                    label="Regular page"
-                    checked={disableIn.regularPage}
-                    onChange={(v) => toggleDisableIn("regularPage", v)}
-                  />
-                  <Checkbox
-                    label="Search result page"
-                    checked={disableIn.searchResultPage}
-                    onChange={(v) => toggleDisableIn("searchResultPage", v)}
-                  />
-                  <Checkbox
-                    label="Cart drawer"
-                    checked={disableIn.cartDrawer}
-                    onChange={(v) => toggleDisableIn("cartDrawer", v)}
-                  />
-                </InlineStack>
+                <ChoiceList
+                  allowMultiple
+                  title="Disable form in"
+                  choices={DISABLE_IN_CHOICES}
+                  selected={DISABLE_IN_CHOICES.filter(
+                    (c) => disableIn[c.value],
+                  ).map((c) => c.value)}
+                  onChange={(values) =>
+                    setDisableIn({
+                      homePage: values.includes("homePage"),
+                      collectionPage: values.includes("collectionPage"),
+                      regularPage: values.includes("regularPage"),
+                      searchResultPage: values.includes("searchResultPage"),
+                      cartDrawer: values.includes("cartDrawer"),
+                    })
+                  }
+                />
               </Box>
             </>
           )}
