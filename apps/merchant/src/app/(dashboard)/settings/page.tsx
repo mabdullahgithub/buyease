@@ -1,7 +1,7 @@
 import type { ReactElement } from "react";
 
-import { ComingSoonPage } from "@/components/ComingSoonPage";
+import { SettingsPageContent } from "@/components/SettingsPageContent";
 
 export default function SettingsPage(): ReactElement {
-  return <ComingSoonPage title="Settings" />;
+  return <SettingsPageContent />;
 }
