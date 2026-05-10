@@ -218,6 +218,7 @@ function VisibilityTabContent(): ReactElement {
                           alt="Theme editor Save button location"
                           width={900}
                           height={460}
+                          loading="eager"
                           style={{
                             width: "100%",
                             height: "auto",
