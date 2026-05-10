@@ -88,6 +88,21 @@ type ShopifyOrderResponse = {
 };
 
 /**
+ * Generates a BuyEase order reference — a random 8-char uppercase alphanumeric
+ * prefixed with "BE-". Shown to customers in the success state instead of the
+ * sequential Shopify order name (#1001, #1002, …) so merchants don't expose
+ * their order volume.
+ */
+function generateBuyeaseRef(): string {
+  const CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no I, O, 0, 1 to avoid confusion
+  let ref = "BE-";
+  for (let i = 0; i < 8; i++) {
+    ref += CHARS[Math.floor(Math.random() * CHARS.length)];
+  }
+  return ref;
+}
+
+/**
  * Pulls a human-readable error message out of a Shopify REST client error.
  * Shopify wraps validation errors as either a string, an array of strings,
  * or an object keyed by field. Walk the structure and return the first
@@ -323,6 +338,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     ? String(finalOrderId)
     : `draft_${draftOrderId}`;
 
+  // Random reference shown to the customer — decoupled from Shopify's sequential
+  // order names so merchants don't expose their order volume to shoppers.
+  const buyeaseRef = generateBuyeaseRef();
+
   try {
     await prisma.order.upsert({
       where: { shopId_orderId: { shopId: data.shop, orderId: shopifyOrderIdStr } },
@@ -335,6 +354,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         customerPhone: data.customerPhone,
         customerEmail: data.customerEmail ?? null,
         metadata: {
+          buyeaseRef,
           shippingRateId: data.shippingRateId ?? null,
           marketingConsent: data.marketingConsent,
           address1: data.address1,
@@ -350,6 +370,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
   return NextResponse.json(
     {
+      orderRef: buyeaseRef,
       orderId: shopifyOrderIdStr,
       orderName: finalOrderName,
       total: totalPrice,

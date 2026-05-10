@@ -1424,7 +1424,9 @@
     var card = document.getElementById('buyease-form-card');
     if (!card) return;
 
-    var orderName = order && order.orderName ? order.orderName : '';
+    // Prefer the random BuyEase reference (e.g. "BE-7K4MNZ9Q") over the
+    // sequential Shopify order name (#1001) so merchants don't expose order volume.
+    var displayRef = (order && order.orderRef) ? order.orderRef : (order && order.orderName ? order.orderName : '');
 
     card.innerHTML = [
       '<button type="button" id="buyease-close" aria-label="Close">&#215;</button>',
@@ -1433,7 +1435,7 @@
       '    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>',
       '  </div>',
       '  <h2>Order placed</h2>',
-      '  <p>Thanks! ' + (orderName ? 'Your order <span class="buye-order-name">' + esc(orderName) + '</span> has been received. ' : '') + 'We\'ll be in touch to confirm delivery.</p>',
+      '  <p>Thanks! ' + (displayRef ? 'Your order reference is <span class="buye-order-name">' + esc(displayRef) + '</span>. ' : '') + 'We\'ll be in touch to confirm delivery.</p>',
       '  <button type="button" id="buyease-done-btn">Done</button>',
       '</div>',
     ].join('');

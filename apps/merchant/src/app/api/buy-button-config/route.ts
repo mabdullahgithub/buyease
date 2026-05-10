@@ -3,32 +3,33 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { buyButtonConfigSchema } from "@/lib/form-config-schemas";
 import { withGuards } from "@/lib/middleware-stack";
+import { invalidateButtonConfig } from "@/lib/storefront-config-cache";
 import { parseBody } from "@/lib/validation";
 
 export const GET = withGuards({ skipPlanGate: true }, async (_req, ctx) => {
   const config = await prisma.buyButtonConfig.findUnique({
     where: { shop: ctx.shop },
     select: {
-      buttonText: true,
+      buttonText:     true,
       buttonSubtitle: true,
-      iconId: true,
-      iconAlign: true,
-      showIcon: true,
-      animation: true,
+      iconId:         true,
+      iconAlign:      true,
+      showIcon:       true,
+      animation:      true,
       stickyPosition: true,
-      stickyMobile: true,
-      mobileFullWidth: true,
-      bgColor: true,
-      textColor: true,
-      borderColor: true,
-      fontSizePx: true,
+      stickyMobile:   true,
+      mobileFullWidth:true,
+      bgColor:        true,
+      textColor:      true,
+      borderColor:    true,
+      fontSizePx:     true,
       borderRadiusPx: true,
-      borderWidthPx: true,
+      borderWidthPx:  true,
       shadowStrength: true,
-      widthPercent: true,
-      isBold: true,
-      isItalic: true,
-      isVisible: true,
+      widthPercent:   true,
+      isBold:         true,
+      isItalic:       true,
+      isVisible:      true,
     },
   });
 
@@ -60,28 +61,32 @@ export const PUT = withGuards({ skipPlanGate: true }, async (req: NextRequest, c
     },
     update: data,
     select: {
-      buttonText: true,
+      buttonText:     true,
       buttonSubtitle: true,
-      iconId: true,
-      iconAlign: true,
-      showIcon: true,
-      animation: true,
+      iconId:         true,
+      iconAlign:      true,
+      showIcon:       true,
+      animation:      true,
       stickyPosition: true,
-      stickyMobile: true,
-      mobileFullWidth: true,
-      bgColor: true,
-      textColor: true,
-      borderColor: true,
-      fontSizePx: true,
+      stickyMobile:   true,
+      mobileFullWidth:true,
+      bgColor:        true,
+      textColor:      true,
+      borderColor:    true,
+      fontSizePx:     true,
       borderRadiusPx: true,
-      borderWidthPx: true,
+      borderWidthPx:  true,
       shadowStrength: true,
-      widthPercent: true,
-      isBold: true,
-      isItalic: true,
-      isVisible: true,
+      widthPercent:   true,
+      isBold:         true,
+      isItalic:       true,
+      isVisible:      true,
     },
   });
+
+  // Bust the in-memory storefront cache so updated button config reaches
+  // shoppers within the next CDN TTL window (30s) rather than 5 minutes.
+  invalidateButtonConfig(ctx.shop);
 
   return NextResponse.json(updated);
 });

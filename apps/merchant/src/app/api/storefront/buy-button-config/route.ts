@@ -1,11 +1,40 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { prisma } from "@/lib/db";
+import {
+  getCachedButtonConfig,
+  setCachedButtonConfig,
+} from "@/lib/storefront-config-cache";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type",
+};
+
+const CACHE_CONTROL = "public, max-age=30, stale-while-revalidate=300";
+
+const DEFAULTS = {
+  buttonText:     "Order via COD",
+  buttonSubtitle: null,
+  iconId:         "cart",
+  iconAlign:      "start",
+  showIcon:       true,
+  animation:      "none",
+  stickyPosition: "off",
+  stickyMobile:   true,
+  mobileFullWidth:false,
+  bgColor:        "#000000",
+  textColor:      "#FFFFFF",
+  borderColor:    "#000000",
+  fontSizePx:     16,
+  borderRadiusPx: 8,
+  borderWidthPx:  0,
+  shadowStrength: 0,
+  widthPercent:   100,
+  isBold:         false,
+  isItalic:       false,
+  isVisible:      true,
 };
 
 export async function OPTIONS(): Promise<NextResponse> {
@@ -19,54 +48,43 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: "Invalid shop" }, { status: 400, headers: CORS });
   }
 
+  const cached = getCachedButtonConfig(shop);
+  if (cached) {
+    return NextResponse.json(cached, {
+      headers: { ...CORS, "Cache-Control": CACHE_CONTROL },
+    });
+  }
+
   const config = await prisma.buyButtonConfig.findUnique({
     where: { shop },
     select: {
-      buttonText: true,
+      buttonText:     true,
       buttonSubtitle: true,
-      iconId: true,
-      iconAlign: true,
-      showIcon: true,
-      animation: true,
+      iconId:         true,
+      iconAlign:      true,
+      showIcon:       true,
+      animation:      true,
       stickyPosition: true,
-      stickyMobile: true,
-      mobileFullWidth: true,
-      bgColor: true,
-      textColor: true,
-      borderColor: true,
-      fontSizePx: true,
+      stickyMobile:   true,
+      mobileFullWidth:true,
+      bgColor:        true,
+      textColor:      true,
+      borderColor:    true,
+      fontSizePx:     true,
       borderRadiusPx: true,
-      borderWidthPx: true,
+      borderWidthPx:  true,
       shadowStrength: true,
-      widthPercent: true,
-      isBold: true,
-      isItalic: true,
-      isVisible: true,
+      widthPercent:   true,
+      isBold:         true,
+      isItalic:       true,
+      isVisible:      true,
     },
   });
 
-  const defaults = {
-    buttonText: "Order via COD",
-    buttonSubtitle: null,
-    iconId: "cart",
-    iconAlign: "start",
-    showIcon: true,
-    animation: "none",
-    stickyPosition: "off",
-    stickyMobile: true,
-    mobileFullWidth: false,
-    bgColor: "#000000",
-    textColor: "#FFFFFF",
-    borderColor: "#000000",
-    fontSizePx: 16,
-    borderRadiusPx: 8,
-    borderWidthPx: 0,
-    shadowStrength: 0,
-    widthPercent: 100,
-    isBold: false,
-    isItalic: false,
-    isVisible: true,
-  };
+  const result = (config ?? DEFAULTS) as Record<string, unknown>;
+  setCachedButtonConfig(shop, result);
 
-  return NextResponse.json(config ?? defaults, { headers: CORS });
+  return NextResponse.json(result, {
+    headers: { ...CORS, "Cache-Control": CACHE_CONTROL },
+  });
 }
