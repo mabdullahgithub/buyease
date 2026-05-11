@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ReactElement } from "react";
+import { RichTextEditor } from "@/components/RichTextEditor";
 import type { IconSource } from "@shopify/polaris";
 import Image from "next/image";
 import {
@@ -39,11 +40,9 @@ import {
   InfoIcon,
   PlusIcon,
   ProductIcon,
-  RedoIcon,
   RefreshIcon,
   SearchIcon,
   SettingsIcon,
-  UndoIcon,
   ViewIcon,
   XSmallIcon,
 } from "@shopify/polaris-icons";
@@ -506,28 +505,6 @@ const VARIABLES_GRID: string[][] = [
   ["{{customer.province}}", "{{order.note}}", "{{order.products_urls}}"],
 ];
 
-const FONT_SIZE_OPTIONS = [
-  { label: "12px", value: "12px" },
-  { label: "14px", value: "14px" },
-  { label: "16px", value: "16px" },
-  { label: "18px", value: "18px" },
-  { label: "20px", value: "20px" },
-  { label: "24px", value: "24px" },
-  { label: "28px", value: "28px" },
-  { label: "32px", value: "32px" },
-  { label: "36px", value: "36px" },
-  { label: "48px", value: "48px" },
-];
-
-const DEFAULT_EDITOR_HTML =
-  `<div style="text-align:center;padding:24px 16px;font-family:inherit">` +
-  `<h1 style="font-size:28px;font-weight:bold;margin-bottom:12px">Thank You, {{customer.first_name}}! 🎉</h1>` +
-  `<p style="margin-bottom:20px">Your order <strong>{{order.number}}</strong> is confirmed.</p>` +
-  `<div style="border:1px solid #e1e3e5;border-radius:8px;padding:16px;margin:0 auto;max-width:400px">` +
-  `<p style="font-weight:bold;margin-bottom:8px">🛍️ Order Summary</p>` +
-  `<p style="margin-bottom:8px">{{order.products}}</p>` +
-  `<p style="font-weight:bold">Total: {{order.total}}</p>` +
-  `</div></div>`;
 
 function VariablesSection(): ReactElement {
   const [open, setOpen] = useState(true);
@@ -575,200 +552,6 @@ function VariablesSection(): ReactElement {
   );
 }
 
-function RichTextEditor(): ReactElement {
-  const editorRef = useRef<HTMLDivElement>(null);
-  const [fontSize, setFontSize] = useState("28px");
-
-  useEffect(() => {
-    if (editorRef.current) {
-      editorRef.current.innerHTML = DEFAULT_EDITOR_HTML;
-    }
-  }, []);
-
-  const exec = useCallback((command: string): void => {
-    document.execCommand(command, false);
-    editorRef.current?.focus();
-  }, []);
-
-  const applyFontSize = useCallback((size: string): void => {
-    setFontSize(size);
-    const selection = window.getSelection();
-    if (!selection || selection.isCollapsed) return;
-    try {
-      const range = selection.getRangeAt(0);
-      const span = document.createElement("span");
-      span.style.fontSize = size;
-      range.surroundContents(span);
-      editorRef.current?.focus();
-    } catch {
-      editorRef.current?.focus();
-    }
-  }, []);
-
-  return (
-    <Box
-      borderWidth="025"
-      borderColor="border"
-      borderRadius="200"
-      overflowX="hidden"
-      overflowY="hidden"
-    >
-      <Box
-        background="bg-surface-secondary"
-        paddingInline="300"
-        paddingBlock="150"
-        borderBlockEndWidth="025"
-        borderColor="border"
-      >
-        <InlineStack gap="050" blockAlign="center" wrap={false}>
-          <Button
-            variant="plain"
-            size="slim"
-            icon={UndoIcon}
-            onClick={() => exec("undo")}
-          />
-          <Button
-            variant="plain"
-            size="slim"
-            icon={RedoIcon}
-            onClick={() => exec("redo")}
-          />
-          <Box paddingInlineStart="100" paddingInlineEnd="100" minWidth="90px">
-            <Select
-              label="Font size"
-              labelHidden
-              options={FONT_SIZE_OPTIONS}
-              value={fontSize}
-              onChange={applyFontSize}
-            />
-          </Box>
-          <button
-            type="button"
-            onClick={() => exec("foreColor")}
-            style={{
-              background: "none",
-              border: "none",
-              padding: "4px 6px",
-              cursor: "pointer",
-              borderRadius: "4px",
-              lineHeight: 1,
-            }}
-          >
-            <span
-              style={{
-                borderBottom: "3px solid #d82c0d",
-                paddingBottom: "1px",
-                fontWeight: "bold",
-                fontSize: "14px",
-              }}
-            >
-              A
-            </span>
-          </button>
-          <button
-            type="button"
-            onClick={() => exec("hiliteColor")}
-            style={{
-              background: "none",
-              border: "none",
-              padding: "4px 6px",
-              cursor: "pointer",
-              borderRadius: "4px",
-              lineHeight: 1,
-            }}
-          >
-            <span
-              style={{
-                backgroundColor: "#ffff00",
-                padding: "1px 3px",
-                fontWeight: "bold",
-                fontSize: "14px",
-              }}
-            >
-              A
-            </span>
-          </button>
-          <button
-            type="button"
-            onClick={() => exec("bold")}
-            style={{
-              background: "none",
-              border: "none",
-              padding: "4px 6px",
-              cursor: "pointer",
-              borderRadius: "4px",
-              fontWeight: "bold",
-              fontSize: "14px",
-              color: "#303030",
-            }}
-          >
-            B
-          </button>
-          <button
-            type="button"
-            onClick={() => exec("italic")}
-            style={{
-              background: "none",
-              border: "none",
-              padding: "4px 6px",
-              cursor: "pointer",
-              borderRadius: "4px",
-              fontStyle: "italic",
-              fontSize: "14px",
-              color: "#303030",
-            }}
-          >
-            I
-          </button>
-          <button
-            type="button"
-            onClick={() => exec("underline")}
-            style={{
-              background: "none",
-              border: "none",
-              padding: "4px 6px",
-              cursor: "pointer",
-              borderRadius: "4px",
-              textDecoration: "underline",
-              fontSize: "14px",
-              color: "#303030",
-            }}
-          >
-            U
-          </button>
-          <button
-            type="button"
-            onClick={() => {}}
-            style={{
-              background: "none",
-              border: "none",
-              padding: "4px 6px",
-              cursor: "pointer",
-              borderRadius: "4px",
-              fontSize: "18px",
-              color: "#303030",
-              lineHeight: 1,
-            }}
-          >
-            •••
-          </button>
-        </InlineStack>
-      </Box>
-      <div
-        ref={editorRef}
-        contentEditable
-        suppressContentEditableWarning
-        style={{
-          minHeight: "300px",
-          outline: "none",
-          padding: "16px",
-          cursor: "text",
-          overflowY: "auto",
-        }}
-      />
-    </Box>
-  );
-}
 
 function GeneralTabContent(): ReactElement {
   const [redirection, setRedirection] =
