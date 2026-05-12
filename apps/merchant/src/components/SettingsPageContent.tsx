@@ -2622,7 +2622,13 @@ export function SettingsPageContent(): ReactElement {
           borderColor="border"
           borderRadius="200"
         >
-          <InlineGrid columns={5} gap="100">
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(5, minmax(0, 1fr))",
+              gap: "var(--p-space-100)",
+            }}
+          >
             {TABS.map((tab) => (
               <Button
                 key={tab.id}
@@ -2637,7 +2643,7 @@ export function SettingsPageContent(): ReactElement {
                 {" " + tab.label}
               </Button>
             ))}
-          </InlineGrid>
+          </div>
         </Box>
 
         {activeTab === "visibility" ? (
