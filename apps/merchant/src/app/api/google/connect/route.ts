@@ -13,5 +13,5 @@ export const GET = withGuards({ skipPlanGate: true }, async (_req: NextRequest, 
 
   const state = buildOAuthState(ctx.shop);
   const authUrl = buildAuthUrl(state);
-  return NextResponse.json({ authUrl });
+  return NextResponse.json({ authUrl, _debug_redirect_uri: GOOGLE_REDIRECT_URI });
 });
