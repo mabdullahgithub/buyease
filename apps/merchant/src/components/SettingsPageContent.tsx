@@ -1533,6 +1533,7 @@ function GoogleSheetsTabContent(): ReactElement {
   const [sheetsError, setSheetsError] = useState("");
   const [tabsError, setTabsError] = useState("");
   const [needsReauth, setNeedsReauth] = useState(false);
+  const [needsDriveApiEnabled, setNeedsDriveApiEnabled] = useState(false);
 
   const [spreadsheetId, setSpreadsheetId] = useState("");
   const [sheetName, setSheetName] = useState("Orders");
@@ -1555,6 +1556,7 @@ function GoogleSheetsTabContent(): ReactElement {
     setIsLoadingSheets(true);
     setSheetsError("");
     setNeedsReauth(false);
+    setNeedsDriveApiEnabled(false);
     try {
       const res = await fetch("/api/google/spreadsheets", {
         headers: { Authorization: `Bearer ${bearer}` },
@@ -1563,9 +1565,11 @@ function GoogleSheetsTabContent(): ReactElement {
         spreadsheets?: { id: string; name: string }[];
         error?: string;
         needsReauth?: boolean;
+        needsDriveApiEnabled?: boolean;
       };
       if (!res.ok || data.error) {
-        if (data.needsReauth) setNeedsReauth(true);
+        if (data.needsDriveApiEnabled) setNeedsDriveApiEnabled(true);
+        else if (data.needsReauth) setNeedsReauth(true);
         setSheetsError(data.error ?? "Could not load spreadsheets.");
       } else {
         setAvailableSheets(data.spreadsheets ?? []);
@@ -1756,6 +1760,7 @@ function GoogleSheetsTabContent(): ReactElement {
       setAvailableTabs([]);
       setTabsLoaded(false);
       setNeedsReauth(false);
+      setNeedsDriveApiEnabled(false);
     } catch {
       // Non-critical
     } finally {
@@ -1859,35 +1864,64 @@ function GoogleSheetsTabContent(): ReactElement {
     <BlockStack gap="500">
 
       {/* ── Action bar ────────────────────────────────────────────────────── */}
-      <InlineStack gap="300" blockAlign="center">
-        <Button
-          tone="critical"
-          loading={isDisconnecting}
-          onClick={() => void handleDisconnect()}
-        >
-          Disconnect Google account
-        </Button>
-        {connectedStatus.spreadsheetUrl && (
+      <InlineStack align="space-between" blockAlign="center" wrap={false}>
+        <InlineStack gap="200" blockAlign="center">
+          <div style={{
+            width: 32, height: 32, borderRadius: "50%",
+            background: "#e8f0fe", display: "flex", alignItems: "center", justifyContent: "center",
+            flexShrink: 0,
+          }}>
+            <GoogleGIcon />
+          </div>
+          <BlockStack gap="0">
+            <Text as="p" variant="bodySm" fontWeight="semibold">Google account connected</Text>
+            {connectedStatus.email && (
+              <Text as="p" variant="bodySm" tone="subdued">{connectedStatus.email}</Text>
+            )}
+          </BlockStack>
+        </InlineStack>
+        <InlineStack gap="300" blockAlign="center">
+          {connectedStatus.spreadsheetUrl && (
+            <Button
+              url={connectedStatus.spreadsheetUrl}
+              external
+              icon={ExternalIcon}
+              variant="plain"
+            >
+              Open spreadsheet
+            </Button>
+          )}
           <Button
-            url={connectedStatus.spreadsheetUrl}
-            external
-            icon={ExternalIcon}
+            tone="critical"
             variant="plain"
+            loading={isDisconnecting}
+            onClick={() => void handleDisconnect()}
           >
-            Open Google Sheets file
+            Disconnect
           </Button>
-        )}
+        </InlineStack>
       </InlineStack>
 
-      {/* ── Needs reauth banner ───────────────────────────────────────────── */}
-      {needsReauth && (
+      {/* ── Error banners ─────────────────────────────────────────────────── */}
+      {needsDriveApiEnabled && (
+        <Banner title="Google Drive API not enabled" tone="critical">
+          <Text as="p" variant="bodyMd">
+            The Google Drive API is not enabled for this app. Go to{" "}
+            <Link url="https://console.cloud.google.com/apis/library/drive.googleapis.com" external>
+              Google Cloud Console
+            </Link>{" "}
+            and enable the Drive API, then refresh this page.
+          </Text>
+        </Banner>
+      )}
+      {needsReauth && !needsDriveApiEnabled && (
         <Banner
           title="Additional permission needed"
           tone="warning"
           action={{ content: "Reconnect Google account", onAction: () => void handleConnectGoogle() }}
         >
           <Text as="p" variant="bodyMd">
-            Disconnect and reconnect your Google account to allow BuyEase to list your spreadsheets.
+            Your Google account needs to be reconnected to grant BuyEase access to list your spreadsheets.
           </Text>
         </Banner>
       )}

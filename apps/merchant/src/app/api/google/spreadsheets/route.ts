@@ -17,6 +17,20 @@ export const GET = withGuards({ skipPlanGate: true }, async (_req: NextRequest, 
   } catch (err) {
     const msg = err instanceof Error ? err.message : "";
     if (msg.includes("403")) {
+      // "accessNotConfigured" means Google Drive API is not enabled in the GCP project.
+      // "forbidden" means the OAuth token lacks the drive scope — user must reconnect.
+      const driveApiNotEnabled =
+        msg.includes("accessNotConfigured") || msg.includes("has not been used in project");
+      if (driveApiNotEnabled) {
+        return NextResponse.json(
+          {
+            error:
+              "Google Drive API is not enabled for this app. Please contact support or enable it in Google Cloud Console.",
+            needsDriveApiEnabled: true,
+          },
+          { status: 403 },
+        );
+      }
       return NextResponse.json(
         {
           error:
