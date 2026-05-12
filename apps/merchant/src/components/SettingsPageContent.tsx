@@ -1883,7 +1883,7 @@ function GoogleSheetsTabContent(): ReactElement {
         <InlineStack gap="300" blockAlign="center">
           {connectedStatus.spreadsheetUrl && (
             <Button
-              onClick={() => window.open(connectedStatus.spreadsheetUrl, "_blank", "noopener,noreferrer")}
+              onClick={() => window.open(connectedStatus.spreadsheetUrl ?? undefined, "_blank", "noopener,noreferrer")}
               icon={ExternalIcon}
               variant="plain"
             >
