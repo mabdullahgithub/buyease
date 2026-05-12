@@ -1593,7 +1593,12 @@ function GoogleSheetsTabContent(): ReactElement {
     const res = await fetch("/api/google/connect", {
       headers: { Authorization: `Bearer ${token}` },
     });
-    if (!res.ok) return;
+    if (!res.ok) {
+      const body = (await res.json().catch(() => ({}))) as { error?: string };
+      setStatus({ connected: false });
+      setSaveError(body.error ?? "Google OAuth is not configured. Contact support.");
+      return;
+    }
     const { authUrl } = (await res.json()) as { authUrl: string };
     window.open(authUrl, "buyease-google-oauth", "width=560,height=680,left=200,top=100");
   }, [getBearer]);
