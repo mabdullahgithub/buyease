@@ -339,6 +339,49 @@ function GoogleSheetsPage({ onBack }: { onBack: () => void }): ReactElement {
     finally { setIsSaving(false); }
   }, [getBearer, spreadsheetId, sheetName, isEnabled, availableSheets, fetchStatus]);
 
+  const handleNext = useCallback(async (): Promise<void> => {
+    setSaveError(""); setSaveSuccess(""); setIsSaving(true);
+    try {
+      const token = await getBearer();
+      if (sheetMode === "new") {
+        // Create a brand new Google Sheet via the API
+        const res = await fetch("/api/google/create-spreadsheet", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = (await res.json()) as { ok?: boolean; spreadsheetId?: string; spreadsheetTitle?: string; spreadsheetUrl?: string; error?: string };
+        if (!res.ok || data.error) {
+          setSaveError(data.error ?? "Failed to create spreadsheet.");
+        } else {
+          setSaveSuccess(`New sheet "${data.spreadsheetTitle ?? "BuyEase Orders"}" created and connected!`);
+          setStep2Open(false);
+          setStep3Open(true);
+          await fetchStatus();
+        }
+      } else {
+        // Use existing sheet — configure-sheet with the URL-parsed ID
+        // Extract spreadsheet ID from URL if user pasted a full link
+        const idFromUrl = existingSheetUrl.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/)?.[1] ?? existingSheetUrl.trim();
+        if (!idFromUrl) { setSaveError("Please enter a valid Google Sheets link or ID."); setIsSaving(false); return; }
+        const res = await fetch("/api/google/configure-sheet", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ spreadsheetId: idFromUrl, sheetName: "Orders", isEnabled: true }),
+        });
+        const data = (await res.json()) as { ok?: boolean; error?: string; spreadsheetTitle?: string };
+        if (!res.ok || data.error) {
+          setSaveError(data.error ?? "Failed to connect spreadsheet.");
+        } else {
+          setSaveSuccess(`Connected to "${data.spreadsheetTitle ?? idFromUrl}".`);
+          setStep2Open(false);
+          setStep3Open(true);
+          await fetchStatus();
+        }
+      }
+    } catch { setSaveError("Network error. Please try again."); }
+    finally { setIsSaving(false); }
+  }, [getBearer, sheetMode, existingSheetUrl, fetchStatus]);
+
   const handleExport = useCallback(async (): Promise<void> => {
     setExportMsg(""); setIsExporting(true);
     try {
@@ -577,7 +620,9 @@ function GoogleSheetsPage({ onBack }: { onBack: () => void }): ReactElement {
                     </BlockStack>
                   )}
                   <InlineStack align="end">
-                    <Button variant="primary" loading={isSaving} onClick={() => void handleSave()}>Next</Button>
+                    <Button variant="primary" loading={isSaving} onClick={() => void handleNext()}>
+                      {sheetMode === "new" ? "Create & Connect" : "Next"}
+                    </Button>
                   </InlineStack>
                 </BlockStack>
               </Box>
