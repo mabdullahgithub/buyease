@@ -161,7 +161,12 @@ function SmsWhatsAppPage({ onBack }: { onBack: () => void }): ReactElement {
             <Card>
               <BlockStack gap="400" inlineAlign="center">
                 <BlockStack gap="200" inlineAlign="center">
-                  <Text as="h2" variant="headingLg" fontWeight="semibold" alignment="center">
+                  <Text
+                    as="h2"
+                    variant="headingLg"
+                    fontWeight="semibold"
+                    alignment="center"
+                  >
                     Remaining balance
                   </Text>
                   <Text as="p" variant="heading2xl" alignment="center">
@@ -172,7 +177,12 @@ function SmsWhatsAppPage({ onBack }: { onBack: () => void }): ReactElement {
                   <Divider />
                 </Box>
                 <BlockStack gap="300" inlineAlign="center">
-                  <Text as="p" variant="headingMd" fontWeight="semibold" alignment="center">
+                  <Text
+                    as="p"
+                    variant="headingMd"
+                    fontWeight="semibold"
+                    alignment="center"
+                  >
                     Top up your balance
                   </Text>
                   <div style={{ width: "180px" }}>
@@ -269,13 +279,28 @@ function SmsWhatsAppPage({ onBack }: { onBack: () => void }): ReactElement {
         {SMS_SERVICES.map((service) => (
           <Card key={service.id}>
             <BlockStack gap="300">
-              <InlineStack align="space-between" blockAlign="start" wrap={false} gap="400">
-                <BlockStack gap="100">
-                  <InlineStack gap="200" blockAlign="center">
+              <InlineStack
+                align="space-between"
+                blockAlign="start"
+                wrap={false}
+                gap="400"
+              >
+                <BlockStack gap="100" inlineAlign="start">
+                  <InlineStack
+                    gap="200"
+                    blockAlign="center"
+                    align="start"
+                    wrap={false}
+                  >
                     <Text as="h3" variant="headingMd" fontWeight="semibold">
                       {service.title}
                     </Text>
-                    <Text as="span" variant="bodyMd" tone="caution">
+                    <Text
+                      as="span"
+                      variant="bodyMd"
+                      tone="caution"
+                      fontWeight="bold"
+                    >
                       Deactivated
                     </Text>
                   </InlineStack>
@@ -289,8 +314,15 @@ function SmsWhatsAppPage({ onBack }: { onBack: () => void }): ReactElement {
                 </InlineStack>
               </InlineStack>
               <Divider />
-              <InlineStack gap="200" blockAlign="center">
-                <Icon source={ChartVerticalIcon} tone="subdued" />
+              <InlineStack
+                gap="200"
+                blockAlign="center"
+                align="start"
+                wrap={false}
+              >
+                <div style={{ flexShrink: 0, display: "flex" }}>
+                  <Icon source={ChartVerticalIcon} tone="subdued" />
+                </div>
                 <Text as="p" variant="bodySm" tone="subdued">
                   Last 30 days: Data not available yet. Check back after sending
                   the first message
@@ -318,7 +350,6 @@ function SmsWhatsAppPage({ onBack }: { onBack: () => void }): ReactElement {
             </Link>
           </Text>
         </InlineStack>
-
       </BlockStack>
     </Page>
   );
