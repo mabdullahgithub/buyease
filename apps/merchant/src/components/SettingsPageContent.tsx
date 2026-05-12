@@ -1509,8 +1509,6 @@ type SheetsStatus =
       lastSyncError: string | null;
     };
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
-
 function formatRelativeTime(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
   const minutes = Math.floor(diff / 60_000);
@@ -1521,32 +1519,62 @@ function formatRelativeTime(iso: string): string {
   return `${Math.floor(hours / 24)}d ago`;
 }
 
-// ── Main component ───────────────────────────────────────────────────────────
-
 function GoogleSheetsTabContent(): ReactElement {
   const [status, setStatus] = useState<SheetsStatus | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [isDisconnecting, setIsDisconnecting] = useState(false);
+  const [isLoadingSheets, setIsLoadingSheets] = useState(false);
+  const [isLoadingTabs, setIsLoadingTabs] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [saveSuccess, setSaveSuccess] = useState("");
   const [exportMsg, setExportMsg] = useState("");
+  const [sheetsError, setSheetsError] = useState("");
+  const [tabsError, setTabsError] = useState("");
+  const [needsReauth, setNeedsReauth] = useState(false);
 
-  // Sheet config form state
   const [spreadsheetId, setSpreadsheetId] = useState("");
   const [sheetName, setSheetName] = useState("Orders");
   const [isEnabled, setIsEnabled] = useState(false);
+  const [availableSheets, setAvailableSheets] = useState<{ id: string; name: string }[]>([]);
+  const [availableTabs, setAvailableTabs] = useState<string[]>([]);
+  const [tabsLoaded, setTabsLoaded] = useState(false);
 
   const bearerRef = useRef<string | null>(null);
 
-  // Grab Shopify session token for API calls
   const getBearer = useCallback(async (): Promise<string> => {
     if (bearerRef.current) return bearerRef.current;
     const w = window as Window & { shopify?: { idToken?: () => Promise<string> } };
     const token = (await w.shopify?.idToken?.()) ?? "";
     bearerRef.current = token;
     return token;
+  }, []);
+
+  const fetchSpreadsheets = useCallback(async (bearer: string): Promise<void> => {
+    setIsLoadingSheets(true);
+    setSheetsError("");
+    setNeedsReauth(false);
+    try {
+      const res = await fetch("/api/google/spreadsheets", {
+        headers: { Authorization: `Bearer ${bearer}` },
+      });
+      const data = (await res.json()) as {
+        spreadsheets?: { id: string; name: string }[];
+        error?: string;
+        needsReauth?: boolean;
+      };
+      if (!res.ok || data.error) {
+        if (data.needsReauth) setNeedsReauth(true);
+        setSheetsError(data.error ?? "Could not load spreadsheets.");
+      } else {
+        setAvailableSheets(data.spreadsheets ?? []);
+      }
+    } catch {
+      setSheetsError("Network error loading spreadsheets.");
+    } finally {
+      setIsLoadingSheets(false);
+    }
   }, []);
 
   const fetchStatus = useCallback(async (): Promise<void> => {
@@ -1562,18 +1590,21 @@ function GoogleSheetsTabContent(): ReactElement {
         setSpreadsheetId(data.spreadsheetId ?? "");
         setSheetName(data.sheetName);
         setIsEnabled(data.isEnabled);
+        if (data.spreadsheetId && data.sheetName) {
+          setAvailableTabs([data.sheetName]);
+          setTabsLoaded(true);
+        }
+        void fetchSpreadsheets(token);
       }
     } catch {
       setStatus({ connected: false });
     } finally {
       setIsLoading(false);
     }
-  }, [getBearer]);
+  }, [getBearer, fetchSpreadsheets]);
 
   useEffect(() => {
     void fetchStatus();
-
-    // Listen for the postMessage from the OAuth popup
     const handler = (event: MessageEvent<unknown>): void => {
       if (
         event.data &&
@@ -1595,13 +1626,67 @@ function GoogleSheetsTabContent(): ReactElement {
     });
     if (!res.ok) {
       const body = (await res.json().catch(() => ({}))) as { error?: string };
-      setStatus({ connected: false });
       setSaveError(body.error ?? "Google OAuth is not configured. Contact support.");
       return;
     }
     const { authUrl } = (await res.json()) as { authUrl: string };
     window.open(authUrl, "buyease-google-oauth", "width=560,height=680,left=200,top=100");
   }, [getBearer]);
+
+  const handleSelectSpreadsheet = useCallback(async (id: string): Promise<void> => {
+    setSpreadsheetId(id);
+    setTabsLoaded(false);
+    setAvailableTabs([]);
+    setTabsError("");
+    if (!id) return;
+    setIsLoadingTabs(true);
+    try {
+      const token = await getBearer();
+      const res = await fetch(
+        `/api/google/sheet-tabs?spreadsheetId=${encodeURIComponent(id)}`,
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+      const data = (await res.json()) as { tabs?: string[]; error?: string };
+      if (!res.ok || data.error) {
+        setTabsError(data.error ?? "Could not load sheet tabs.");
+      } else {
+        const tabs = data.tabs ?? ["Orders"];
+        setAvailableTabs(tabs);
+        setTabsLoaded(true);
+        setSheetName(tabs[0] ?? "Orders");
+      }
+    } catch {
+      setTabsError("Network error loading tabs.");
+    } finally {
+      setIsLoadingTabs(false);
+    }
+  }, [getBearer]);
+
+  const handleRefreshTabs = useCallback(async (): Promise<void> => {
+    if (!spreadsheetId) return;
+    setIsLoadingTabs(true);
+    setTabsError("");
+    try {
+      const token = await getBearer();
+      const res = await fetch(
+        `/api/google/sheet-tabs?spreadsheetId=${encodeURIComponent(spreadsheetId)}`,
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+      const data = (await res.json()) as { tabs?: string[]; error?: string };
+      if (!res.ok || data.error) {
+        setTabsError(data.error ?? "Could not load sheet tabs.");
+      } else {
+        const tabs = data.tabs ?? ["Orders"];
+        setAvailableTabs(tabs);
+        setTabsLoaded(true);
+        if (!tabs.includes(sheetName)) setSheetName(tabs[0] ?? "Orders");
+      }
+    } catch {
+      setTabsError("Network error loading tabs.");
+    } finally {
+      setIsLoadingTabs(false);
+    }
+  }, [getBearer, spreadsheetId, sheetName]);
 
   const handleSave = useCallback(async (): Promise<void> => {
     setSaveError("");
@@ -1618,7 +1703,11 @@ function GoogleSheetsTabContent(): ReactElement {
       if (!res.ok || data.error) {
         setSaveError(data.error ?? "Failed to save settings.");
       } else {
-        setSaveSuccess(`Saved! Connected to "${data.spreadsheetTitle ?? spreadsheetId}".`);
+        const name =
+          data.spreadsheetTitle ??
+          availableSheets.find((s) => s.id === spreadsheetId)?.name ??
+          spreadsheetId;
+        setSaveSuccess(`Connected to "${name}".`);
         await fetchStatus();
       }
     } catch {
@@ -1626,7 +1715,7 @@ function GoogleSheetsTabContent(): ReactElement {
     } finally {
       setIsSaving(false);
     }
-  }, [getBearer, spreadsheetId, sheetName, isEnabled, fetchStatus]);
+  }, [getBearer, spreadsheetId, sheetName, isEnabled, availableSheets, fetchStatus]);
 
   const handleExport = useCallback(async (): Promise<void> => {
     setExportMsg("");
@@ -1641,7 +1730,7 @@ function GoogleSheetsTabContent(): ReactElement {
       if (!res.ok || data.error) {
         setExportMsg(`Export failed: ${data.error ?? "Unknown error"}`);
       } else {
-        setExportMsg(`Export complete — ${data.count ?? 0} orders written to your sheet.`);
+        setExportMsg(`${data.count ?? 0} orders exported successfully.`);
         await fetchStatus();
       }
     } catch {
@@ -1655,10 +1744,7 @@ function GoogleSheetsTabContent(): ReactElement {
     setIsDisconnecting(true);
     try {
       const token = await getBearer();
-      await fetch("/api/google/disconnect", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await fetch("/api/google/disconnect", { method: "POST", headers: { Authorization: `Bearer ${token}` } });
       setStatus({ connected: false });
       setSpreadsheetId("");
       setSheetName("Orders");
@@ -1666,6 +1752,10 @@ function GoogleSheetsTabContent(): ReactElement {
       setSaveError("");
       setSaveSuccess("");
       setExportMsg("");
+      setAvailableSheets([]);
+      setAvailableTabs([]);
+      setTabsLoaded(false);
+      setNeedsReauth(false);
     } catch {
       // Non-critical
     } finally {
@@ -1673,13 +1763,13 @@ function GoogleSheetsTabContent(): ReactElement {
     }
   }, [getBearer]);
 
-  // ── Loading skeleton ───────────────────────────────────────────────────────
+  // ── Loading ────────────────────────────────────────────────────────────────
 
   if (isLoading) {
     return (
       <BlockStack gap="400">
-        <Text as="h1" variant="headingLg">Google Sheets</Text>
-        <Card><BlockStack gap="400"><SkeletonBodyText lines={5} /></BlockStack></Card>
+        <Card><BlockStack gap="400"><SkeletonBodyText lines={4} /></BlockStack></Card>
+        <Card><BlockStack gap="400"><SkeletonBodyText lines={6} /></BlockStack></Card>
       </BlockStack>
     );
   }
@@ -1688,272 +1778,295 @@ function GoogleSheetsTabContent(): ReactElement {
 
   if (!status?.connected) {
     return (
-      <BlockStack gap="400">
-        <Text as="h1" variant="headingLg">Google Sheets</Text>
-
-        <Card>
-          <Box paddingBlock="1200" paddingInline="600">
-            <BlockStack gap="800" inlineAlign="center">
-              <BlockStack gap="300" inlineAlign="center">
-                <Text as="h2" variant="headingMd" alignment="center" fontWeight="bold">
-                  Import your COD form orders automatically on Google Sheets
-                </Text>
-                <Text as="p" variant="bodyMd" tone="subdued" alignment="center">
-                  Connect your Google account to start syncing orders to a spreadsheet automatically.
-                </Text>
-              </BlockStack>
-
-              <button
-                type="button"
-                onClick={() => void handleConnectGoogle()}
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "10px",
-                  height: "44px",
-                  padding: "0 24px",
-                  borderRadius: "8px",
-                  border: "1.5px solid #e0e0e0",
-                  background: "#ffffff",
-                  cursor: "pointer",
-                  fontFamily: "inherit",
-                  fontSize: "15px",
-                  fontWeight: "500",
-                  color: "#303030",
-                  boxShadow: "0 1px 3px rgba(0,0,0,0.10)",
-                }}
-              >
-                <GoogleGIcon />
-                Sign in with Google
-              </button>
-
-              <Text as="p" variant="bodyMd" alignment="center">
-                After signing in, return here to configure your spreadsheet.
+      <Card>
+        <Box paddingBlock="1200" paddingInline="600">
+          <BlockStack gap="600" inlineAlign="center">
+            <div style={{ width: 56, height: 56 }}>
+              <svg viewBox="0 0 48 48" width="56" height="56" aria-hidden="true">
+                <path fill="#43A047" d="M37 45H11c-1.657 0-3-1.343-3-3V6c0-1.657 1.343-3 3-3h19l10 10v29c0 1.657-1.343 3-3 3z"/>
+                <path fill="#C8E6C9" d="M40 13H30V3z"/>
+                <path fill="#2E7D32" d="M30 13l10 10V13z"/>
+                <rect width="22" height="2" x="13" y="22" fill="#fff" rx="1"/>
+                <rect width="22" height="2" x="13" y="27" fill="#fff" rx="1"/>
+                <rect width="22" height="2" x="13" y="32" fill="#fff" rx="1"/>
+                <rect width="8" height="2" x="13" y="17" fill="#fff" rx="1"/>
+              </svg>
+            </div>
+            <BlockStack gap="200" inlineAlign="center">
+              <Text as="h2" variant="headingLg" alignment="center">Sync orders to Google Sheets</Text>
+              <Text as="p" variant="bodyMd" tone="subdued" alignment="center">
+                Automatically export every COD order to your spreadsheet in real time. No manual work needed.
               </Text>
-
-              {/* Permissions warning */}
-              <div
-                style={{
-                  maxWidth: "560px",
-                  width: "100%",
-                  backgroundColor: "#FEF3C7",
-                  borderRadius: "8px",
-                  padding: "16px",
-                }}
-              >
-                <BlockStack gap="400">
-                  <InlineStack gap="200" blockAlign="start" wrap={false}>
-                    <Icon source={AlertCircleIcon} tone="caution" />
-                    <Text as="p" variant="bodyMd">
-                      <Text as="span" fontWeight="bold">Important:</Text> when signing in,
-                      make sure to tick both checkboxes to grant BuyEase access to your Google Sheets.
-                    </Text>
-                  </InlineStack>
-                  <Box borderRadius="200" borderWidth="025" borderColor="border" overflowX="hidden" overflowY="hidden">
-                    <Image
-                      src="/images/en.checkboxes-google-account.png"
-                      alt="Google sign-in dialog showing two permission checkboxes"
-                      width={800}
-                      height={420}
-                      style={{ width: "100%", height: "auto", display: "block" }}
-                    />
-                  </Box>
-                </BlockStack>
-              </div>
             </BlockStack>
-          </Box>
-        </Card>
-      </BlockStack>
+            {saveError && (
+              <Banner tone="critical" onDismiss={() => setSaveError("")}>
+                <Text as="p" variant="bodyMd">{saveError}</Text>
+              </Banner>
+            )}
+            <button
+              type="button"
+              onClick={() => void handleConnectGoogle()}
+              style={{
+                display: "inline-flex", alignItems: "center", gap: "10px",
+                height: "44px", padding: "0 24px", borderRadius: "8px",
+                border: "1.5px solid #e0e0e0", background: "#ffffff", cursor: "pointer",
+                fontFamily: "inherit", fontSize: "15px", fontWeight: "500",
+                color: "#303030", boxShadow: "0 1px 3px rgba(0,0,0,0.10)",
+              }}
+            >
+              <GoogleGIcon />
+              Sign in with Google
+            </button>
+            <Text as="p" variant="bodySm" tone="subdued" alignment="center">
+              After signing in, return here to configure your spreadsheet.
+            </Text>
+            <div style={{ maxWidth: 540, width: "100%" }}>
+              <div style={{ backgroundColor: "#FEF3C7", borderRadius: 8, padding: "14px 16px" }}>
+                <InlineStack gap="200" blockAlign="start" wrap={false}>
+                  <Icon source={AlertCircleIcon} tone="caution" />
+                  <Text as="p" variant="bodySm">
+                    <Text as="span" fontWeight="bold">Important:</Text>{" "}
+                    When signing in, tick both checkboxes to grant BuyEase access to your Google Sheets.
+                  </Text>
+                </InlineStack>
+              </div>
+              <Box paddingBlockStart="300">
+                <Box borderRadius="200" borderWidth="025" borderColor="border" overflowX="hidden" overflowY="hidden">
+                  <Image
+                    src="/images/en.checkboxes-google-account.png"
+                    alt="Google sign-in dialog showing two permission checkboxes"
+                    width={800} height={420} loading="eager"
+                    style={{ width: "100%", height: "auto", display: "block" }}
+                  />
+                </Box>
+              </Box>
+            </div>
+          </BlockStack>
+        </Box>
+      </Card>
     );
   }
 
   // ── Connected ──────────────────────────────────────────────────────────────
 
   const connectedStatus = status;
+  const canSave = !!spreadsheetId && tabsLoaded;
+  const sheetOptions = availableSheets.map((s) => ({ label: s.name, value: s.id }));
+  const tabOptions = availableTabs.map((t) => ({ label: t, value: t }));
+  const currentSheetName = availableSheets.find((s) => s.id === spreadsheetId)?.name;
 
   return (
-    <BlockStack gap="800">
-      {/* ── Account connection ──────────────────────────────────────────── */}
-      <InlineGrid columns={["oneThird", "twoThirds"]} gap="400">
-        <BlockStack gap="200">
-          <Text as="h2" variant="headingMd">Google account</Text>
-          <Text as="p" variant="bodyMd" tone="subdued">
-            Your Google account is connected. BuyEase uses it to read and write to your spreadsheet.
-          </Text>
-        </BlockStack>
+    <BlockStack gap="500">
 
-        <Card padding="0">
-          <Box padding="400">
-            <InlineStack align="space-between" blockAlign="center">
-              <InlineStack gap="300" blockAlign="center">
-                <div
-                  style={{
-                    width: 36, height: 36, borderRadius: "50%",
-                    background: "#e8f5e9", display: "flex",
-                    alignItems: "center", justifyContent: "center", flexShrink: 0,
+      {/* ── Action bar ────────────────────────────────────────────────────── */}
+      <InlineStack gap="300" blockAlign="center">
+        <Button
+          tone="critical"
+          loading={isDisconnecting}
+          onClick={() => void handleDisconnect()}
+        >
+          Disconnect Google account
+        </Button>
+        {connectedStatus.spreadsheetUrl && (
+          <Button
+            url={connectedStatus.spreadsheetUrl}
+            external
+            icon={ExternalIcon}
+            variant="plain"
+          >
+            Open Google Sheets file
+          </Button>
+        )}
+      </InlineStack>
+
+      {/* ── Needs reauth banner ───────────────────────────────────────────── */}
+      {needsReauth && (
+        <Banner
+          title="Additional permission needed"
+          tone="warning"
+          action={{ content: "Reconnect Google account", onAction: () => void handleConnectGoogle() }}
+        >
+          <Text as="p" variant="bodyMd">
+            Disconnect and reconnect your Google account to allow BuyEase to list your spreadsheets.
+          </Text>
+        </Banner>
+      )}
+
+      {/* ── Step 1: Select spreadsheet ────────────────────────────────────── */}
+      <Card padding="0">
+        <Box padding="400">
+          <BlockStack gap="400">
+            <Text as="h2" variant="headingMd">1. Select the Google Sheet where orders will be imported</Text>
+
+            {saveError && (
+              <Banner tone="critical" onDismiss={() => setSaveError("")}>
+                <Text as="p" variant="bodyMd">{saveError}</Text>
+              </Banner>
+            )}
+            {saveSuccess && (
+              <Banner tone="success" onDismiss={() => setSaveSuccess("")}>
+                <Text as="p" variant="bodyMd">{saveSuccess}</Text>
+              </Banner>
+            )}
+
+            <Checkbox
+              label="Enable automatic import of your orders on Google Sheets"
+              checked={isEnabled}
+              onChange={setIsEnabled}
+            />
+
+            {/* Spreadsheet picker */}
+            <BlockStack gap="100">
+              <Text as="p" variant="bodySm" fontWeight="semibold">Select your spreadsheet</Text>
+              {sheetsError && !needsReauth && (
+                <Text as="p" variant="bodySm" tone="critical">{sheetsError}</Text>
+              )}
+              <InlineStack gap="200" blockAlign="center">
+                {sheetOptions.length > 0 ? (
+                  <div style={{ flex: 1 }}>
+                    <Select
+                      label=""
+                      labelHidden
+                      options={[{ label: "Select your spreadsheet", value: "" }, ...sheetOptions]}
+                      value={spreadsheetId}
+                      onChange={(val) => void handleSelectSpreadsheet(val)}
+                      disabled={isLoadingSheets}
+                    />
+                  </div>
+                ) : (
+                  <div style={{ flex: 1 }}>
+                    <Select
+                      label=""
+                      labelHidden
+                      options={[
+                        {
+                          label: isLoadingSheets ? "Loading…" : "No spreadsheets found",
+                          value: "",
+                        },
+                      ]}
+                      value=""
+                      onChange={() => undefined}
+                      disabled
+                    />
+                  </div>
+                )}
+                <Button
+                  icon={RefreshIcon}
+                  loading={isLoadingSheets}
+                  onClick={() => {
+                    void getBearer().then((t) => fetchSpreadsheets(t));
                   }}
                 >
-                  <GoogleGIcon />
-                </div>
-                <BlockStack gap="0">
-                  <Text as="p" variant="bodyMd" fontWeight="semibold">
-                    {connectedStatus.email || "Google account"}
-                  </Text>
-                  <Text as="p" variant="bodySm" tone="success">Connected</Text>
-                </BlockStack>
+                  Refresh
+                </Button>
               </InlineStack>
+              {currentSheetName && spreadsheetId && (
+                <Text as="p" variant="bodySm" tone="subdued">
+                  Selected: {currentSheetName}
+                </Text>
+              )}
+            </BlockStack>
+
+            {/* Sheet tab picker — shown once a spreadsheet is selected */}
+            {spreadsheetId && (
+              <BlockStack gap="100">
+                <Text as="p" variant="bodySm" fontWeight="semibold">Select your sheet</Text>
+                {tabsError && (
+                  <Text as="p" variant="bodySm" tone="critical">{tabsError}</Text>
+                )}
+                <InlineStack gap="200" blockAlign="center">
+                  <div style={{ flex: 1 }}>
+                    <Select
+                      label=""
+                      labelHidden
+                      options={
+                        tabOptions.length > 0
+                          ? tabOptions
+                          : [{ label: isLoadingTabs ? "Loading…" : "No tabs found", value: "" }]
+                      }
+                      value={sheetName}
+                      onChange={setSheetName}
+                      disabled={isLoadingTabs || !tabsLoaded}
+                    />
+                  </div>
+                  <Button
+                    icon={RefreshIcon}
+                    loading={isLoadingTabs}
+                    disabled={!spreadsheetId}
+                    onClick={() => void handleRefreshTabs()}
+                  >
+                    Refresh
+                  </Button>
+                </InlineStack>
+              </BlockStack>
+            )}
+
+            <InlineStack align="end">
               <Button
-                tone="critical"
-                variant="plain"
-                loading={isDisconnecting}
-                onClick={() => void handleDisconnect()}
+                variant="primary"
+                loading={isSaving}
+                disabled={!canSave}
+                onClick={() => void handleSave()}
               >
-                Disconnect
+                Save settings
               </Button>
             </InlineStack>
-          </Box>
-        </Card>
-      </InlineGrid>
+          </BlockStack>
+        </Box>
+      </Card>
 
-      <Divider />
+      {/* ── Sync status & export ──────────────────────────────────────────── */}
+      <Card padding="0">
+        <Box padding="400">
+          <BlockStack gap="400">
+            <Text as="h2" variant="headingMd">Sync & export</Text>
 
-      {/* ── Spreadsheet configuration ───────────────────────────────────── */}
-      <InlineGrid columns={["oneThird", "twoThirds"]} gap="400">
-        <BlockStack gap="200">
-          <Text as="h2" variant="headingMd">Spreadsheet settings</Text>
-          <Text as="p" variant="bodyMd" tone="subdued">
-            Enter the ID of the Google Sheet where orders should be synced.
-            You can find the ID in the sheet URL:{" "}
-            <Text as="span" variant="bodySm" fontWeight="semibold">
-              docs.google.com/spreadsheets/d/<Text as="span" tone="critical">SHEET_ID</Text>/edit
-            </Text>
-          </Text>
-        </BlockStack>
+            {exportMsg && (
+              <Banner
+                tone={exportMsg.startsWith("Export failed") ? "critical" : "success"}
+                onDismiss={() => setExportMsg("")}
+              >
+                <Text as="p" variant="bodyMd">{exportMsg}</Text>
+              </Banner>
+            )}
+            {connectedStatus.lastSyncError && (
+              <Banner tone="warning">
+                <Text as="p" variant="bodySm">Last sync error: {connectedStatus.lastSyncError}</Text>
+              </Banner>
+            )}
 
-        <Card padding="0">
-          <Box padding="400">
-            <BlockStack gap="400">
-              {saveError && (
-                <Banner tone="critical" onDismiss={() => setSaveError("")}>
-                  <Text as="p" variant="bodyMd">{saveError}</Text>
-                </Banner>
-              )}
-              {saveSuccess && (
-                <Banner tone="success" onDismiss={() => setSaveSuccess("")}>
-                  <Text as="p" variant="bodyMd">{saveSuccess}</Text>
-                </Banner>
-              )}
-
-              <TextField
-                label="Google Sheet ID"
-                value={spreadsheetId}
-                onChange={setSpreadsheetId}
-                placeholder="1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms"
-                helpText="Copy the long ID from your sheet's URL."
-                autoComplete="off"
-              />
-
-              <TextField
-                label="Sheet tab name"
-                value={sheetName}
-                onChange={setSheetName}
-                placeholder="Orders"
-                helpText="The name of the tab inside the spreadsheet. Default: Orders"
-                autoComplete="off"
-              />
-
-              <Checkbox
-                label="Enable automatic sync"
-                helpText="New orders and status updates will be pushed to your sheet in real time."
-                checked={isEnabled}
-                onChange={setIsEnabled}
-              />
-
-              {connectedStatus.spreadsheetUrl && (
-                <Link url={connectedStatus.spreadsheetUrl} target="_blank" removeUnderline>
-                  <InlineStack gap="100" blockAlign="center">
-                    <Text as="span" variant="bodySm">Open spreadsheet</Text>
-                    <Icon source={ExternalIcon} />
-                  </InlineStack>
-                </Link>
-              )}
-
-              <InlineStack align="end">
-                <Button
-                  variant="primary"
-                  loading={isSaving}
-                  disabled={!spreadsheetId.trim()}
-                  onClick={() => void handleSave()}
-                >
-                  Save settings
-                </Button>
-              </InlineStack>
-            </BlockStack>
-          </Box>
-        </Card>
-      </InlineGrid>
-
-      <Divider />
-
-      {/* ── Manual export ───────────────────────────────────────────────── */}
-      <InlineGrid columns={["oneThird", "twoThirds"]} gap="400">
-        <BlockStack gap="200">
-          <Text as="h2" variant="headingMd">Manual export</Text>
-          <Text as="p" variant="bodyMd" tone="subdued">
-            Export all existing orders to your spreadsheet in one go.
-            This overwrites rows starting from row 2 (header is preserved).
-          </Text>
-        </BlockStack>
-
-        <Card padding="0">
-          <Box padding="400">
-            <BlockStack gap="400">
-              {exportMsg && (
-                <Banner
-                  tone={exportMsg.startsWith("Export failed") ? "critical" : "success"}
-                  onDismiss={() => setExportMsg("")}
-                >
-                  <Text as="p" variant="bodyMd">{exportMsg}</Text>
-                </Banner>
-              )}
-
-              {connectedStatus.lastSyncAt && (
+            <InlineStack align="space-between" blockAlign="center">
+              <BlockStack gap="050">
+                <Text as="p" variant="bodySm" fontWeight="semibold">Last sync</Text>
                 <Text as="p" variant="bodySm" tone="subdued">
-                  Last sync: {formatRelativeTime(connectedStatus.lastSyncAt)}
+                  {connectedStatus.lastSyncAt
+                    ? formatRelativeTime(connectedStatus.lastSyncAt)
+                    : "No syncs yet"}
                 </Text>
-              )}
+              </BlockStack>
+              <Button
+                icon={DataTableIcon}
+                loading={isExporting}
+                disabled={!connectedStatus.spreadsheetId}
+                onClick={() => void handleExport()}
+              >
+                Export all orders
+              </Button>
+            </InlineStack>
 
-              {connectedStatus.lastSyncError && (
-                <Banner tone="warning">
-                  <Text as="p" variant="bodySm">
-                    Last sync error: {connectedStatus.lastSyncError}
-                  </Text>
-                </Banner>
-              )}
+            {!connectedStatus.spreadsheetId && (
+              <Text as="p" variant="bodySm" tone="subdued">
+                Save your spreadsheet settings above before exporting.
+              </Text>
+            )}
+          </BlockStack>
+        </Box>
+      </Card>
 
-              <InlineStack>
-                <Button
-                  icon={DataTableIcon}
-                  loading={isExporting}
-                  disabled={!connectedStatus.spreadsheetId}
-                  onClick={() => void handleExport()}
-                >
-                  Export all orders now
-                </Button>
-              </InlineStack>
-
-              {!connectedStatus.spreadsheetId && (
-                <Text as="p" variant="bodySm" tone="subdued">
-                  Configure your spreadsheet above before exporting.
-                </Text>
-              )}
-            </BlockStack>
-          </Box>
-        </Card>
-      </InlineGrid>
     </BlockStack>
   );
 }
+
 
 function ComingSoon(): ReactElement {
   return (

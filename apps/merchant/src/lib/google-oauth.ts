@@ -9,6 +9,7 @@ export const GOOGLE_REDIRECT_URI = (process.env.GOOGLE_REDIRECT_URI ?? "").trim(
 
 const SCOPES = [
   "https://www.googleapis.com/auth/spreadsheets",
+  "https://www.googleapis.com/auth/drive.metadata.readonly",
   "openid",
   "email",
 ];
@@ -197,6 +198,23 @@ export async function revokeToken(token: string): Promise<void> {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
   });
+}
+
+export type SpreadsheetItem = { id: string; name: string };
+
+export async function listSpreadsheets(accessToken: string): Promise<SpreadsheetItem[]> {
+  const query = encodeURIComponent("mimeType='application/vnd.google-apps.spreadsheet'");
+  const fields = encodeURIComponent("files(id,name)");
+  const res = await fetch(
+    `https://www.googleapis.com/drive/v3/files?q=${query}&fields=${fields}&orderBy=modifiedTime+desc&pageSize=50`,
+    { headers: { Authorization: `Bearer ${accessToken}` } },
+  );
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`Drive API error (${res.status}): ${body}`);
+  }
+  const data = (await res.json()) as { files: SpreadsheetItem[] };
+  return data.files ?? [];
 }
 
 // ---------------------------------------------------------------------------

@@ -85,6 +85,17 @@ export async function getSpreadsheetTitle(
   return data.properties.title;
 }
 
+export async function getSheetTabs(
+  accessToken: string,
+  spreadsheetId: string,
+): Promise<string[]> {
+  const data = (await sheetsRequest(
+    accessToken,
+    `/${spreadsheetId}?fields=sheets.properties.title`,
+  )) as { sheets: Array<{ properties: { title: string } }> };
+  return data.sheets.map((s) => s.properties.title);
+}
+
 // ---------------------------------------------------------------------------
 // Header row
 // ---------------------------------------------------------------------------
