@@ -13,6 +13,7 @@ import {
   Divider,
   Icon,
   InlineStack,
+  InlineGrid,
   Layout,
   Link,
   List,
@@ -48,7 +49,7 @@ type IntegrationItem = {
   imageHeight: number;
 };
 
-type ActiveView = "list" | "sms-whatsapp";
+type ActiveView = "list" | "sms-whatsapp" | "google-sheets";
 
 const INTEGRATIONS: IntegrationItem[] = [
   {
@@ -141,6 +142,126 @@ const WHATSAPP_PRICING_ROWS = [
 
 type Channel = "sms" | "whatsapp";
 
+function GoogleSheetsPage({ onBack }: { onBack: () => void }): ReactElement {
+  return (
+    <Page
+      backAction={{ content: "Integrations", onAction: onBack }}
+      title="Google Sheets"
+      subtitle="Export store orders to google sheet in real time"
+    >
+      <div style={{ width: "65.5rem", maxWidth: "100%" }}>
+        <BlockStack gap="400">
+          <Card>
+            <Box padding="400">
+              <InlineGrid columns={{ xs: 1, md: 2 }} gap="800" alignItems="center">
+                {/* Left Column: Content */}
+                <BlockStack gap="400">
+                  <Text as="h3" variant="headingMd" fontWeight="bold">
+                    Export store orders to google sheet in real time
+                  </Text>
+                  <BlockStack gap="200" inlineAlign="start">
+                    <Text as="p" variant="bodyMd">
+                      1. Click the Button to Sign In and Link your Google Account.
+                    </Text>
+                    <Text as="p" variant="bodyMd">
+                      2. Choose what data to export to Google Sheet.
+                    </Text>
+                    <Text as="p" variant="bodyMd">
+                      3. Your store orders will be synchronized in real time with google sheets.
+                    </Text>
+                  </BlockStack>
+                </BlockStack>
+
+                {/* Right Column: Icons and Button */}
+                <BlockStack gap="1000" inlineAlign="center">
+                  <InlineStack align="center" blockAlign="center" gap="800">
+                    {/* Store Orders */}
+                    <BlockStack align="center" inlineAlign="center" gap="300">
+                      <div style={{ width: "96px", height: "96px", position: "relative" }}>
+                        <Image src="/images/store.png" alt="Store Orders" fill style={{ objectFit: "contain" }} />
+                      </div>
+                      <Text as="h2" variant="headingMd" fontWeight="semibold">
+                        Store Orders
+                      </Text>
+                    </BlockStack>
+
+                    {/* Link Icon */}
+                    <div style={{ width: "32px", height: "32px", color: "#202223", transform: "rotate(45deg)" }}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+                      </svg>
+                    </div>
+
+                    {/* Google Sheets */}
+                    <BlockStack align="center" inlineAlign="center" gap="300">
+                      <div style={{ width: "96px", height: "96px", position: "relative" }}>
+                        <Image src="/images/sheet.svg" alt="Google Sheets" fill style={{ objectFit: "contain" }} />
+                      </div>
+                      <Text as="h2" variant="headingMd" fontWeight="semibold">
+                        Google Sheets
+                      </Text>
+                    </BlockStack>
+                  </InlineStack>
+
+                  <button
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: "12px",
+                      padding: "10px 24px",
+                      marginTop: "16px",
+                      backgroundColor: "white",
+                      border: "1px solid #E5E7EB",
+                      borderRadius: "100px",
+                      cursor: "pointer",
+                      boxShadow: "0 2px 4px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.04)",
+                      transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = "#FAFAFA";
+                      e.currentTarget.style.boxShadow = "0 4px 8px rgba(0,0,0,0.06), 0 8px 24px rgba(0,0,0,0.08)";
+                      e.currentTarget.style.borderColor = "#D1D5DB";
+                      e.currentTarget.style.transform = "translateY(-1px)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = "white";
+                      e.currentTarget.style.boxShadow = "0 2px 4px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.04)";
+                      e.currentTarget.style.borderColor = "#E5E7EB";
+                      e.currentTarget.style.transform = "none";
+                    }}
+                    onClick={() => {}}
+                  >
+                    <svg width="20" height="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
+                      <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
+                      <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
+                      <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
+                    </svg>
+                    <span style={{ fontWeight: 600, fontSize: "15px", display: "flex", gap: "4px" }}>
+                      <span style={{ color: "#4285F4" }}>Sign</span>
+                      <span style={{ color: "#EA4335" }}>in</span>
+                      <span style={{ color: "#FBBC05" }}>with</span>
+                      <span style={{ color: "#34A853" }}>Google</span>
+                    </span>
+                  </button>
+                </BlockStack>
+              </InlineGrid>
+            </Box>
+          </Card>
+
+        <InlineStack align="center">
+          <Text as="p" variant="bodyMd">
+            Learn more about <Link url="#" target="_blank">Google Sheets</Link>
+          </Text>
+        </InlineStack>
+      </BlockStack>
+      </div>
+    </Page>
+  );
+}
+
 function SmsWhatsAppPage({ onBack }: { onBack: () => void }): ReactElement {
   const [topUpAmount, setTopUpAmount] = useState("5.00");
   const [channel, setChannel] = useState<Channel>("sms");
@@ -210,7 +331,8 @@ function SmsWhatsAppPage({ onBack }: { onBack: () => void }): ReactElement {
       backAction={{ content: "Integrations", onAction: onBack }}
       title="SMS & WhatsApp Messages"
     >
-      <BlockStack gap="400">
+      <div style={{ width: "65.5rem", maxWidth: "100%" }}>
+        <BlockStack gap="400">
         {/* Left: Balance + Channel | Right: Pricing */}
         <div
           style={{
@@ -1067,6 +1189,7 @@ function SmsWhatsAppPage({ onBack }: { onBack: () => void }): ReactElement {
           </Text>
         </InlineStack>
       </BlockStack>
+      </div>
     </Page>
   );
 }
@@ -1079,6 +1202,8 @@ export function IntegrationsPageContent(): ReactElement {
     const params = new URLSearchParams(window.location.search);
     if (params.get("view") === "sms-whatsapp" || params.get("tab") === "whatsapp") {
       setActiveView("sms-whatsapp");
+    } else if (params.get("view") === "google-sheets" || params.get("tab") === "google-sheets") {
+      setActiveView("google-sheets");
     }
     setIsHydrating(false);
   }, []);
@@ -1086,7 +1211,8 @@ export function IntegrationsPageContent(): ReactElement {
   if (isHydrating) {
     return (
       <SkeletonPage title="Integrations & Messaging">
-        <BlockStack gap="400">
+        <div style={{ width: "65.5rem", maxWidth: "100%" }}>
+          <BlockStack gap="400">
           {[1, 2, 3].map((i) => (
             <Card key={i}>
               <InlineStack
@@ -1095,19 +1221,22 @@ export function IntegrationsPageContent(): ReactElement {
                 gap="600"
                 wrap={false}
               >
-                <BlockStack gap="300" inlineAlign="start" style={{ flexGrow: 1 }}>
-                  <InlineStack gap="200" align="start" blockAlign="center">
-                    <div style={{ width: "20px", height: "20px", backgroundColor: "var(--p-color-bg-surface-secondary)", borderRadius: "4px" }} />
-                    <SkeletonDisplayText size="small" />
-                  </InlineStack>
-                  <SkeletonBodyText lines={2} />
-                  <div style={{ width: "120px", height: "32px", backgroundColor: "var(--p-color-bg-surface-secondary)", borderRadius: "var(--p-border-radius-200)", marginTop: "4px" }} />
-                </BlockStack>
+                <div style={{ flexGrow: 1 }}>
+                  <BlockStack gap="300" inlineAlign="start">
+                    <InlineStack gap="200" align="start" blockAlign="center">
+                      <div style={{ width: "20px", height: "20px", backgroundColor: "var(--p-color-bg-surface-secondary)", borderRadius: "4px" }} />
+                      <SkeletonDisplayText size="small" />
+                    </InlineStack>
+                    <SkeletonBodyText lines={2} />
+                    <div style={{ width: "120px", height: "32px", backgroundColor: "var(--p-color-bg-surface-secondary)", borderRadius: "var(--p-border-radius-200)", marginTop: "4px" }} />
+                  </BlockStack>
+                </div>
                 <div style={{ width: "80px", height: "80px", backgroundColor: "var(--p-color-bg-surface-secondary)", borderRadius: "var(--p-border-radius-200)", flexShrink: 0 }} />
               </InlineStack>
             </Card>
           ))}
         </BlockStack>
+        </div>
       </SkeletonPage>
     );
   }
@@ -1115,10 +1244,11 @@ export function IntegrationsPageContent(): ReactElement {
   const handleSetActiveView = (view: ActiveView) => {
     setActiveView(view);
     const url = new URL(window.location.href);
-    if (view === "sms-whatsapp") {
-      url.searchParams.set("view", "sms-whatsapp");
-    } else {
+    if (view === "list") {
       url.searchParams.delete("view");
+      url.searchParams.delete("tab");
+    } else {
+      url.searchParams.set("view", view);
       url.searchParams.delete("tab");
     }
     window.history.replaceState({}, "", url.toString());
@@ -1128,9 +1258,14 @@ export function IntegrationsPageContent(): ReactElement {
     return <SmsWhatsAppPage onBack={() => handleSetActiveView("list")} />;
   }
 
+  if (activeView === "google-sheets") {
+    return <GoogleSheetsPage onBack={() => handleSetActiveView("list")} />;
+  }
+
   return (
     <Page title="Integrations & Messaging">
-      <BlockStack gap="400">
+      <div style={{ width: "65.5rem", maxWidth: "100%" }}>
+        <BlockStack gap="400">
         {INTEGRATIONS.map((item) => (
           <Card key={item.id}>
             <InlineStack
@@ -1150,11 +1285,11 @@ export function IntegrationsPageContent(): ReactElement {
                   {item.description}
                 </Text>
                 <div>
-                  {item.id === "sms-whatsapp" ? (
+                  {item.id === "sms-whatsapp" || item.id === "google-sheets" ? (
                     <Button
                       icon={item.icon}
                       variant="primary"
-                      onClick={() => handleSetActiveView("sms-whatsapp")}
+                      onClick={() => handleSetActiveView(item.id as ActiveView)}
                     >
                       {item.buttonLabel}
                     </Button>
@@ -1180,6 +1315,7 @@ export function IntegrationsPageContent(): ReactElement {
           </Card>
         ))}
       </BlockStack>
+      </div>
     </Page>
   );
 }
