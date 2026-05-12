@@ -359,20 +359,22 @@ function GoogleSheetsPage({ onBack }: { onBack: () => void }): ReactElement {
           await fetchStatus();
         }
       } else {
-        // Use existing sheet — configure-sheet with the URL-parsed ID
-        // Extract spreadsheet ID from URL if user pasted a full link
-        const idFromUrl = existingSheetUrl.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/)?.[1] ?? existingSheetUrl.trim();
-        if (!idFromUrl) { setSaveError("Please enter a valid Google Sheets link or ID."); setIsSaving(false); return; }
+        // Use existing sheet — prefer dropdown selection, fall back to pasted URL
+        let idToUse = spreadsheetId.trim();
+        if (!idToUse && existingSheetUrl.trim()) {
+          idToUse = existingSheetUrl.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/)?.[1] ?? existingSheetUrl.trim();
+        }
+        if (!idToUse) { setSaveError("Please select a spreadsheet from the list or paste a Google Sheets link."); setIsSaving(false); return; }
         const res = await fetch("/api/google/configure-sheet", {
           method: "POST",
           headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-          body: JSON.stringify({ spreadsheetId: idFromUrl, sheetName: "Orders", isEnabled: true }),
+          body: JSON.stringify({ spreadsheetId: idToUse, sheetName: "Orders", isEnabled: true }),
         });
         const data = (await res.json()) as { ok?: boolean; error?: string; spreadsheetTitle?: string };
         if (!res.ok || data.error) {
           setSaveError(data.error ?? "Failed to connect spreadsheet.");
         } else {
-          setSaveSuccess(`Connected to "${data.spreadsheetTitle ?? idFromUrl}".`);
+          setSaveSuccess(`Connected to "${data.spreadsheetTitle ?? idToUse}".`);
           setStep2Open(false);
           setStep3Open(true);
           await fetchStatus();
@@ -602,21 +604,54 @@ function GoogleSheetsPage({ onBack }: { onBack: () => void }): ReactElement {
                   <RadioButton label={<BlockStack gap="0"><Text as="span" variant="bodyMd">Create a new sheet</Text><Text as="span" variant="bodySm" tone="subdued">BuyEase will create a new Sheet for you</Text></BlockStack>} id="sheet-new" name="sheet-mode" checked={sheetMode === "new"} onChange={() => setSheetMode("new")} />
                   <RadioButton label={<BlockStack gap="0"><Text as="span" variant="bodyMd">Use an existing sheet</Text><Text as="span" variant="bodySm" tone="subdued">You can use an existing sheet by providing the sheet link</Text></BlockStack>} id="sheet-existing" name="sheet-mode" checked={sheetMode === "existing"} onChange={() => setSheetMode("existing")} />
                   {sheetMode === "existing" && (
-                    <BlockStack gap="200">
-                      <Text as="p" variant="bodySm" fontWeight="semibold">Spreadsheet Link</Text>
+                    <BlockStack gap="300">
                       {sheetsError && !needsReauth && <Text as="p" variant="bodySm" tone="critical">{sheetsError}</Text>}
-                      <InlineStack gap="200" blockAlign="center">
-                        <div style={{ flex: 1 }}>
-                          <TextField
-                            label="" labelHidden
-                            placeholder="Ex: https://docs.google.com/spreadsheets/d/1-XxrZHDpS2BBX86zGvLWI_Y3NoA1lApW-QYwDpvThN4/edit"
-                            value={existingSheetUrl}
-                            onChange={setExistingSheetUrl}
-                            autoComplete="off"
-                          />
-                        </div>
-                        <Button loading={isLoadingSheets} onClick={() => { void getBearer().then((t) => fetchSpreadsheets(t)); }}>Get Sheets</Button>
-                      </InlineStack>
+
+                      {/* Sub-option 1: Select from existing sheets */}
+                      <BlockStack gap="100">
+                        <Text as="p" variant="bodySm" fontWeight="semibold">Select from your existing sheets</Text>
+                        <InlineStack gap="200" blockAlign="center">
+                          <div style={{ flex: 1 }}>
+                            <Select
+                              label="" labelHidden
+                              options={
+                                availableSheets.length > 0
+                                  ? [{ label: "Select your spreadsheet", value: "" }, ...availableSheets.map((s) => ({ label: s.name, value: s.id }))]
+                                  : [{ label: isLoadingSheets ? "Loading…" : "No spreadsheets found — click Refresh", value: "" }]
+                              }
+                              value={availableSheets.length > 0 ? spreadsheetId : ""}
+                              onChange={(val) => void handleSelectSpreadsheet(val)}
+                              disabled={isLoadingSheets || availableSheets.length === 0}
+                            />
+                          </div>
+                          <Button icon={RefreshIcon} loading={isLoadingSheets} onClick={() => { void getBearer().then((t) => fetchSpreadsheets(t)); }}>
+                            Refresh
+                          </Button>
+                        </InlineStack>
+                        {spreadsheetId && availableSheets.find((s) => s.id === spreadsheetId) && (
+                          <Text as="p" variant="bodySm" tone="subdued">
+                            Selected: {availableSheets.find((s) => s.id === spreadsheetId)?.name}
+                          </Text>
+                        )}
+                      </BlockStack>
+
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <div style={{ flex: 1, height: 1, background: "#E1E3E5" }} />
+                        <Text as="span" variant="bodySm" tone="subdued">or paste a link</Text>
+                        <div style={{ flex: 1, height: 1, background: "#E1E3E5" }} />
+                      </div>
+
+                      {/* Sub-option 2: Paste spreadsheet link */}
+                      <BlockStack gap="100">
+                        <Text as="p" variant="bodySm" fontWeight="semibold">Spreadsheet Link</Text>
+                        <TextField
+                          label="" labelHidden
+                          placeholder="Ex: https://docs.google.com/spreadsheets/d/1-XxrZH…/edit"
+                          value={existingSheetUrl}
+                          onChange={setExistingSheetUrl}
+                          autoComplete="off"
+                        />
+                      </BlockStack>
                     </BlockStack>
                   )}
                   <InlineStack align="end">
