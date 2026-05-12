@@ -1,11 +1,11 @@
 import { createCipheriv, createDecipheriv, createHmac, randomBytes } from "crypto";
 
-const ENCRYPTION_KEY = process.env.GOOGLE_TOKEN_ENCRYPTION_KEY ?? "";
-const OAUTH_STATE_SECRET = process.env.GOOGLE_OAUTH_STATE_SECRET ?? ENCRYPTION_KEY;
+const ENCRYPTION_KEY = (process.env.GOOGLE_TOKEN_ENCRYPTION_KEY ?? "").trim();
+const OAUTH_STATE_SECRET = (process.env.GOOGLE_OAUTH_STATE_SECRET ?? ENCRYPTION_KEY).trim();
 
-export const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID ?? "";
-export const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET ?? "";
-export const GOOGLE_REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI ?? "";
+export const GOOGLE_CLIENT_ID = (process.env.GOOGLE_CLIENT_ID ?? "").trim();
+export const GOOGLE_CLIENT_SECRET = (process.env.GOOGLE_CLIENT_SECRET ?? "").trim();
+export const GOOGLE_REDIRECT_URI = (process.env.GOOGLE_REDIRECT_URI ?? "").trim();
 
 const SCOPES = [
   "https://www.googleapis.com/auth/spreadsheets",
