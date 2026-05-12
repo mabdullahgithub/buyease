@@ -8,6 +8,7 @@ import {
   normalizePlanKey,
   planDbIntervalFromShopifyWebhookInterval,
 } from "@/lib/billing";
+import { syncOrderToSheet } from "@/lib/google-sheets";
 import { sessionStorage } from "@/lib/shopify";
 
 type AppSubscriptionPayload = {
@@ -197,6 +198,17 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         if (headerShop && orderPayload.id) {
           const shopifyOrderId = String(orderPayload.id);
           const draftFallbackId = `draft_${orderPayload.id}`;
+
+          type OrderRow = Awaited<ReturnType<typeof prisma.order.findFirst>>;
+          const updatedOrders: NonNullable<OrderRow>[] = await prisma.order
+            .findMany({
+              where: {
+                shopId: headerShop,
+                orderId: { in: [shopifyOrderId, draftFallbackId] },
+              },
+            })
+            .catch(() => []);
+
           await prisma.order
             .updateMany({
               where: {
@@ -208,10 +220,36 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
             .catch((err: unknown) =>
               console.error("orders/create: DB update failed", { shop: headerShop, orderId: shopifyOrderId, err }),
             );
+
+          // Sync confirmed orders to Google Sheets (fire-and-forget)
+          for (const order of updatedOrders) {
+            syncOrderToSheet(headerShop, { ...order, status: "CONFIRMED" }, "update").catch(
+              (err: unknown) =>
+                console.error("orders/create: Sheets sync failed", { shop: headerShop, orderId: order.id, err }),
+            );
+          }
         }
         break;
       }
-      case "orders/updated":
+      case "orders/updated": {
+        const updatedPayload = payload as {
+          id?: number;
+          financial_status?: string;
+          fulfillment_status?: string | null;
+        };
+        if (headerShop && updatedPayload.id) {
+          const shopifyOrderId = String(updatedPayload.id);
+          const order = await prisma.order
+            .findFirst({ where: { shopId: headerShop, orderId: shopifyOrderId } })
+            .catch(() => null);
+          if (order) {
+            syncOrderToSheet(headerShop, order, "update").catch((err: unknown) =>
+              console.error("orders/updated: Sheets sync failed", { shop: headerShop, orderId: order.id, err }),
+            );
+          }
+        }
+        break;
+      }
       case "customers/data_request":
       case "customers/redact":
       case "shop/redact":

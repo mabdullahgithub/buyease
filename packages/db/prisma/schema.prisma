@@ -66,11 +66,13 @@ model Merchant {
   planId String?
   plan   Plan?   @relation(fields: [planId], references: [id])
 
-  orders           Order[]
-  settings         MerchantSettings?
-  buyButtonConfig  BuyButtonConfig?
-  formDesignConfig FormDesignConfig?
-  shippingRates    ShippingRate[]
+  orders            Order[]
+  settings          MerchantSettings?
+  buyButtonConfig   BuyButtonConfig?
+  formDesignConfig  FormDesignConfig?
+  shippingRates     ShippingRate[]
+  whatsAppConfig          MerchantWhatsAppConfig?
+  googleSheetsIntegration GoogleSheetsIntegration?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -78,6 +80,129 @@ model Merchant {
   @@index([shop])
   @@index([planId])
   @@index([isActive])
+}
+
+// ---------------------------------------------------------------------------
+// WhatsAppGlobalConfig — singleton (id=1) controlled by admin panel.
+// Holds the shared Twilio credentials and per-message price for all merchants.
+// ---------------------------------------------------------------------------
+model WhatsAppGlobalConfig {
+  id           Int              @id @default(1)
+  provider     WhatsAppProvider @default(TWILIO)
+  /// Twilio: Account SID (ACxxxxxx…) | Meta: not used
+  accountSid   String?
+  /// Twilio: Auth Token | Meta: System User permanent Access Token
+  authToken    String?
+  /// Twilio: sender number e.g. whatsapp:+14155238886 | Meta: Phone Number ID
+  senderNumber String?
+  /// Meta WhatsApp Cloud API only: WhatsApp Business Account ID (WABA ID)
+  wabaId       String?
+  /// Price charged per outbound message in cents (e.g. 0.5 = $0.005, 5 = $0.05)
+  pricePerMessage Decimal       @default(5) @db.Decimal(10, 4)
+  isEnabled    Boolean          @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum WhatsAppProvider {
+  TWILIO
+  WHATSAPP_BUSINESS
+}
+
+// ---------------------------------------------------------------------------
+// MerchantWhatsAppConfig — per-shop WhatsApp settings.
+// Merchants add their recipient number and manage notification toggles.
+// Credit balance is topped up by admin or Shopify billing charge.
+// ---------------------------------------------------------------------------
+model MerchantWhatsAppConfig {
+  id       String   @id @default(cuid())
+  shop     String   @unique
+  merchant Merchant @relation(fields: [shop], references: [shop], onDelete: Cascade)
+
+  isEnabled       Boolean @default(false)
+  /// Customer-facing recipient number e.g. +923001234567
+  recipientNumber String?
+  /// Pre-paid credit balance in cents
+  creditBalance   Int     @default(0)
+
+  notifyOrderConfirmed Boolean @default(true)
+  notifyOrderShipped   Boolean @default(true)
+  notifyOrderDelivered Boolean @default(false)
+  notifyAbandonedCart  Boolean @default(false)
+  /// Minutes after cart abandonment before sending the WhatsApp recovery message (default 15)
+  abandonedCartDelayMinutes Int @default(15)
+
+  messages WhatsAppMessage[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([shop])
+  @@index([isEnabled])
+}
+
+// ---------------------------------------------------------------------------
+// WhatsAppMessage — immutable audit log of every sent/attempted message.
+// ---------------------------------------------------------------------------
+model WhatsAppMessage {
+  id          String                @id @default(cuid())
+  shop        String
+  config      MerchantWhatsAppConfig @relation(fields: [shop], references: [shop])
+
+  orderId      String?
+  messageType  WhatsAppMessageType
+  status       WhatsAppMessageStatus @default(PENDING)
+  /// Cost deducted from merchant credit balance in cents
+  costCents    Int                   @default(0)
+  /// Provider message SID (e.g. Twilio SM…) for delivery tracking
+  externalId   String?
+  errorMessage String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([shop])
+  @@index([status])
+  @@index([messageType])
+  @@index([createdAt])
+}
+
+enum WhatsAppMessageType {
+  ORDER_CONFIRMED
+  ORDER_SHIPPED
+  ORDER_DELIVERED
+  ABANDONED_CART
+}
+
+enum WhatsAppMessageStatus {
+  PENDING
+  SENT
+  DELIVERED
+  FAILED
+}
+
+// ---------------------------------------------------------------------------
+// WhatsAppTemplate — admin-managed message templates, one per message type.
+// For Meta Cloud API: metaTemplateName must be registered and approved in Meta
+// Business Manager before isActive can be set to true.
+// For Twilio: body is sent as free-form text; metaTemplateName is unused.
+// ---------------------------------------------------------------------------
+model WhatsAppTemplate {
+  id               String              @id @default(cuid())
+  messageType      WhatsAppMessageType @unique
+  /// Template name registered in Meta Business Manager (lowercase + underscores only)
+  metaTemplateName String?
+  /// Message body. Use {{variableName}} placeholders e.g. {{orderId}}, {{shopName}}
+  body             String
+  /// Ordered variable names available for this template
+  variables        String[]
+  /// Meta approval status: NONE | PENDING | APPROVED | REJECTED | PAUSED
+  metaStatus       String              @default("NONE")
+  isActive         Boolean             @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 // ---------------------------------------------------------------------------
@@ -92,6 +217,9 @@ model MerchantSettings {
   timezone          String  @default("UTC")
   notificationEmail String?
   webhookUrl        String?
+
+  /// Minutes to wait after cart abandonment before creating a draft order / sending recovery (default 15)
+  abandonedCartDelayMinutes Int @default(15)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -416,6 +544,38 @@ model AdminIpAccessSetting {
   updatedAt DateTime @updatedAt
 
   @@index([allowlistMode])
+}
+
+// ---------------------------------------------------------------------------
+// GoogleSheetsIntegration — per-shop Google Sheets connection and sync config
+// ---------------------------------------------------------------------------
+model GoogleSheetsIntegration {
+  id       String   @id @default(cuid())
+  shop     String   @unique
+  merchant Merchant @relation(fields: [shop], references: [shop], onDelete: Cascade)
+
+  /// AES-256-CBC encrypted access token
+  googleAccessToken    String?
+  /// AES-256-CBC encrypted refresh token
+  googleRefreshToken   String?
+  googleTokenExpiresAt DateTime?
+  /// The Google account email that authorised the connection
+  googleEmail          String?
+
+  spreadsheetId    String?
+  spreadsheetUrl   String?
+  sheetName        String  @default("Orders")
+  headerRowWritten Boolean @default(false)
+  isEnabled        Boolean @default(false)
+
+  lastSyncAt    DateTime?
+  lastSyncError String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([shop])
+  @@index([isEnabled])
 }
 
 // ---------------------------------------------------------------------------

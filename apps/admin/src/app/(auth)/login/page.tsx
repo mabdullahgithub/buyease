@@ -39,8 +39,8 @@ function safeCallbackUrl(raw: string | null): string {
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const callbackUrl = safeCallbackUrl(searchParams.get("callbackUrl"));
-  const resetOk = searchParams.get("reset") === "success";
+  const callbackUrl = safeCallbackUrl(searchParams?.get("callbackUrl") ?? null);
+  const resetOk = searchParams?.get("reset") === "success";
 
   const [state, setState] = useState<LoginFormState>({
     email: "",

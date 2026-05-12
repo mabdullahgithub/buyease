@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ReactElement } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { RichTextEditor } from "@/components/RichTextEditor";
 import type { IconSource } from "@shopify/polaris";
 import Image from "next/image";
@@ -22,6 +23,9 @@ import {
   List,
   Page,
   Select,
+  SkeletonBodyText,
+  SkeletonDisplayText,
+  SkeletonPage,
   Text,
   TextField,
 } from "@shopify/polaris";
@@ -70,7 +74,7 @@ type SettingsTab =
   | "general"
   | "pixels"
   | "google-sheets"
-  | "partners";
+  | "whatsapp";
 
 type TabConfig = {
   id: SettingsTab;
@@ -83,7 +87,7 @@ const TABS: TabConfig[] = [
   { id: "general", label: "General", icon: SettingsIcon },
   { id: "pixels", label: "Pixels", icon: CodeIcon },
   { id: "google-sheets", label: "Google Sheets", icon: DataTableIcon },
-  { id: "partners", label: "Partners & Integrations", icon: ConnectIcon },
+  { id: "whatsapp", label: "WhatsApp", icon: ChatIcon },
 ];
 
 const SHOPIFY_API_KEY = process.env.NEXT_PUBLIC_SHOPIFY_API_KEY ?? "";
@@ -579,6 +583,7 @@ function GeneralTabContent(): ReactElement {
     },
   ]);
   const [abandonedCheckouts, setAbandonedCheckouts] = useState(false);
+  const [abandonedCartDelay, setAbandonedCartDelay] = useState("15");
   const [abandonedBannerVisible, setAbandonedBannerVisible] = useState(true);
   const [autoOpenRecovery, setAutoOpenRecovery] = useState(false);
   const [discountType, setDiscountType] = useState<DiscountType>("no-discount");
@@ -993,6 +998,29 @@ function GeneralTabContent(): ReactElement {
               />
               {abandonedCheckouts && (
                 <BlockStack gap="400">
+                  {/* Delay picker — shown immediately when enabled */}
+                  <Select
+                    label="Send recovery message after"
+                    helpText="Time after cart abandonment before draft order creation and recovery messages are triggered."
+                    options={[
+                      { label: "5 minutes", value: "5" },
+                      { label: "10 minutes", value: "10" },
+                      { label: "15 minutes (recommended)", value: "15" },
+                      { label: "20 minutes", value: "20" },
+                      { label: "30 minutes", value: "30" },
+                      { label: "45 minutes", value: "45" },
+                      { label: "1 hour", value: "60" },
+                      { label: "2 hours", value: "120" },
+                      { label: "4 hours", value: "240" },
+                      { label: "6 hours", value: "360" },
+                      { label: "12 hours", value: "720" },
+                      { label: "24 hours", value: "1440" },
+                      { label: "48 hours", value: "2880" },
+                      { label: "7 days", value: "10080" },
+                    ]}
+                    value={abandonedCartDelay}
+                    onChange={setAbandonedCartDelay}
+                  />
                   {abandonedBannerVisible && (
                     <Box
                       background="bg-surface-info"
@@ -1011,9 +1039,25 @@ function GeneralTabContent(): ReactElement {
                             <Text as="span" fontWeight="semibold">
                               phone number or the email
                             </Text>{" "}
-                            but didn&apos;t submit the order on the{" "}
+                            but didn&apos;t submit the order within{" "}
                             <Text as="span" fontWeight="semibold">
-                              next 15 minutes
+                              {abandonedCartDelay === "60"
+                                ? "1 hour"
+                                : abandonedCartDelay === "120"
+                                  ? "2 hours"
+                                  : abandonedCartDelay === "240"
+                                    ? "4 hours"
+                                    : abandonedCartDelay === "360"
+                                      ? "6 hours"
+                                      : abandonedCartDelay === "720"
+                                        ? "12 hours"
+                                        : abandonedCartDelay === "1440"
+                                          ? "24 hours"
+                                          : abandonedCartDelay === "2880"
+                                            ? "48 hours"
+                                            : abandonedCartDelay === "10080"
+                                              ? "7 days"
+                                              : `${abandonedCartDelay} minutes`}
                             </Text>
                             .
                           </List.Item>
@@ -1439,6 +1483,473 @@ function GeneralTabContent(): ReactElement {
   );
 }
 
+function GoogleGIcon(): ReactElement {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+    </svg>
+  );
+}
+
+// ── Types ────────────────────────────────────────────────────────────────────
+
+type SheetsStatus =
+  | { connected: false }
+  | {
+      connected: true;
+      email: string;
+      spreadsheetId: string | null;
+      spreadsheetUrl: string | null;
+      sheetName: string;
+      isEnabled: boolean;
+      lastSyncAt: string | null;
+      lastSyncError: string | null;
+    };
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+function formatRelativeTime(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const minutes = Math.floor(diff / 60_000);
+  if (minutes < 1) return "just now";
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  return `${Math.floor(hours / 24)}d ago`;
+}
+
+// ── Main component ───────────────────────────────────────────────────────────
+
+function GoogleSheetsTabContent(): ReactElement {
+  const [status, setStatus] = useState<SheetsStatus | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [isDisconnecting, setIsDisconnecting] = useState(false);
+  const [saveError, setSaveError] = useState("");
+  const [saveSuccess, setSaveSuccess] = useState("");
+  const [exportMsg, setExportMsg] = useState("");
+
+  // Sheet config form state
+  const [spreadsheetId, setSpreadsheetId] = useState("");
+  const [sheetName, setSheetName] = useState("Orders");
+  const [isEnabled, setIsEnabled] = useState(false);
+
+  const bearerRef = useRef<string | null>(null);
+
+  // Grab Shopify session token for API calls
+  const getBearer = useCallback(async (): Promise<string> => {
+    if (bearerRef.current) return bearerRef.current;
+    const w = window as Window & { shopify?: { idToken?: () => Promise<string> } };
+    const token = (await w.shopify?.idToken?.()) ?? "";
+    bearerRef.current = token;
+    return token;
+  }, []);
+
+  const fetchStatus = useCallback(async (): Promise<void> => {
+    try {
+      const token = await getBearer();
+      const res = await fetch("/api/google/status", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("Failed to load status");
+      const data = (await res.json()) as SheetsStatus;
+      setStatus(data);
+      if (data.connected) {
+        setSpreadsheetId(data.spreadsheetId ?? "");
+        setSheetName(data.sheetName);
+        setIsEnabled(data.isEnabled);
+      }
+    } catch {
+      setStatus({ connected: false });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [getBearer]);
+
+  useEffect(() => {
+    void fetchStatus();
+
+    // Listen for the postMessage from the OAuth popup
+    const handler = (event: MessageEvent<unknown>): void => {
+      if (
+        event.data &&
+        typeof event.data === "object" &&
+        (event.data as Record<string, unknown>).type === "BUYEASE_GOOGLE_CONNECTED"
+      ) {
+        setIsLoading(true);
+        void fetchStatus();
+      }
+    };
+    window.addEventListener("message", handler);
+    return () => window.removeEventListener("message", handler);
+  }, [fetchStatus]);
+
+  const handleConnectGoogle = useCallback(async (): Promise<void> => {
+    const token = await getBearer();
+    const res = await fetch("/api/google/connect", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) return;
+    const { authUrl } = (await res.json()) as { authUrl: string };
+    window.open(authUrl, "buyease-google-oauth", "width=560,height=680,left=200,top=100");
+  }, [getBearer]);
+
+  const handleSave = useCallback(async (): Promise<void> => {
+    setSaveError("");
+    setSaveSuccess("");
+    setIsSaving(true);
+    try {
+      const token = await getBearer();
+      const res = await fetch("/api/google/configure-sheet", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ spreadsheetId, sheetName, isEnabled }),
+      });
+      const data = (await res.json()) as { ok?: boolean; error?: string; spreadsheetTitle?: string };
+      if (!res.ok || data.error) {
+        setSaveError(data.error ?? "Failed to save settings.");
+      } else {
+        setSaveSuccess(`Saved! Connected to "${data.spreadsheetTitle ?? spreadsheetId}".`);
+        await fetchStatus();
+      }
+    } catch {
+      setSaveError("Network error. Please try again.");
+    } finally {
+      setIsSaving(false);
+    }
+  }, [getBearer, spreadsheetId, sheetName, isEnabled, fetchStatus]);
+
+  const handleExport = useCallback(async (): Promise<void> => {
+    setExportMsg("");
+    setIsExporting(true);
+    try {
+      const token = await getBearer();
+      const res = await fetch("/api/google/export", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = (await res.json()) as { ok?: boolean; count?: number; error?: string };
+      if (!res.ok || data.error) {
+        setExportMsg(`Export failed: ${data.error ?? "Unknown error"}`);
+      } else {
+        setExportMsg(`Export complete — ${data.count ?? 0} orders written to your sheet.`);
+        await fetchStatus();
+      }
+    } catch {
+      setExportMsg("Network error during export.");
+    } finally {
+      setIsExporting(false);
+    }
+  }, [getBearer, fetchStatus]);
+
+  const handleDisconnect = useCallback(async (): Promise<void> => {
+    setIsDisconnecting(true);
+    try {
+      const token = await getBearer();
+      await fetch("/api/google/disconnect", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setStatus({ connected: false });
+      setSpreadsheetId("");
+      setSheetName("Orders");
+      setIsEnabled(false);
+      setSaveError("");
+      setSaveSuccess("");
+      setExportMsg("");
+    } catch {
+      // Non-critical
+    } finally {
+      setIsDisconnecting(false);
+    }
+  }, [getBearer]);
+
+  // ── Loading skeleton ───────────────────────────────────────────────────────
+
+  if (isLoading) {
+    return (
+      <BlockStack gap="400">
+        <Text as="h1" variant="headingLg">Google Sheets</Text>
+        <Card><BlockStack gap="400"><SkeletonBodyText lines={5} /></BlockStack></Card>
+      </BlockStack>
+    );
+  }
+
+  // ── Not connected ──────────────────────────────────────────────────────────
+
+  if (!status?.connected) {
+    return (
+      <BlockStack gap="400">
+        <Text as="h1" variant="headingLg">Google Sheets</Text>
+
+        <Card>
+          <Box paddingBlock="1200" paddingInline="600">
+            <BlockStack gap="800" inlineAlign="center">
+              <BlockStack gap="300" inlineAlign="center">
+                <Text as="h2" variant="headingMd" alignment="center" fontWeight="bold">
+                  Import your COD form orders automatically on Google Sheets
+                </Text>
+                <Text as="p" variant="bodyMd" tone="subdued" alignment="center">
+                  Connect your Google account to start syncing orders to a spreadsheet automatically.
+                </Text>
+              </BlockStack>
+
+              <button
+                type="button"
+                onClick={() => void handleConnectGoogle()}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "10px",
+                  height: "44px",
+                  padding: "0 24px",
+                  borderRadius: "8px",
+                  border: "1.5px solid #e0e0e0",
+                  background: "#ffffff",
+                  cursor: "pointer",
+                  fontFamily: "inherit",
+                  fontSize: "15px",
+                  fontWeight: "500",
+                  color: "#303030",
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.10)",
+                }}
+              >
+                <GoogleGIcon />
+                Sign in with Google
+              </button>
+
+              <Text as="p" variant="bodyMd" alignment="center">
+                After signing in, return here to configure your spreadsheet.
+              </Text>
+
+              {/* Permissions warning */}
+              <div
+                style={{
+                  maxWidth: "560px",
+                  width: "100%",
+                  backgroundColor: "#FEF3C7",
+                  borderRadius: "8px",
+                  padding: "16px",
+                }}
+              >
+                <BlockStack gap="400">
+                  <InlineStack gap="200" blockAlign="start" wrap={false}>
+                    <Icon source={AlertCircleIcon} tone="caution" />
+                    <Text as="p" variant="bodyMd">
+                      <Text as="span" fontWeight="bold">Important:</Text> when signing in,
+                      make sure to tick both checkboxes to grant BuyEase access to your Google Sheets.
+                    </Text>
+                  </InlineStack>
+                  <Box borderRadius="200" borderWidth="025" borderColor="border" overflowX="hidden" overflowY="hidden">
+                    <Image
+                      src="/images/en.checkboxes-google-account.png"
+                      alt="Google sign-in dialog showing two permission checkboxes"
+                      width={800}
+                      height={420}
+                      style={{ width: "100%", height: "auto", display: "block" }}
+                    />
+                  </Box>
+                </BlockStack>
+              </div>
+            </BlockStack>
+          </Box>
+        </Card>
+      </BlockStack>
+    );
+  }
+
+  // ── Connected ──────────────────────────────────────────────────────────────
+
+  const connectedStatus = status;
+
+  return (
+    <BlockStack gap="800">
+      {/* ── Account connection ──────────────────────────────────────────── */}
+      <InlineGrid columns={["oneThird", "twoThirds"]} gap="400">
+        <BlockStack gap="200">
+          <Text as="h2" variant="headingMd">Google account</Text>
+          <Text as="p" variant="bodyMd" tone="subdued">
+            Your Google account is connected. BuyEase uses it to read and write to your spreadsheet.
+          </Text>
+        </BlockStack>
+
+        <Card padding="0">
+          <Box padding="400">
+            <InlineStack align="space-between" blockAlign="center">
+              <InlineStack gap="300" blockAlign="center">
+                <div
+                  style={{
+                    width: 36, height: 36, borderRadius: "50%",
+                    background: "#e8f5e9", display: "flex",
+                    alignItems: "center", justifyContent: "center", flexShrink: 0,
+                  }}
+                >
+                  <GoogleGIcon />
+                </div>
+                <BlockStack gap="0">
+                  <Text as="p" variant="bodyMd" fontWeight="semibold">
+                    {connectedStatus.email || "Google account"}
+                  </Text>
+                  <Text as="p" variant="bodySm" tone="success">Connected</Text>
+                </BlockStack>
+              </InlineStack>
+              <Button
+                tone="critical"
+                variant="plain"
+                loading={isDisconnecting}
+                onClick={() => void handleDisconnect()}
+              >
+                Disconnect
+              </Button>
+            </InlineStack>
+          </Box>
+        </Card>
+      </InlineGrid>
+
+      <Divider />
+
+      {/* ── Spreadsheet configuration ───────────────────────────────────── */}
+      <InlineGrid columns={["oneThird", "twoThirds"]} gap="400">
+        <BlockStack gap="200">
+          <Text as="h2" variant="headingMd">Spreadsheet settings</Text>
+          <Text as="p" variant="bodyMd" tone="subdued">
+            Enter the ID of the Google Sheet where orders should be synced.
+            You can find the ID in the sheet URL:{" "}
+            <Text as="span" variant="bodySm" fontWeight="semibold">
+              docs.google.com/spreadsheets/d/<Text as="span" tone="critical">SHEET_ID</Text>/edit
+            </Text>
+          </Text>
+        </BlockStack>
+
+        <Card padding="0">
+          <Box padding="400">
+            <BlockStack gap="400">
+              {saveError && (
+                <Banner tone="critical" onDismiss={() => setSaveError("")}>
+                  <Text as="p" variant="bodyMd">{saveError}</Text>
+                </Banner>
+              )}
+              {saveSuccess && (
+                <Banner tone="success" onDismiss={() => setSaveSuccess("")}>
+                  <Text as="p" variant="bodyMd">{saveSuccess}</Text>
+                </Banner>
+              )}
+
+              <TextField
+                label="Google Sheet ID"
+                value={spreadsheetId}
+                onChange={setSpreadsheetId}
+                placeholder="1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms"
+                helpText="Copy the long ID from your sheet's URL."
+                autoComplete="off"
+              />
+
+              <TextField
+                label="Sheet tab name"
+                value={sheetName}
+                onChange={setSheetName}
+                placeholder="Orders"
+                helpText="The name of the tab inside the spreadsheet. Default: Orders"
+                autoComplete="off"
+              />
+
+              <Checkbox
+                label="Enable automatic sync"
+                helpText="New orders and status updates will be pushed to your sheet in real time."
+                checked={isEnabled}
+                onChange={setIsEnabled}
+              />
+
+              {connectedStatus.spreadsheetUrl && (
+                <Link url={connectedStatus.spreadsheetUrl} target="_blank" removeUnderline>
+                  <InlineStack gap="100" blockAlign="center">
+                    <Text as="span" variant="bodySm">Open spreadsheet</Text>
+                    <Icon source={ExternalIcon} />
+                  </InlineStack>
+                </Link>
+              )}
+
+              <InlineStack align="end">
+                <Button
+                  variant="primary"
+                  loading={isSaving}
+                  disabled={!spreadsheetId.trim()}
+                  onClick={() => void handleSave()}
+                >
+                  Save settings
+                </Button>
+              </InlineStack>
+            </BlockStack>
+          </Box>
+        </Card>
+      </InlineGrid>
+
+      <Divider />
+
+      {/* ── Manual export ───────────────────────────────────────────────── */}
+      <InlineGrid columns={["oneThird", "twoThirds"]} gap="400">
+        <BlockStack gap="200">
+          <Text as="h2" variant="headingMd">Manual export</Text>
+          <Text as="p" variant="bodyMd" tone="subdued">
+            Export all existing orders to your spreadsheet in one go.
+            This overwrites rows starting from row 2 (header is preserved).
+          </Text>
+        </BlockStack>
+
+        <Card padding="0">
+          <Box padding="400">
+            <BlockStack gap="400">
+              {exportMsg && (
+                <Banner
+                  tone={exportMsg.startsWith("Export failed") ? "critical" : "success"}
+                  onDismiss={() => setExportMsg("")}
+                >
+                  <Text as="p" variant="bodyMd">{exportMsg}</Text>
+                </Banner>
+              )}
+
+              {connectedStatus.lastSyncAt && (
+                <Text as="p" variant="bodySm" tone="subdued">
+                  Last sync: {formatRelativeTime(connectedStatus.lastSyncAt)}
+                </Text>
+              )}
+
+              {connectedStatus.lastSyncError && (
+                <Banner tone="warning">
+                  <Text as="p" variant="bodySm">
+                    Last sync error: {connectedStatus.lastSyncError}
+                  </Text>
+                </Banner>
+              )}
+
+              <InlineStack>
+                <Button
+                  icon={DataTableIcon}
+                  loading={isExporting}
+                  disabled={!connectedStatus.spreadsheetId}
+                  onClick={() => void handleExport()}
+                >
+                  Export all orders now
+                </Button>
+              </InlineStack>
+
+              {!connectedStatus.spreadsheetId && (
+                <Text as="p" variant="bodySm" tone="subdued">
+                  Configure your spreadsheet above before exporting.
+                </Text>
+              )}
+            </BlockStack>
+          </Box>
+        </Card>
+      </InlineGrid>
+    </BlockStack>
+  );
+}
+
 function ComingSoon(): ReactElement {
   return (
     <Box paddingBlockStart="1600" paddingBlockEnd="1600">
@@ -1452,12 +1963,502 @@ function ComingSoon(): ReactElement {
   );
 }
 
-export function SettingsPageContent(): ReactElement {
-  const [activeTab, setActiveTab] = useState<SettingsTab>("visibility");
+/** Professional skeleton rendered on first mount before content hydrates. */
+export function SettingsPageSkeleton(): ReactElement {
+  return (
+    <SkeletonPage title="Settings & Integrations" primaryAction>
+      <BlockStack gap="400">
+        {/* Tab bar skeleton */}
+        <Card>
+          <InlineGrid columns={5} gap="200">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Box key={i} paddingBlock="200">
+                <SkeletonBodyText lines={1} />
+              </Box>
+            ))}
+          </InlineGrid>
+        </Card>
 
-  const handleTabChange = useCallback((tab: SettingsTab): void => {
-    setActiveTab(tab);
+        {/* Section 1 */}
+        <InlineGrid columns={["oneThird", "twoThirds"]} gap="400">
+          <BlockStack gap="200">
+            <SkeletonDisplayText size="small" />
+            <SkeletonBodyText lines={3} />
+          </BlockStack>
+          <Card>
+            <BlockStack gap="400">
+              <SkeletonDisplayText size="small" />
+              <SkeletonBodyText lines={4} />
+            </BlockStack>
+          </Card>
+        </InlineGrid>
+
+        <Divider />
+
+        {/* Section 2 */}
+        <InlineGrid columns={["oneThird", "twoThirds"]} gap="400">
+          <BlockStack gap="200">
+            <SkeletonDisplayText size="small" />
+            <SkeletonBodyText lines={2} />
+          </BlockStack>
+          <Card>
+            <BlockStack gap="400">
+              <SkeletonBodyText lines={3} />
+              <SkeletonBodyText lines={3} />
+            </BlockStack>
+          </Card>
+        </InlineGrid>
+
+        <Divider />
+
+        {/* Section 3 */}
+        <InlineGrid columns={["oneThird", "twoThirds"]} gap="400">
+          <BlockStack gap="200">
+            <SkeletonDisplayText size="small" />
+            <SkeletonBodyText lines={2} />
+          </BlockStack>
+          <Card>
+            <BlockStack gap="400">
+              <SkeletonBodyText lines={4} />
+            </BlockStack>
+          </Card>
+        </InlineGrid>
+      </BlockStack>
+    </SkeletonPage>
+  );
+}
+
+type WhatsAppNotifications = {
+  orderConfirmed: boolean;
+  orderShipped: boolean;
+  orderDelivered: boolean;
+  abandonedCart: boolean;
+};
+
+// ── WhatsApp templates fetched from admin DB ──────────────────────────────
+
+type LiveTemplate = {
+  messageType: string;
+  metaTemplateName: string | null;
+  body: string;
+  variables: string[];
+  metaStatus: string;
+};
+
+const TYPE_LABELS: Record<string, string> = {
+  ORDER_CONFIRMED: "Order confirmed",
+  ORDER_SHIPPED:   "Order shipped",
+  ORDER_DELIVERED: "Order delivered",
+  ABANDONED_CART:  "Abandoned cart recovery",
+};
+
+/** Sample values substituted by variable name during preview. */
+const VARIABLE_SAMPLES: Record<string, string> = {
+  customerName: "Ahmed",
+  orderId:      "#1042",
+  shopName:     "Your Store",
+  totalPrice:   "PKR 3,500",
+  trackingUrl:  "https://track.example.com/BE-00142",
+  carrierName:  "TCS",
+  cartUrl:      "https://example.com/recover/abc123",
+  productNames: "Black T-Shirt, Blue Jeans",
+};
+
+/** Fills {{variableName}} placeholders with sample values for preview. */
+function renderTemplatePreview(body: string, variables: string[]): string {
+  return variables.reduce(
+    (text, varName) =>
+      text.replaceAll(`{{${varName}}}`, VARIABLE_SAMPLES[varName] ?? `{{${varName}}}`),
+    body,
+  );
+}
+
+type WaTemplatePreviewProps = {
+  title: string;
+  metaName: string | null;
+  body: string;
+  variables: string[];
+};
+
+/** Read-only card showing a Meta-approved WhatsApp template. */
+function WaTemplatePreview({
+  title,
+  metaName,
+  body,
+  variables,
+}: WaTemplatePreviewProps): ReactElement {
+  const [showPreview, setShowPreview] = useState(false);
+
+  return (
+    <Box borderWidth="025" borderColor="border" borderRadius="200" padding="0">
+      {/* Header */}
+      <Box padding="400">
+        <InlineStack align="space-between" blockAlign="center">
+          <BlockStack gap="0">
+            <Text as="h3" variant="headingSm" fontWeight="semibold">
+              {title}
+            </Text>
+            <Text as="p" variant="bodySm" tone="subdued">
+              Template name:{" "}
+              <Text as="span" variant="bodySm" fontWeight="semibold">
+                {metaName}
+              </Text>
+            </Text>
+          </BlockStack>
+          <InlineStack gap="100" blockAlign="center">
+            <Icon source={InfoIcon} tone="subdued" />
+            <Text as="p" variant="bodySm" tone="subdued">
+              Meta-approved
+            </Text>
+          </InlineStack>
+        </InlineStack>
+      </Box>
+
+      <Divider />
+
+      {/* Locked body */}
+      <Box padding="400">
+        <BlockStack gap="300">
+          <Box
+            background="bg-surface-secondary"
+            borderRadius="200"
+            padding="300"
+          >
+            <Text as="p" variant="bodyMd" tone="subdued">
+              {body}
+            </Text>
+          </Box>
+
+          <Text as="p" variant="bodySm" tone="subdued">
+            Variables (filled automatically):{" "}
+            {variables.map((varName: string, i: number) => (
+              <Text key={varName} as="span" variant="bodySm" fontWeight="semibold">
+                {`{{${varName}}}`} = {VARIABLE_SAMPLES[varName] ?? varName}
+                {i < variables.length - 1 ? ",  " : ""}
+              </Text>
+            ))}
+          </Text>
+
+          {/* Live preview toggle */}
+          <InlineStack>
+            <Button
+              variant="plain"
+              size="slim"
+              icon={showPreview ? ChevronUpIcon : ChevronDownIcon}
+              onClick={() => setShowPreview((v) => !v)}
+            >
+              {showPreview ? "Hide preview" : "Preview with sample data"}
+            </Button>
+          </InlineStack>
+
+          {showPreview && (
+            <Box background="bg-surface-info" borderRadius="200" padding="300">
+              <BlockStack gap="100">
+                <Text as="p" variant="bodySm" tone="subdued">
+                  Preview (sample data):
+                </Text>
+                <Text as="p" variant="bodyMd">
+                  {renderTemplatePreview(body, variables)}
+                </Text>
+              </BlockStack>
+            </Box>
+          )}
+        </BlockStack>
+      </Box>
+    </Box>
+  );
+}
+
+function WhatsAppTabContent(): ReactElement {
+  const [isEnabled, setIsEnabled] = useState(false);
+  const [recipientNumber, setRecipientNumber] = useState("");
+  // Credit balance is fetched from the server in production.
+  // Shown as 0 cents here until the API layer is wired up.
+  const creditBalanceCents = 0;
+  const [abandonedCartDelay, setAbandonedCartDelay] = useState("15");
+  const [templates, setTemplates] = useState<LiveTemplate[]>([]);
+  const [isLoadingTemplates, setIsLoadingTemplates] = useState(true);
+
+  const [notifications, setNotifications] = useState<WhatsAppNotifications>({
+    orderConfirmed: true,
+    orderShipped: true,
+    orderDelivered: false,
+    abandonedCart: false,
+  });
+
+  const toggleNotification = useCallback(
+    (key: keyof WhatsAppNotifications, value: boolean): void => {
+      setNotifications((prev) => ({ ...prev, [key]: value }));
+    },
+    [],
+  );
+
+  useEffect(() => {
+    fetch("/api/whatsapp/templates")
+      .then((r) => r.json())
+      .then((data: unknown) => {
+        setTemplates(Array.isArray(data) ? (data as LiveTemplate[]) : []);
+      })
+      .catch(() => setTemplates([]))
+      .finally(() => setIsLoadingTemplates(false));
   }, []);
+
+  return (
+    <BlockStack gap="800">
+      {/* ── Activation ──────────────────────────────────────────────── */}
+      <InlineGrid columns={["oneThird", "twoThirds"]} gap="400">
+        <BlockStack gap="200">
+          <Text as="h2" variant="headingMd">
+            WhatsApp notifications
+          </Text>
+          <Text as="p" variant="bodyMd" tone="subdued">
+            BuyEase sends WhatsApp messages on your behalf using a shared
+            provider managed by the BuyEase team. You are charged per message
+            sent from your credit balance.
+          </Text>
+        </BlockStack>
+
+        <Card padding="0">
+          <Box padding="400">
+            <BlockStack gap="400">
+              {/* Info banner */}
+              <Banner tone="info">
+                <Text as="p" variant="bodyMd">
+                  WhatsApp messaging is a paid add-on.{" "}
+                  <Text as="span" fontWeight="semibold">
+                    Messages are billed per send
+                  </Text>{" "}
+                  from your credit balance. Top up your balance to activate.
+                </Text>
+              </Banner>
+
+              {/* Enable toggle row */}
+              <InlineStack align="space-between" blockAlign="center">
+                <BlockStack gap="0">
+                  <Text as="p" variant="bodyMd" fontWeight="semibold">
+                    Enable WhatsApp messaging
+                  </Text>
+                  <Text as="p" variant="bodySm" tone="subdued">
+                    Requires a positive credit balance to activate.
+                  </Text>
+                </BlockStack>
+                <Checkbox
+                  label=""
+                  labelHidden
+                  checked={isEnabled}
+                  onChange={setIsEnabled}
+                  disabled={creditBalanceCents === 0}
+                />
+              </InlineStack>
+
+              {/* Recipient number */}
+              <TextField
+                label="Your WhatsApp number"
+                value={recipientNumber}
+                onChange={setRecipientNumber}
+                placeholder="+923001234567"
+                helpText="Include the country code. Customers will receive messages from BuyEase's verified sender."
+                autoComplete="off"
+              />
+
+              {/* Credit balance indicator */}
+              <Box
+                background={
+                  creditBalanceCents > 0 ? "bg-surface-success" : "bg-surface-warning"
+                }
+                borderRadius="200"
+                padding="300"
+              >
+                <InlineStack align="space-between" blockAlign="center">
+                  <Text as="p" variant="bodyMd" fontWeight="semibold">
+                    Credit balance
+                  </Text>
+                  <Text
+                    as="p"
+                    variant="bodyMd"
+                    fontWeight="semibold"
+                    tone={creditBalanceCents > 0 ? "success" : "caution"}
+                  >
+                    ${(creditBalanceCents / 100).toFixed(2)}
+                  </Text>
+                </InlineStack>
+                {creditBalanceCents === 0 && (
+                  <Text as="p" variant="bodySm" tone="caution">
+                    Your balance is empty. Contact BuyEase support to top up.
+                  </Text>
+                )}
+              </Box>
+            </BlockStack>
+          </Box>
+        </Card>
+      </InlineGrid>
+
+      <Divider />
+
+      {/* ── Order notifications ─────────────────────────────────────── */}
+      <InlineGrid columns={["oneThird", "twoThirds"]} gap="400">
+        <BlockStack gap="200">
+          <Text as="h2" variant="headingMd">
+            Order notifications
+          </Text>
+          <Text as="p" variant="bodyMd" tone="subdued">
+            Choose which events trigger an automatic WhatsApp message to your
+            customers.
+          </Text>
+        </BlockStack>
+
+        <Card padding="0">
+          <Box padding="400">
+            <BlockStack gap="300">
+              <Checkbox
+                label="Order confirmed"
+                helpText="Send a confirmation message when a new COD order is placed."
+                checked={notifications.orderConfirmed}
+                onChange={(v) => toggleNotification("orderConfirmed", v)}
+              />
+              <Checkbox
+                label="Order shipped"
+                helpText="Notify the customer when their order has been dispatched."
+                checked={notifications.orderShipped}
+                onChange={(v) => toggleNotification("orderShipped", v)}
+              />
+              <Checkbox
+                label="Order delivered"
+                helpText="Notify the customer when their order has been delivered."
+                checked={notifications.orderDelivered}
+                onChange={(v) => toggleNotification("orderDelivered", v)}
+              />
+              <Checkbox
+                label="Abandoned cart recovery"
+                helpText="Send a follow-up message to customers who filled in their details but did not complete the order."
+                checked={notifications.abandonedCart}
+                onChange={(v) => toggleNotification("abandonedCart", v)}
+              />
+              {notifications.abandonedCart && (
+                <Box paddingInlineStart="600">
+                  <Select
+                    label="Send recovery message after"
+                    helpText="How long after abandonment before the WhatsApp recovery message is sent."
+                    options={[
+                      { label: "5 minutes", value: "5" },
+                      { label: "10 minutes", value: "10" },
+                      { label: "15 minutes (recommended)", value: "15" },
+                      { label: "20 minutes", value: "20" },
+                      { label: "30 minutes", value: "30" },
+                      { label: "45 minutes", value: "45" },
+                      { label: "1 hour", value: "60" },
+                      { label: "2 hours", value: "120" },
+                      { label: "4 hours", value: "240" },
+                      { label: "6 hours", value: "360" },
+                      { label: "12 hours", value: "720" },
+                      { label: "24 hours", value: "1440" },
+                      { label: "48 hours", value: "2880" },
+                      { label: "7 days", value: "10080" },
+                    ]}
+                    value={abandonedCartDelay}
+                    onChange={setAbandonedCartDelay}
+                  />
+                </Box>
+              )}
+            </BlockStack>
+          </Box>
+        </Card>
+      </InlineGrid>
+
+      <Divider />
+
+      {/* ── Message templates ───────────────────────────────────────── */}
+      <InlineGrid columns={["oneThird", "twoThirds"]} gap="400">
+        <BlockStack gap="200">
+          <Text as="h2" variant="headingMd">
+            Message templates
+          </Text>
+          <Text as="p" variant="bodyMd" tone="subdued">
+            These templates are pre-approved by Meta and cannot be edited.
+            Variable placeholders are filled automatically with live order and
+            customer data at send time.
+          </Text>
+          <Banner tone="info">
+            <Text as="p" variant="bodyMd">
+              WhatsApp Cloud API requires all outbound messages to use{" "}
+              <Text as="span" fontWeight="semibold">
+                Meta-approved templates
+              </Text>
+              . Template text is managed by the BuyEase team and shared across
+              all merchants.
+            </Text>
+          </Banner>
+        </BlockStack>
+
+        <Card padding="0">
+          <Box padding="400">
+            <BlockStack gap="400">
+              {isLoadingTemplates ? (
+                <SkeletonBodyText lines={6} />
+              ) : templates.length === 0 ? (
+                <Text as="p" variant="bodySm" tone="subdued">
+                  No active templates configured. Contact BuyEase support.
+                </Text>
+              ) : (
+                templates.map((tpl) => (
+                  <WaTemplatePreview
+                    key={tpl.messageType}
+                    title={TYPE_LABELS[tpl.messageType] ?? tpl.messageType}
+                    metaName={tpl.metaTemplateName}
+                    body={tpl.body}
+                    variables={tpl.variables}
+                  />
+                ))
+              )}
+            </BlockStack>
+          </Box>
+        </Card>
+      </InlineGrid>
+    </BlockStack>
+  );
+}
+
+const VALID_TABS = new Set<SettingsTab>([
+  "visibility",
+  "general",
+  "pixels",
+  "google-sheets",
+  "whatsapp",
+]);
+
+function resolveTab(raw: string | null): SettingsTab {
+  return raw !== null && VALID_TABS.has(raw as SettingsTab)
+    ? (raw as SettingsTab)
+    : "visibility";
+}
+
+export function SettingsPageContent(): ReactElement {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [isMounted, setIsMounted] = useState(false);
+
+  // Derive active tab directly from URL — null-safe: searchParams can be null during SSR.
+  const activeTab = resolveTab(searchParams?.get("tab") ?? null);
+
+  useEffect(() => {
+    // Show skeleton for one paint frame so Polaris hydrates cleanly,
+    // then reveal real content immediately after.
+    const raf = requestAnimationFrame(() => setIsMounted(true));
+    return () => cancelAnimationFrame(raf);
+  }, []);
+
+  const handleTabChange = useCallback(
+    (tab: SettingsTab): void => {
+      const params = new URLSearchParams(searchParams?.toString() ?? "");
+      params.set("tab", tab);
+      router.replace(`?${params.toString()}`, { scroll: false });
+    },
+    [router, searchParams],
+  );
+
+  if (!isMounted) {
+    return <SettingsPageSkeleton />;
+  }
 
   return (
     <Page title="Settings & Integrations">
@@ -1491,6 +2492,10 @@ export function SettingsPageContent(): ReactElement {
           <VisibilityTabContent />
         ) : activeTab === "general" ? (
           <GeneralTabContent />
+        ) : activeTab === "google-sheets" ? (
+          <GoogleSheetsTabContent />
+        ) : activeTab === "whatsapp" ? (
+          <WhatsAppTabContent />
         ) : (
           <ComingSoon />
         )}

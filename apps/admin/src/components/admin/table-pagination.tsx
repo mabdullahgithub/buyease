@@ -36,7 +36,7 @@ export function TablePagination({
   const searchParams = useSearchParams();
 
   const handleRowsPerPageChange = (value: string) => {
-    const nextParams = new URLSearchParams(searchParams.toString());
+    const nextParams = new URLSearchParams(searchParams?.toString() ?? "");
     nextParams.set("pageSize", value);
     nextParams.delete("cursor");
     nextParams.delete("direction");
