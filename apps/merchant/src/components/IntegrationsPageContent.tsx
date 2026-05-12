@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import type { ReactElement } from "react";
 import type { IconSource } from "@shopify/polaris";
 import Image from "next/image";
 import {
+  Banner,
   BlockStack,
   Box,
   Button,
@@ -27,13 +28,16 @@ import {
   TextField,
 } from "@shopify/polaris";
 import {
+  AlertCircleIcon,
   CashDollarFilledIcon,
   ChartVerticalIcon,
   ChatIcon,
   ChevronDownIcon,
   ChevronUpIcon,
   DataTableIcon,
+  ExternalIcon,
   LocationIcon,
+  RefreshIcon,
 } from "@shopify/polaris-icons";
 
 type IntegrationItem = {
@@ -142,103 +146,259 @@ const WHATSAPP_PRICING_ROWS = [
 
 type Channel = "sms" | "whatsapp";
 
-function GoogleSheetsPage({ onBack }: { onBack: () => void }): ReactElement {
+// ── Google Sheets helpers ────────────────────────────────────────────────────
+
+type SheetsStatus =
+  | { connected: false }
+  | {
+      connected: true;
+      email: string;
+      spreadsheetId: string | null;
+      spreadsheetUrl: string | null;
+      sheetName: string;
+      isEnabled: boolean;
+      lastSyncAt: string | null;
+      lastSyncError: string | null;
+    };
+
+function formatRelativeTime(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const minutes = Math.floor(diff / 60_000);
+  if (minutes < 1) return "just now";
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  return `${Math.floor(hours / 24)}d ago`;
+}
+
+function GoogleGIcon(): ReactElement {
   return (
-    <Page
-      backAction={{ content: "Integrations", onAction: onBack }}
-      title="Google Sheets"
-      subtitle="Export store orders to google sheet in real time"
-    >
-      <div style={{ width: "65.5rem", maxWidth: "100%" }}>
+    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+    </svg>
+  );
+}
+
+function GoogleSheetsPage({ onBack }: { onBack: () => void }): ReactElement {
+  const [status, setStatus] = useState<SheetsStatus | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [isDisconnecting, setIsDisconnecting] = useState(false);
+  const [isLoadingSheets, setIsLoadingSheets] = useState(false);
+  const [isLoadingTabs, setIsLoadingTabs] = useState(false);
+  const [saveError, setSaveError] = useState("");
+  const [saveSuccess, setSaveSuccess] = useState("");
+  const [exportMsg, setExportMsg] = useState("");
+  const [sheetsError, setSheetsError] = useState("");
+  const [tabsError, setTabsError] = useState("");
+  const [needsReauth, setNeedsReauth] = useState(false);
+  const [needsDriveApiEnabled, setNeedsDriveApiEnabled] = useState(false);
+  const [spreadsheetId, setSpreadsheetId] = useState("");
+  const [sheetName, setSheetName] = useState("Orders");
+  const [isEnabled, setIsEnabled] = useState(false);
+  const [availableSheets, setAvailableSheets] = useState<{ id: string; name: string }[]>([]);
+  const [availableTabs, setAvailableTabs] = useState<string[]>([]);
+  const [tabsLoaded, setTabsLoaded] = useState(false);
+  const bearerRef = useRef<string | null>(null);
+
+  const getBearer = useCallback(async (): Promise<string> => {
+    if (bearerRef.current) return bearerRef.current;
+    const w = window as Window & { shopify?: { idToken?: () => Promise<string> } };
+    const token = (await w.shopify?.idToken?.()) ?? "";
+    bearerRef.current = token;
+    return token;
+  }, []);
+
+  const fetchSpreadsheets = useCallback(async (bearer: string): Promise<void> => {
+    setIsLoadingSheets(true);
+    setSheetsError("");
+    setNeedsReauth(false);
+    setNeedsDriveApiEnabled(false);
+    try {
+      const res = await fetch("/api/google/spreadsheets", { headers: { Authorization: `Bearer ${bearer}` } });
+      const data = (await res.json()) as { spreadsheets?: { id: string; name: string }[]; error?: string; needsReauth?: boolean; needsDriveApiEnabled?: boolean };
+      if (!res.ok || data.error) {
+        if (data.needsDriveApiEnabled) setNeedsDriveApiEnabled(true);
+        else if (data.needsReauth) setNeedsReauth(true);
+        setSheetsError(data.error ?? "Could not load spreadsheets.");
+      } else {
+        setAvailableSheets(data.spreadsheets ?? []);
+      }
+    } catch { setSheetsError("Network error loading spreadsheets."); }
+    finally { setIsLoadingSheets(false); }
+  }, []);
+
+  const fetchStatus = useCallback(async (): Promise<void> => {
+    try {
+      const token = await getBearer();
+      const res = await fetch("/api/google/status", { headers: { Authorization: `Bearer ${token}` } });
+      if (!res.ok) throw new Error("Failed");
+      const data = (await res.json()) as SheetsStatus;
+      setStatus(data);
+      if (data.connected) {
+        setSpreadsheetId(data.spreadsheetId ?? "");
+        setSheetName(data.sheetName);
+        setIsEnabled(data.isEnabled);
+        if (data.spreadsheetId && data.sheetName) { setAvailableTabs([data.sheetName]); setTabsLoaded(true); }
+        void fetchSpreadsheets(token);
+      }
+    } catch { setStatus({ connected: false }); }
+    finally { setIsLoading(false); }
+  }, [getBearer, fetchSpreadsheets]);
+
+  useEffect(() => {
+    void fetchStatus();
+    const handler = (event: MessageEvent<unknown>): void => {
+      if (event.data && typeof event.data === "object" && (event.data as Record<string, unknown>).type === "BUYEASE_GOOGLE_CONNECTED") {
+        setIsLoading(true);
+        void fetchStatus();
+      }
+    };
+    window.addEventListener("message", handler);
+    return () => window.removeEventListener("message", handler);
+  }, [fetchStatus]);
+
+  const handleConnectGoogle = useCallback(async (): Promise<void> => {
+    setSaveError("");
+    const token = await getBearer();
+    const res = await fetch("/api/google/connect", { headers: { Authorization: `Bearer ${token}` } });
+    if (!res.ok) { const body = (await res.json().catch(() => ({}))) as { error?: string }; setSaveError(body.error ?? "Google OAuth is not configured."); return; }
+    const { authUrl } = (await res.json()) as { authUrl: string };
+    window.open(authUrl, "buyease-google-oauth", "width=560,height=680,left=200,top=100");
+  }, [getBearer]);
+
+  const handleSelectSpreadsheet = useCallback(async (id: string): Promise<void> => {
+    setSpreadsheetId(id); setTabsLoaded(false); setAvailableTabs([]); setTabsError("");
+    if (!id) return;
+    setIsLoadingTabs(true);
+    try {
+      const token = await getBearer();
+      const res = await fetch(`/api/google/sheet-tabs?spreadsheetId=${encodeURIComponent(id)}`, { headers: { Authorization: `Bearer ${token}` } });
+      const data = (await res.json()) as { tabs?: string[]; error?: string };
+      if (!res.ok || data.error) { setTabsError(data.error ?? "Could not load sheet tabs."); }
+      else { const tabs = data.tabs ?? ["Orders"]; setAvailableTabs(tabs); setTabsLoaded(true); setSheetName(tabs[0] ?? "Orders"); }
+    } catch { setTabsError("Network error loading tabs."); }
+    finally { setIsLoadingTabs(false); }
+  }, [getBearer]);
+
+  const handleRefreshTabs = useCallback(async (): Promise<void> => {
+    if (!spreadsheetId) return;
+    setIsLoadingTabs(true); setTabsError("");
+    try {
+      const token = await getBearer();
+      const res = await fetch(`/api/google/sheet-tabs?spreadsheetId=${encodeURIComponent(spreadsheetId)}`, { headers: { Authorization: `Bearer ${token}` } });
+      const data = (await res.json()) as { tabs?: string[]; error?: string };
+      if (!res.ok || data.error) { setTabsError(data.error ?? "Could not load sheet tabs."); }
+      else { const tabs = data.tabs ?? ["Orders"]; setAvailableTabs(tabs); setTabsLoaded(true); if (!tabs.includes(sheetName)) setSheetName(tabs[0] ?? "Orders"); }
+    } catch { setTabsError("Network error loading tabs."); }
+    finally { setIsLoadingTabs(false); }
+  }, [getBearer, spreadsheetId, sheetName]);
+
+  const handleSave = useCallback(async (): Promise<void> => {
+    setSaveError(""); setSaveSuccess(""); setIsSaving(true);
+    try {
+      const token = await getBearer();
+      const res = await fetch("/api/google/configure-sheet", { method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify({ spreadsheetId, sheetName, isEnabled }) });
+      const data = (await res.json()) as { ok?: boolean; error?: string; spreadsheetTitle?: string };
+      if (!res.ok || data.error) { setSaveError(data.error ?? "Failed to save settings."); }
+      else { const name = data.spreadsheetTitle ?? availableSheets.find((s) => s.id === spreadsheetId)?.name ?? spreadsheetId; setSaveSuccess(`Connected to "${name}".`); await fetchStatus(); }
+    } catch { setSaveError("Network error. Please try again."); }
+    finally { setIsSaving(false); }
+  }, [getBearer, spreadsheetId, sheetName, isEnabled, availableSheets, fetchStatus]);
+
+  const handleExport = useCallback(async (): Promise<void> => {
+    setExportMsg(""); setIsExporting(true);
+    try {
+      const token = await getBearer();
+      const res = await fetch("/api/google/export", { method: "POST", headers: { Authorization: `Bearer ${token}` } });
+      const data = (await res.json()) as { ok?: boolean; count?: number; error?: string };
+      if (!res.ok || data.error) { setExportMsg(`Export failed: ${data.error ?? "Unknown error"}`); }
+      else { setExportMsg(`${data.count ?? 0} orders exported successfully.`); await fetchStatus(); }
+    } catch { setExportMsg("Network error during export."); }
+    finally { setIsExporting(false); }
+  }, [getBearer, fetchStatus]);
+
+  const handleDisconnect = useCallback(async (): Promise<void> => {
+    setIsDisconnecting(true);
+    try {
+      const token = await getBearer();
+      await fetch("/api/google/disconnect", { method: "POST", headers: { Authorization: `Bearer ${token}` } });
+      setStatus({ connected: false }); setSpreadsheetId(""); setSheetName("Orders"); setIsEnabled(false);
+      setSaveError(""); setSaveSuccess(""); setExportMsg(""); setAvailableSheets([]); setAvailableTabs([]); setTabsLoaded(false); setNeedsReauth(false); setNeedsDriveApiEnabled(false);
+    } catch { /* non-critical */ }
+    finally { setIsDisconnecting(false); }
+  }, [getBearer]);
+
+  // ── Render ──────────────────────────────────────────────────────────────────
+
+  const renderContent = (): ReactElement => {
+    if (isLoading) {
+      return (
         <BlockStack gap="400">
-          <Card>
-            <Box padding="400">
+          <Card><BlockStack gap="400"><SkeletonBodyText lines={4} /></BlockStack></Card>
+          <Card><BlockStack gap="400"><SkeletonBodyText lines={6} /></BlockStack></Card>
+        </BlockStack>
+      );
+    }
+
+    if (!status?.connected) {
+      return (
+        <Card>
+          <Box paddingBlock="1200" paddingInline="600">
+            <BlockStack gap="600" inlineAlign="center">
               <InlineGrid columns={{ xs: 1, md: 2 }} gap="800" alignItems="center">
-                {/* Left Column: Content */}
+                {/* Left: Steps */}
                 <BlockStack gap="400">
                   <Text as="h3" variant="headingMd" fontWeight="bold">
-                    Export store orders to google sheet in real time
+                    Export store orders to Google Sheet in real time
                   </Text>
-                  <BlockStack gap="200" inlineAlign="start">
-                    <Text as="p" variant="bodyMd">
-                      1. Click the Button to Sign In and Link your Google Account.
-                    </Text>
-                    <Text as="p" variant="bodyMd">
-                      2. Choose what data to export to Google Sheet.
-                    </Text>
-                    <Text as="p" variant="bodyMd">
-                      3. Your store orders will be synchronized in real time with google sheets.
-                    </Text>
+                  <BlockStack gap="200">
+                    <Text as="p" variant="bodyMd">1. Click the button to sign in and link your Google Account.</Text>
+                    <Text as="p" variant="bodyMd">2. Choose what data to export to Google Sheet.</Text>
+                    <Text as="p" variant="bodyMd">3. Your store orders will be synchronized in real time.</Text>
                   </BlockStack>
+                  {saveError && (
+                    <Banner tone="critical" onDismiss={() => setSaveError("")}>
+                      <Text as="p" variant="bodyMd">{saveError}</Text>
+                    </Banner>
+                  )}
                 </BlockStack>
 
-                {/* Right Column: Icons and Button */}
+                {/* Right: Icons + Button */}
                 <BlockStack gap="1000" inlineAlign="center">
                   <InlineStack align="center" blockAlign="center" gap="800">
-                    {/* Store Orders */}
                     <BlockStack align="center" inlineAlign="center" gap="300">
                       <div style={{ width: "96px", height: "96px", position: "relative" }}>
                         <Image src="/images/store.png" alt="Store Orders" fill style={{ objectFit: "contain" }} />
                       </div>
-                      <Text as="h2" variant="headingMd" fontWeight="semibold">
-                        Store Orders
-                      </Text>
+                      <Text as="h2" variant="headingMd" fontWeight="semibold">Store Orders</Text>
                     </BlockStack>
-
-                    {/* Link Icon */}
                     <div style={{ width: "32px", height: "32px", color: "#202223", transform: "rotate(45deg)" }}>
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
                         <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
                       </svg>
                     </div>
-
-                    {/* Google Sheets */}
                     <BlockStack align="center" inlineAlign="center" gap="300">
                       <div style={{ width: "96px", height: "96px", position: "relative" }}>
                         <Image src="/images/sheet.svg" alt="Google Sheets" fill style={{ objectFit: "contain" }} />
                       </div>
-                      <Text as="h2" variant="headingMd" fontWeight="semibold">
-                        Google Sheets
-                      </Text>
+                      <Text as="h2" variant="headingMd" fontWeight="semibold">Google Sheets</Text>
                     </BlockStack>
                   </InlineStack>
 
                   <button
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: "12px",
-                      padding: "10px 24px",
-                      marginTop: "16px",
-                      backgroundColor: "white",
-                      border: "1px solid #E5E7EB",
-                      borderRadius: "100px",
-                      cursor: "pointer",
-                      boxShadow: "0 2px 4px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.04)",
-                      transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = "#FAFAFA";
-                      e.currentTarget.style.boxShadow = "0 4px 8px rgba(0,0,0,0.06), 0 8px 24px rgba(0,0,0,0.08)";
-                      e.currentTarget.style.borderColor = "#D1D5DB";
-                      e.currentTarget.style.transform = "translateY(-1px)";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = "white";
-                      e.currentTarget.style.boxShadow = "0 2px 4px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.04)";
-                      e.currentTarget.style.borderColor = "#E5E7EB";
-                      e.currentTarget.style.transform = "none";
-                    }}
-                    onClick={() => {}}
+                    type="button"
+                    onClick={() => void handleConnectGoogle()}
+                    style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "12px", padding: "10px 24px", marginTop: "16px", backgroundColor: "white", border: "1px solid #E5E7EB", borderRadius: "100px", cursor: "pointer", boxShadow: "0 2px 4px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.04)", transition: "all 0.2s cubic-bezier(0.4,0,0.2,1)" }}
+                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "#FAFAFA"; e.currentTarget.style.boxShadow = "0 4px 8px rgba(0,0,0,0.06), 0 8px 24px rgba(0,0,0,0.08)"; e.currentTarget.style.borderColor = "#D1D5DB"; e.currentTarget.style.transform = "translateY(-1px)"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "white"; e.currentTarget.style.boxShadow = "0 2px 4px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.04)"; e.currentTarget.style.borderColor = "#E5E7EB"; e.currentTarget.style.transform = "none"; }}
                   >
-                    <svg width="20" height="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
-                      <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
-                      <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
-                      <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
-                    </svg>
+                    <GoogleGIcon />
                     <span style={{ fontWeight: 600, fontSize: "15px", display: "flex", gap: "4px" }}>
                       <span style={{ color: "#4285F4" }}>Sign</span>
                       <span style={{ color: "#EA4335" }}>in</span>
@@ -248,15 +408,161 @@ function GoogleSheetsPage({ onBack }: { onBack: () => void }): ReactElement {
                   </button>
                 </BlockStack>
               </InlineGrid>
-            </Box>
-          </Card>
 
-        <InlineStack align="center">
-          <Text as="p" variant="bodyMd">
-            Learn more about <Link url="#" target="_blank">Google Sheets</Link>
-          </Text>
-        </InlineStack>
+              <div style={{ maxWidth: 540, width: "100%" }}>
+                <div style={{ backgroundColor: "#FEF3C7", borderRadius: 8, padding: "14px 16px" }}>
+                  <InlineStack gap="200" blockAlign="start" wrap={false}>
+                    <Icon source={AlertCircleIcon} tone="caution" />
+                    <Text as="p" variant="bodySm">
+                      <Text as="span" fontWeight="bold">Important:</Text>{" "}
+                      When signing in, tick both checkboxes to grant BuyEase access to your Google Sheets.
+                    </Text>
+                  </InlineStack>
+                </div>
+              </div>
+            </BlockStack>
+          </Box>
+        </Card>
+      );
+    }
+
+    // ── Connected view ────────────────────────────────────────────────────────
+    const connectedStatus = status;
+    const canSave = !!spreadsheetId && tabsLoaded;
+    const sheetOptions = availableSheets.map((s) => ({ label: s.name, value: s.id }));
+    const tabOptions = availableTabs.map((t) => ({ label: t, value: t }));
+    const currentSheetName = availableSheets.find((s) => s.id === spreadsheetId)?.name;
+
+    return (
+      <BlockStack gap="500">
+        {/* Action bar */}
+        <Card>
+          <Box padding="400">
+            <InlineStack align="space-between" blockAlign="center" wrap={false}>
+              <InlineStack gap="200" blockAlign="center">
+                <div style={{ width: 32, height: 32, borderRadius: "50%", background: "#e8f0fe", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <GoogleGIcon />
+                </div>
+                <BlockStack gap="0">
+                  <Text as="p" variant="bodySm" fontWeight="semibold">Google account connected</Text>
+                  {connectedStatus.email && <Text as="p" variant="bodySm" tone="subdued">{connectedStatus.email}</Text>}
+                </BlockStack>
+              </InlineStack>
+              <InlineStack gap="300" blockAlign="center">
+                {connectedStatus.spreadsheetUrl && (
+                  <Button onClick={() => window.open(connectedStatus.spreadsheetUrl ?? undefined, "_blank", "noopener,noreferrer")} icon={ExternalIcon} variant="plain">
+                    Open spreadsheet
+                  </Button>
+                )}
+                <Button tone="critical" variant="plain" loading={isDisconnecting} onClick={() => void handleDisconnect()}>
+                  Unlink this account
+                </Button>
+              </InlineStack>
+            </InlineStack>
+          </Box>
+        </Card>
+
+        {/* Error banners */}
+        {needsDriveApiEnabled && (
+          <Banner title="Google Drive API not enabled" tone="critical">
+            <Text as="p" variant="bodyMd">
+              Go to <Link url="https://console.cloud.google.com/apis/library/drive.googleapis.com" external>Google Cloud Console</Link> and enable the Drive API, then refresh.
+            </Text>
+          </Banner>
+        )}
+        {needsReauth && !needsDriveApiEnabled && (
+          <Banner title="Additional permission needed" tone="warning" action={{ content: "Reconnect Google account", onAction: () => void handleConnectGoogle() }}>
+            <Text as="p" variant="bodyMd">Your Google account needs to be reconnected to grant BuyEase access to list your spreadsheets.</Text>
+          </Banner>
+        )}
+
+        {/* Step 1: Select spreadsheet */}
+        <Card padding="0">
+          <Box padding="400">
+            <BlockStack gap="400">
+              <Text as="h2" variant="headingMd">1. Select the Google Sheet where orders will be imported</Text>
+              {saveError && <Banner tone="critical" onDismiss={() => setSaveError("")}><Text as="p" variant="bodyMd">{saveError}</Text></Banner>}
+              {saveSuccess && <Banner tone="success" onDismiss={() => setSaveSuccess("")}><Text as="p" variant="bodyMd">{saveSuccess}</Text></Banner>}
+              <Checkbox label="Enable automatic import of your orders on Google Sheets" checked={isEnabled} onChange={setIsEnabled} />
+              <BlockStack gap="100">
+                <Text as="p" variant="bodySm" fontWeight="semibold">Select your spreadsheet</Text>
+                {sheetsError && !needsReauth && <Text as="p" variant="bodySm" tone="critical">{sheetsError}</Text>}
+                <InlineStack gap="200" blockAlign="center">
+                  <div style={{ flex: 1 }}>
+                    <Select label="" labelHidden
+                      options={sheetOptions.length > 0 ? [{ label: "Select your spreadsheet", value: "" }, ...sheetOptions] : [{ label: isLoadingSheets ? "Loading…" : "No spreadsheets found", value: "" }]}
+                      value={sheetOptions.length > 0 ? spreadsheetId : ""}
+                      onChange={(val) => void handleSelectSpreadsheet(val)}
+                      disabled={isLoadingSheets || sheetOptions.length === 0}
+                    />
+                  </div>
+                  <Button icon={RefreshIcon} loading={isLoadingSheets} onClick={() => { void getBearer().then((t) => fetchSpreadsheets(t)); }}>Refresh</Button>
+                </InlineStack>
+                {currentSheetName && spreadsheetId && <Text as="p" variant="bodySm" tone="subdued">Selected: {currentSheetName}</Text>}
+              </BlockStack>
+              {spreadsheetId && (
+                <BlockStack gap="100">
+                  <Text as="p" variant="bodySm" fontWeight="semibold">Select your sheet tab</Text>
+                  {tabsError && <Text as="p" variant="bodySm" tone="critical">{tabsError}</Text>}
+                  <InlineStack gap="200" blockAlign="center">
+                    <div style={{ flex: 1 }}>
+                      <Select label="" labelHidden
+                        options={tabOptions.length > 0 ? tabOptions : [{ label: isLoadingTabs ? "Loading…" : "No tabs found", value: "" }]}
+                        value={sheetName} onChange={setSheetName} disabled={isLoadingTabs || !tabsLoaded}
+                      />
+                    </div>
+                    <Button icon={RefreshIcon} loading={isLoadingTabs} disabled={!spreadsheetId} onClick={() => void handleRefreshTabs()}>Refresh</Button>
+                  </InlineStack>
+                </BlockStack>
+              )}
+              <InlineStack align="end">
+                <Button variant="primary" loading={isSaving} disabled={!canSave} onClick={() => void handleSave()}>Save settings</Button>
+              </InlineStack>
+            </BlockStack>
+          </Box>
+        </Card>
+
+        {/* Sync & export */}
+        <Card padding="0">
+          <Box padding="400">
+            <BlockStack gap="400">
+              <Text as="h2" variant="headingMd">2. Sync &amp; export</Text>
+              {exportMsg && (
+                <Banner tone={exportMsg.startsWith("Export failed") ? "critical" : "success"} onDismiss={() => setExportMsg("")}>
+                  <Text as="p" variant="bodyMd">{exportMsg}</Text>
+                </Banner>
+              )}
+              {connectedStatus.lastSyncError && (
+                <Banner tone="warning"><Text as="p" variant="bodySm">Last sync error: {connectedStatus.lastSyncError}</Text></Banner>
+              )}
+              <InlineStack align="space-between" blockAlign="center">
+                <BlockStack gap="050">
+                  <Text as="p" variant="bodySm" fontWeight="semibold">Last sync</Text>
+                  <Text as="p" variant="bodySm" tone="subdued">{connectedStatus.lastSyncAt ? formatRelativeTime(connectedStatus.lastSyncAt) : "No syncs yet"}</Text>
+                </BlockStack>
+                <Button icon={DataTableIcon} loading={isExporting} disabled={!connectedStatus.spreadsheetId} onClick={() => void handleExport()}>
+                  Export all orders
+                </Button>
+              </InlineStack>
+              {!connectedStatus.spreadsheetId && <Text as="p" variant="bodySm" tone="subdued">Save your spreadsheet settings above before exporting.</Text>}
+            </BlockStack>
+          </Box>
+        </Card>
       </BlockStack>
+    );
+  };
+
+  return (
+    <Page backAction={{ content: "Integrations", onAction: onBack }} title="Google Sheets" subtitle="Export store orders to google sheet in real time">
+      <div style={{ width: "65.5rem", maxWidth: "100%" }}>
+        <BlockStack gap="400">
+          {renderContent()}
+          <InlineStack align="center">
+            <Text as="p" variant="bodyMd">
+              Learn more about <Link url="#" target="_blank">Google Sheets</Link>
+            </Text>
+          </InlineStack>
+        </BlockStack>
       </div>
     </Page>
   );
