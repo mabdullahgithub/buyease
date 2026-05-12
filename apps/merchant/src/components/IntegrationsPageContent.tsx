@@ -205,6 +205,35 @@ function GoogleSheetsPage({ onBack }: { onBack: () => void }): ReactElement {
   const [tabsLoaded, setTabsLoaded] = useState(false);
   const bearerRef = useRef<string | null>(null);
 
+  // Accordion state
+  const [step1Open, setStep1Open] = useState(false);
+  const [step2Open, setStep2Open] = useState(true);
+  const [step3Open, setStep3Open] = useState(true);
+  const [sheetMode, setSheetMode] = useState<"new" | "existing">("new");
+  const [existingSheetUrl, setExistingSheetUrl] = useState("");
+  const [singleRowPerOrder, setSingleRowPerOrder] = useState(true);
+  const [insertAtTop, setInsertAtTop] = useState(false);
+  const [showWarningBanner, setShowWarningBanner] = useState(true);
+  const FIELD_OPTIONS = [
+    { label: "Select a field", value: "" },
+    { label: "Order Number", value: "order_number" },
+    { label: "Customer Name", value: "customer_name" },
+    { label: "Phone", value: "phone" },
+    { label: "Email", value: "email" },
+    { label: "Total Price", value: "total_price" },
+    { label: "Payment Status", value: "payment_status" },
+    { label: "Fulfillment Status", value: "fulfillment_status" },
+    { label: "Created At", value: "created_at" },
+    { label: "Shipping Address", value: "shipping_address" },
+    { label: "Line Items", value: "line_items" },
+    { label: "Tags", value: "tags" },
+    { label: "Note", value: "note" },
+  ];
+  const [selectedFields, setSelectedFields] = useState<string[]>(["", "", "", "", "", ""]);
+  const updateField = (index: number, value: string): void => {
+    setSelectedFields((prev) => { const next = [...prev]; next[index] = value; return next; });
+  };
+
   const getBearer = useCallback(async (): Promise<string> => {
     if (bearerRef.current) return bearerRef.current;
     const w = window as Window & { shopify?: { idToken?: () => Promise<string> } };
@@ -426,42 +455,34 @@ function GoogleSheetsPage({ onBack }: { onBack: () => void }): ReactElement {
       );
     }
 
-    // ── Connected view ────────────────────────────────────────────────────────
+    // ── Connected view — accordion steps ────────────────────────────────────
     const connectedStatus = status;
-    const canSave = !!spreadsheetId && tabsLoaded;
-    const sheetOptions = availableSheets.map((s) => ({ label: s.name, value: s.id }));
-    const tabOptions = availableTabs.map((t) => ({ label: t, value: t }));
-    const currentSheetName = availableSheets.find((s) => s.id === spreadsheetId)?.name;
+
+    const stepHeaderStyle: React.CSSProperties = {
+      display: "flex", alignItems: "center", justifyContent: "space-between",
+      padding: "14px 20px", cursor: "pointer", userSelect: "none",
+    };
+    const stepCardStyle: React.CSSProperties = {
+      border: "1px solid #E1E3E5", borderRadius: "12px", background: "#fff", overflow: "hidden",
+    };
+    const completedBadge = (
+      <span style={{ display: "inline-flex", alignItems: "center", gap: 4, color: "#008060", fontWeight: 600, fontSize: 13 }}>
+        <svg width="14" height="14" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="10" fill="#008060"/><path d="M5 10.5l3.5 3.5 6.5-7" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+        Completed
+      </span>
+    );
+    const pendingBadge = (
+      <span style={{ display: "inline-flex", alignItems: "center", gap: 4, color: "#916A00", fontWeight: 600, fontSize: 13 }}>
+        <svg width="14" height="14" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="9" stroke="#916A00" strokeWidth="2"/><path d="M10 5v5.5l3 2" stroke="#916A00" strokeWidth="2" strokeLinecap="round"/></svg>
+        Pending
+      </span>
+    );
+    const chevronDown = <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M5 8l5 5 5-5" stroke="#6D7175" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>;
+    const chevronRight = <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M8 5l5 5-5 5" stroke="#6D7175" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>;
+    const sheetCompleted = !!spreadsheetId && tabsLoaded;
 
     return (
-      <BlockStack gap="500">
-        {/* Action bar */}
-        <Card>
-          <Box padding="400">
-            <InlineStack align="space-between" blockAlign="center" wrap={false}>
-              <InlineStack gap="200" blockAlign="center">
-                <div style={{ width: 32, height: 32, borderRadius: "50%", background: "#e8f0fe", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                  <GoogleGIcon />
-                </div>
-                <BlockStack gap="0">
-                  <Text as="p" variant="bodySm" fontWeight="semibold">Google account connected</Text>
-                  {connectedStatus.email && <Text as="p" variant="bodySm" tone="subdued">{connectedStatus.email}</Text>}
-                </BlockStack>
-              </InlineStack>
-              <InlineStack gap="300" blockAlign="center">
-                {connectedStatus.spreadsheetUrl && (
-                  <Button onClick={() => window.open(connectedStatus.spreadsheetUrl ?? undefined, "_blank", "noopener,noreferrer")} icon={ExternalIcon} variant="plain">
-                    Open spreadsheet
-                  </Button>
-                )}
-                <Button tone="critical" variant="plain" loading={isDisconnecting} onClick={() => void handleDisconnect()}>
-                  Unlink this account
-                </Button>
-              </InlineStack>
-            </InlineStack>
-          </Box>
-        </Card>
-
+      <BlockStack gap="400">
         {/* Error banners */}
         {needsDriveApiEnabled && (
           <Banner title="Google Drive API not enabled" tone="critical">
@@ -472,82 +493,191 @@ function GoogleSheetsPage({ onBack }: { onBack: () => void }): ReactElement {
         )}
         {needsReauth && !needsDriveApiEnabled && (
           <Banner title="Additional permission needed" tone="warning" action={{ content: "Reconnect Google account", onAction: () => void handleConnectGoogle() }}>
-            <Text as="p" variant="bodyMd">Your Google account needs to be reconnected to grant BuyEase access to list your spreadsheets.</Text>
+            <Text as="p" variant="bodyMd">Your Google account needs to be reconnected.</Text>
           </Banner>
         )}
+        {saveError && <Banner tone="critical" onDismiss={() => setSaveError("")}><Text as="p" variant="bodyMd">{saveError}</Text></Banner>}
+        {saveSuccess && <Banner tone="success" onDismiss={() => setSaveSuccess("")}><Text as="p" variant="bodyMd">{saveSuccess}</Text></Banner>}
+        {exportMsg && <Banner tone={exportMsg.startsWith("Export failed") ? "critical" : "success"} onDismiss={() => setExportMsg("")}><Text as="p" variant="bodyMd">{exportMsg}</Text></Banner>}
 
-        {/* Step 1: Select spreadsheet */}
-        <Card padding="0">
-          <Box padding="400">
-            <BlockStack gap="400">
-              <Text as="h2" variant="headingMd">1. Select the Google Sheet where orders will be imported</Text>
-              {saveError && <Banner tone="critical" onDismiss={() => setSaveError("")}><Text as="p" variant="bodyMd">{saveError}</Text></Banner>}
-              {saveSuccess && <Banner tone="success" onDismiss={() => setSaveSuccess("")}><Text as="p" variant="bodyMd">{saveSuccess}</Text></Banner>}
-              <Checkbox label="Enable automatic import of your orders on Google Sheets" checked={isEnabled} onChange={setIsEnabled} />
-              <BlockStack gap="100">
-                <Text as="p" variant="bodySm" fontWeight="semibold">Select your spreadsheet</Text>
-                {sheetsError && !needsReauth && <Text as="p" variant="bodySm" tone="critical">{sheetsError}</Text>}
-                <InlineStack gap="200" blockAlign="center">
-                  <div style={{ flex: 1 }}>
-                    <Select label="" labelHidden
-                      options={sheetOptions.length > 0 ? [{ label: "Select your spreadsheet", value: "" }, ...sheetOptions] : [{ label: isLoadingSheets ? "Loading…" : "No spreadsheets found", value: "" }]}
-                      value={sheetOptions.length > 0 ? spreadsheetId : ""}
-                      onChange={(val) => void handleSelectSpreadsheet(val)}
-                      disabled={isLoadingSheets || sheetOptions.length === 0}
-                    />
-                  </div>
-                  <Button icon={RefreshIcon} loading={isLoadingSheets} onClick={() => { void getBearer().then((t) => fetchSpreadsheets(t)); }}>Refresh</Button>
-                </InlineStack>
-                {currentSheetName && spreadsheetId && <Text as="p" variant="bodySm" tone="subdued">Selected: {currentSheetName}</Text>}
-              </BlockStack>
-              {spreadsheetId && (
-                <BlockStack gap="100">
-                  <Text as="p" variant="bodySm" fontWeight="semibold">Select your sheet tab</Text>
-                  {tabsError && <Text as="p" variant="bodySm" tone="critical">{tabsError}</Text>}
+        {/* ── Step 1: Connect Google Account ── */}
+        <div style={stepCardStyle}>
+          <div style={stepHeaderStyle} onClick={() => setStep1Open((o) => !o)}>
+            <InlineStack gap="300" blockAlign="center">
+              <span style={{ width: 24, height: 24, borderRadius: "50%", background: "#F1F1F1", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: "#303030" }}>1</span>
+              <Text as="p" variant="bodyMd" fontWeight="semibold">Connect your Google Account</Text>
+            </InlineStack>
+            <InlineStack gap="400" blockAlign="center">
+              {completedBadge}
+              <InlineStack gap="100" blockAlign="center">
+                <span style={{ fontSize: 13, color: "#5C5F62" }}>Open</span>
+                {chevronRight}
+              </InlineStack>
+            </InlineStack>
+          </div>
+          {step1Open && (
+            <div style={{ padding: "0 20px 20px", borderTop: "1px solid #F1F1F1" }}>
+              <Box paddingBlockStart="400">
+                <BlockStack gap="300">
                   <InlineStack gap="200" blockAlign="center">
-                    <div style={{ flex: 1 }}>
-                      <Select label="" labelHidden
-                        options={tabOptions.length > 0 ? tabOptions : [{ label: isLoadingTabs ? "Loading…" : "No tabs found", value: "" }]}
-                        value={sheetName} onChange={setSheetName} disabled={isLoadingTabs || !tabsLoaded}
-                      />
+                    <div style={{ width: 32, height: 32, borderRadius: "50%", background: "#e8f0fe", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      <GoogleGIcon />
                     </div>
-                    <Button icon={RefreshIcon} loading={isLoadingTabs} disabled={!spreadsheetId} onClick={() => void handleRefreshTabs()}>Refresh</Button>
+                    <BlockStack gap="0">
+                      <Text as="p" variant="bodySm" fontWeight="semibold">Your Google account is linked</Text>
+                      {connectedStatus.email && <Text as="p" variant="bodySm" tone="subdued">{connectedStatus.email}</Text>}
+                    </BlockStack>
+                  </InlineStack>
+                  <InlineStack align="end">
+                    <Button tone="critical" variant="plain" loading={isDisconnecting} onClick={() => void handleDisconnect()}>Unlink this account</Button>
                   </InlineStack>
                 </BlockStack>
-              )}
-              <InlineStack align="end">
-                <Button variant="primary" loading={isSaving} disabled={!canSave} onClick={() => void handleSave()}>Save settings</Button>
-              </InlineStack>
-            </BlockStack>
-          </Box>
-        </Card>
+              </Box>
+            </div>
+          )}
+        </div>
 
-        {/* Sync & export */}
-        <Card padding="0">
-          <Box padding="400">
-            <BlockStack gap="400">
-              <Text as="h2" variant="headingMd">2. Sync &amp; export</Text>
-              {exportMsg && (
-                <Banner tone={exportMsg.startsWith("Export failed") ? "critical" : "success"} onDismiss={() => setExportMsg("")}>
-                  <Text as="p" variant="bodyMd">{exportMsg}</Text>
-                </Banner>
-              )}
-              {connectedStatus.lastSyncError && (
-                <Banner tone="warning"><Text as="p" variant="bodySm">Last sync error: {connectedStatus.lastSyncError}</Text></Banner>
-              )}
-              <InlineStack align="space-between" blockAlign="center">
-                <BlockStack gap="050">
-                  <Text as="p" variant="bodySm" fontWeight="semibold">Last sync</Text>
-                  <Text as="p" variant="bodySm" tone="subdued">{connectedStatus.lastSyncAt ? formatRelativeTime(connectedStatus.lastSyncAt) : "No syncs yet"}</Text>
-                </BlockStack>
-                <Button icon={DataTableIcon} loading={isExporting} disabled={!connectedStatus.spreadsheetId} onClick={() => void handleExport()}>
-                  Export all orders
-                </Button>
+        {/* ── Step 2: Select Google Sheet ── */}
+        <div style={stepCardStyle}>
+          <div style={stepHeaderStyle} onClick={() => setStep2Open((o) => !o)}>
+            <InlineStack gap="300" blockAlign="center">
+              <span style={{ width: 24, height: 24, borderRadius: "50%", background: "#F1F1F1", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: "#303030" }}>2</span>
+              <Text as="p" variant="bodyMd" fontWeight="semibold">Select your Google Sheet</Text>
+            </InlineStack>
+            <InlineStack gap="400" blockAlign="center">
+              {sheetCompleted ? completedBadge : pendingBadge}
+              <InlineStack gap="100" blockAlign="center">
+                <span style={{ fontSize: 13, color: "#5C5F62" }}>{step2Open ? "Close" : "Open"}</span>
+                {step2Open ? chevronDown : chevronRight}
               </InlineStack>
-              {!connectedStatus.spreadsheetId && <Text as="p" variant="bodySm" tone="subdued">Save your spreadsheet settings above before exporting.</Text>}
+            </InlineStack>
+          </div>
+          {step2Open && (
+            <div style={{ padding: "0 20px 20px", borderTop: "1px solid #F1F1F1" }}>
+              <Box paddingBlockStart="400">
+                <BlockStack gap="400">
+                  <RadioButton label={<BlockStack gap="0"><Text as="span" variant="bodyMd">Create a new sheet</Text><Text as="span" variant="bodySm" tone="subdued">BuyEase will create a new Sheet for you</Text></BlockStack>} id="sheet-new" name="sheet-mode" checked={sheetMode === "new"} onChange={() => setSheetMode("new")} />
+                  <RadioButton label={<BlockStack gap="0"><Text as="span" variant="bodyMd">Use an existing sheet</Text><Text as="span" variant="bodySm" tone="subdued">You can use an existing sheet by providing the sheet link</Text></BlockStack>} id="sheet-existing" name="sheet-mode" checked={sheetMode === "existing"} onChange={() => setSheetMode("existing")} />
+                  {sheetMode === "existing" && (
+                    <BlockStack gap="200">
+                      <Text as="p" variant="bodySm" fontWeight="semibold">Spreadsheet Link</Text>
+                      {sheetsError && !needsReauth && <Text as="p" variant="bodySm" tone="critical">{sheetsError}</Text>}
+                      <InlineStack gap="200" blockAlign="center">
+                        <div style={{ flex: 1 }}>
+                          <TextField
+                            label="" labelHidden
+                            placeholder="Ex: https://docs.google.com/spreadsheets/d/1-XxrZHDpS2BBX86zGvLWI_Y3NoA1lApW-QYwDpvThN4/edit"
+                            value={existingSheetUrl}
+                            onChange={setExistingSheetUrl}
+                            autoComplete="off"
+                          />
+                        </div>
+                        <Button loading={isLoadingSheets} onClick={() => { void getBearer().then((t) => fetchSpreadsheets(t)); }}>Get Sheets</Button>
+                      </InlineStack>
+                    </BlockStack>
+                  )}
+                  <InlineStack align="end">
+                    <Button variant="primary" loading={isSaving} onClick={() => void handleSave()}>Next</Button>
+                  </InlineStack>
+                </BlockStack>
+              </Box>
+            </div>
+          )}
+        </div>
+
+        {/* ── Step 3: Select fields ── */}
+        <div style={stepCardStyle}>
+          <div style={stepHeaderStyle} onClick={() => setStep3Open((o) => !o)}>
+            <InlineStack gap="300" blockAlign="center">
+              <span style={{ width: 24, height: 24, borderRadius: "50%", background: "#F1F1F1", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: "#303030" }}>3</span>
+              <Text as="p" variant="bodyMd" fontWeight="semibold">Select fields you want to export to Google Sheet</Text>
+            </InlineStack>
+            <InlineStack gap="400" blockAlign="center">
+              {pendingBadge}
+              <InlineStack gap="100" blockAlign="center">
+                <span style={{ fontSize: 13, color: "#5C5F62" }}>{step3Open ? "Close" : "Open"}</span>
+                {step3Open ? chevronDown : chevronRight}
+              </InlineStack>
+            </InlineStack>
+          </div>
+          {step3Open && (
+            <div style={{ borderTop: "1px solid #F1F1F1" }}>
+              {/* Column headers */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", background: "#EAF0FB" }}>
+                {["A","B","C","D","E","F"].map((col) => (
+                  <div key={col} style={{ padding: "10px 0", textAlign: "center", fontWeight: 700, fontSize: 13, color: "#303030", borderRight: "1px solid #D8E0EC" }}>{col}</div>
+                ))}
+              </div>
+              {/* Field selectors */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", padding: "12px 12px" , gap: 8 }}>
+                {selectedFields.map((val, i) => (
+                  <select
+                    key={i}
+                    value={val}
+                    onChange={(e) => updateField(i, e.target.value)}
+                    style={{ width: "100%", padding: "7px 8px", border: "1px solid #C9CCCF", borderRadius: 6, fontSize: 13, background: "white", color: "#303030", cursor: "pointer" }}
+                  >
+                    {FIELD_OPTIONS.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                  </select>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* ── Options ── */}
+        <div style={{ ...stepCardStyle, padding: "16px 20px" }}>
+          <BlockStack gap="300">
+            <label style={{ display: "flex", alignItems: "flex-start", gap: 10, cursor: "pointer" }}>
+              <input type="checkbox" checked={singleRowPerOrder} onChange={(e) => setSingleRowPerOrder(e.target.checked)} style={{ marginTop: 3, accentColor: "#008060", width: 16, height: 16, flexShrink: 0 }} />
+              <BlockStack gap="0">
+                <Text as="span" variant="bodyMd" fontWeight="medium">Use a single row per order in Google Sheets</Text>
+                <Text as="span" variant="bodySm" tone="subdued">If enabled, all items in an order will be combined into a single row in Google Sheets.</Text>
+              </BlockStack>
+            </label>
+            <label style={{ display: "flex", alignItems: "flex-start", gap: 10, cursor: singleRowPerOrder ? "pointer" : "not-allowed", opacity: singleRowPerOrder ? 1 : 0.45 }}>
+              <input type="checkbox" checked={insertAtTop} disabled={!singleRowPerOrder} onChange={(e) => setInsertAtTop(e.target.checked)} style={{ marginTop: 3, accentColor: "#008060", width: 16, height: 16, flexShrink: 0 }} />
+              <BlockStack gap="0">
+                <Text as="span" variant="bodyMd" fontWeight="medium">Insert new orders at the top of the sheet</Text>
+                <Text as="span" variant="bodySm" tone="subdued">If enabled, new orders will appear at the top of the sheet, just below the header, instead of at the bottom.</Text>
+              </BlockStack>
+            </label>
+          </BlockStack>
+        </div>
+
+        {/* ── Warning banner ── */}
+        {showWarningBanner && (
+          <div style={{ background: "#FFF8E7", border: "1px solid #F0C75E", borderRadius: 10, padding: "14px 16px" }}>
+            <InlineStack gap="200" blockAlign="start" wrap={false}>
+              <div style={{ flexShrink: 0, marginTop: 2 }}>
+                <Icon source={AlertCircleIcon} tone="caution" />
+              </div>
+              <div style={{ flex: 1 }}>
+                <BlockStack gap="100">
+                  <Text as="p" variant="bodySm">• Please avoid editing the sheet manually, create a real-time clone instead. <Link url="#" target="_blank">How to create a clone?</Link></Text>
+                  <Text as="p" variant="bodySm">• Please do not modify the sheet name once it has been connected to BuyEase.</Text>
+                </BlockStack>
+              </div>
+              <button type="button" onClick={() => setShowWarningBanner(false)} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, color: "#6D7175", fontSize: 18, lineHeight: 1, flexShrink: 0 }}>✕</button>
+            </InlineStack>
+          </div>
+        )}
+
+        {/* ── Sync & Export ── */}
+        <div style={{ ...stepCardStyle, padding: "16px 20px" }}>
+          <InlineStack align="space-between" blockAlign="center">
+            <BlockStack gap="050">
+              <Text as="p" variant="bodySm" fontWeight="semibold">Last sync</Text>
+              <Text as="p" variant="bodySm" tone="subdued">{connectedStatus.lastSyncAt ? formatRelativeTime(connectedStatus.lastSyncAt) : "No syncs yet"}</Text>
             </BlockStack>
-          </Box>
-        </Card>
+            <InlineStack gap="200" blockAlign="center">
+              {connectedStatus.spreadsheetUrl && (
+                <Button onClick={() => window.open(connectedStatus.spreadsheetUrl ?? undefined, "_blank", "noopener,noreferrer")} icon={ExternalIcon} variant="plain">Open spreadsheet</Button>
+              )}
+              <Button icon={DataTableIcon} loading={isExporting} disabled={!connectedStatus.spreadsheetId} onClick={() => void handleExport()}>Export all orders</Button>
+            </InlineStack>
+          </InlineStack>
+        </div>
       </BlockStack>
     );
   };
