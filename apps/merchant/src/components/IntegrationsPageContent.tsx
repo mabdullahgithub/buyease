@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useShopifyBridge } from "@/lib/use-shopify-bridge";
 import type { ReactElement } from "react";
 import type { IconSource } from "@shopify/polaris";
 import Image from "next/image";
@@ -183,6 +184,7 @@ function GoogleGIcon(): ReactElement {
 }
 
 function GoogleSheetsPage({ onBack }: { onBack: () => void }): ReactElement {
+  const shopify = useShopifyBridge();
   const [status, setStatus] = useState<SheetsStatus | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -191,8 +193,6 @@ function GoogleSheetsPage({ onBack }: { onBack: () => void }): ReactElement {
   const [isLoadingSheets, setIsLoadingSheets] = useState(false);
   const [isLoadingTabs, setIsLoadingTabs] = useState(false);
   const [saveError, setSaveError] = useState("");
-  const [saveSuccess, setSaveSuccess] = useState("");
-  const [exportMsg, setExportMsg] = useState("");
   const [sheetsError, setSheetsError] = useState("");
   const [tabsError, setTabsError] = useState("");
   const [needsReauth, setNeedsReauth] = useState(false);
@@ -203,6 +203,7 @@ function GoogleSheetsPage({ onBack }: { onBack: () => void }): ReactElement {
   const [availableSheets, setAvailableSheets] = useState<{ id: string; name: string }[]>([]);
   const [availableTabs, setAvailableTabs] = useState<string[]>([]);
   const [tabsLoaded, setTabsLoaded] = useState(false);
+  const [connectedSheetTitle, setConnectedSheetTitle] = useState<string | null>(null);
   const bearerRef = useRef<string | null>(null);
 
   // Accordion state
@@ -272,6 +273,7 @@ function GoogleSheetsPage({ onBack }: { onBack: () => void }): ReactElement {
         setSpreadsheetId(data.spreadsheetId ?? "");
         setSheetName(data.sheetName);
         setIsEnabled(data.isEnabled);
+        setConnectedSheetTitle(data.sheetName ?? null);
         if (data.spreadsheetId && data.sheetName) { setAvailableTabs([data.sheetName]); setTabsLoaded(true); }
         void fetchSpreadsheets(token);
       }
@@ -328,23 +330,27 @@ function GoogleSheetsPage({ onBack }: { onBack: () => void }): ReactElement {
   }, [getBearer, spreadsheetId, sheetName]);
 
   const handleSave = useCallback(async (): Promise<void> => {
-    setSaveError(""); setSaveSuccess(""); setIsSaving(true);
+    setSaveError(""); setIsSaving(true);
     try {
       const token = await getBearer();
       const res = await fetch("/api/google/configure-sheet", { method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify({ spreadsheetId, sheetName, isEnabled }) });
       const data = (await res.json()) as { ok?: boolean; error?: string; spreadsheetTitle?: string };
       if (!res.ok || data.error) { setSaveError(data.error ?? "Failed to save settings."); }
-      else { const name = data.spreadsheetTitle ?? availableSheets.find((s) => s.id === spreadsheetId)?.name ?? spreadsheetId; setSaveSuccess(`Connected to "${name}".`); await fetchStatus(); }
+      else {
+        const name = data.spreadsheetTitle ?? availableSheets.find((s) => s.id === spreadsheetId)?.name ?? spreadsheetId;
+        setConnectedSheetTitle(name);
+        shopify.toast.show(`Connected to "${name}"`);
+        await fetchStatus();
+      }
     } catch { setSaveError("Network error. Please try again."); }
     finally { setIsSaving(false); }
-  }, [getBearer, spreadsheetId, sheetName, isEnabled, availableSheets, fetchStatus]);
+  }, [getBearer, spreadsheetId, sheetName, isEnabled, availableSheets, fetchStatus, shopify]);
 
   const handleNext = useCallback(async (): Promise<void> => {
-    setSaveError(""); setSaveSuccess(""); setIsSaving(true);
+    setSaveError(""); setIsSaving(true);
     try {
       const token = await getBearer();
       if (sheetMode === "new") {
-        // Create a brand new Google Sheet via the API
         const res = await fetch("/api/google/create-spreadsheet", {
           method: "POST",
           headers: { Authorization: `Bearer ${token}` },
@@ -353,18 +359,19 @@ function GoogleSheetsPage({ onBack }: { onBack: () => void }): ReactElement {
         if (!res.ok || data.error) {
           setSaveError(data.error ?? "Failed to create spreadsheet.");
         } else {
-          setSaveSuccess(`New sheet "${data.spreadsheetTitle ?? "BuyEase Orders"}" created and connected!`);
+          const title = data.spreadsheetTitle ?? "BuyEase Orders";
+          setConnectedSheetTitle(title);
+          shopify.toast.show(`Sheet "${title}" created and connected!`);
           setStep2Open(false);
           setStep3Open(true);
           await fetchStatus();
         }
       } else {
-        // Use existing sheet — prefer dropdown selection, fall back to pasted URL
         let idToUse = spreadsheetId.trim();
         if (!idToUse && existingSheetUrl.trim()) {
           idToUse = existingSheetUrl.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/)?.[1] ?? existingSheetUrl.trim();
         }
-        if (!idToUse) { setSaveError("Please select a spreadsheet from the list or paste a Google Sheets link."); setIsSaving(false); return; }
+        if (!idToUse) { setSaveError("Please select a spreadsheet or paste a Google Sheets link."); setIsSaving(false); return; }
         const res = await fetch("/api/google/configure-sheet", {
           method: "POST",
           headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
@@ -374,7 +381,9 @@ function GoogleSheetsPage({ onBack }: { onBack: () => void }): ReactElement {
         if (!res.ok || data.error) {
           setSaveError(data.error ?? "Failed to connect spreadsheet.");
         } else {
-          setSaveSuccess(`Connected to "${data.spreadsheetTitle ?? idToUse}".`);
+          const title = data.spreadsheetTitle ?? idToUse;
+          setConnectedSheetTitle(title);
+          shopify.toast.show(`Connected to "${title}"`);
           setStep2Open(false);
           setStep3Open(true);
           await fetchStatus();
@@ -382,19 +391,23 @@ function GoogleSheetsPage({ onBack }: { onBack: () => void }): ReactElement {
       }
     } catch { setSaveError("Network error. Please try again."); }
     finally { setIsSaving(false); }
-  }, [getBearer, sheetMode, existingSheetUrl, fetchStatus]);
+  }, [getBearer, sheetMode, spreadsheetId, existingSheetUrl, fetchStatus, shopify]);
 
   const handleExport = useCallback(async (): Promise<void> => {
-    setExportMsg(""); setIsExporting(true);
+    setIsExporting(true);
     try {
       const token = await getBearer();
       const res = await fetch("/api/google/export", { method: "POST", headers: { Authorization: `Bearer ${token}` } });
       const data = (await res.json()) as { ok?: boolean; count?: number; error?: string };
-      if (!res.ok || data.error) { setExportMsg(`Export failed: ${data.error ?? "Unknown error"}`); }
-      else { setExportMsg(`${data.count ?? 0} orders exported successfully.`); await fetchStatus(); }
-    } catch { setExportMsg("Network error during export."); }
+      if (!res.ok || data.error) {
+        shopify.toast.show(`Export failed: ${data.error ?? "Unknown error"}`);
+      } else {
+        shopify.toast.show(`${data.count ?? 0} orders exported successfully`);
+        await fetchStatus();
+      }
+    } catch { shopify.toast.show("Network error during export"); }
     finally { setIsExporting(false); }
-  }, [getBearer, fetchStatus]);
+  }, [getBearer, fetchStatus, shopify]);
 
   const handleDisconnect = useCallback(async (): Promise<void> => {
     setIsDisconnecting(true);
@@ -402,7 +415,9 @@ function GoogleSheetsPage({ onBack }: { onBack: () => void }): ReactElement {
       const token = await getBearer();
       await fetch("/api/google/disconnect", { method: "POST", headers: { Authorization: `Bearer ${token}` } });
       setStatus({ connected: false }); setSpreadsheetId(""); setSheetName("Orders"); setIsEnabled(false);
-      setSaveError(""); setSaveSuccess(""); setExportMsg(""); setAvailableSheets([]); setAvailableTabs([]); setTabsLoaded(false); setNeedsReauth(false); setNeedsDriveApiEnabled(false);
+      setSaveError(""); setAvailableSheets([]); setAvailableTabs([]); setTabsLoaded(false);
+      setNeedsReauth(false); setNeedsDriveApiEnabled(false); setConnectedSheetTitle(null);
+      shopify.toast.show("Google account disconnected");
     } catch { /* non-critical */ }
     finally { setIsDisconnecting(false); }
   }, [getBearer]);
@@ -542,8 +557,6 @@ function GoogleSheetsPage({ onBack }: { onBack: () => void }): ReactElement {
           </Banner>
         )}
         {saveError && <Banner tone="critical" onDismiss={() => setSaveError("")}><Text as="p" variant="bodyMd">{saveError}</Text></Banner>}
-        {saveSuccess && <Banner tone="success" onDismiss={() => setSaveSuccess("")}><Text as="p" variant="bodyMd">{saveSuccess}</Text></Banner>}
-        {exportMsg && <Banner tone={exportMsg.startsWith("Export failed") ? "critical" : "success"} onDismiss={() => setExportMsg("")}><Text as="p" variant="bodyMd">{exportMsg}</Text></Banner>}
 
         {/* ── Step 1: Connect Google Account ── */}
         <div style={stepCardStyle}>
@@ -571,6 +584,7 @@ function GoogleSheetsPage({ onBack }: { onBack: () => void }): ReactElement {
                     <BlockStack gap="0">
                       <Text as="p" variant="bodySm" fontWeight="semibold">Your Google account is linked</Text>
                       {connectedStatus.email && <Text as="p" variant="bodySm" tone="subdued">{connectedStatus.email}</Text>}
+                      {connectedSheetTitle && <Text as="p" variant="bodySm" tone="subdued">Connected to: <span style={{ fontWeight: 500, color: "#202223" }}>{connectedSheetTitle}</span></Text>}
                     </BlockStack>
                   </InlineStack>
                   <InlineStack align="end">
@@ -708,20 +722,19 @@ function GoogleSheetsPage({ onBack }: { onBack: () => void }): ReactElement {
         {/* ── Options ── */}
         <div style={{ ...stepCardStyle, padding: "16px 20px" }}>
           <BlockStack gap="300">
-            <label style={{ display: "flex", alignItems: "flex-start", gap: 10, cursor: "pointer" }}>
-              <input type="checkbox" checked={singleRowPerOrder} onChange={(e) => setSingleRowPerOrder(e.target.checked)} style={{ marginTop: 3, accentColor: "#008060", width: 16, height: 16, flexShrink: 0 }} />
-              <BlockStack gap="0">
-                <Text as="span" variant="bodyMd" fontWeight="medium">Use a single row per order in Google Sheets</Text>
-                <Text as="span" variant="bodySm" tone="subdued">If enabled, all items in an order will be combined into a single row in Google Sheets.</Text>
-              </BlockStack>
-            </label>
-            <label style={{ display: "flex", alignItems: "flex-start", gap: 10, cursor: singleRowPerOrder ? "pointer" : "not-allowed", opacity: singleRowPerOrder ? 1 : 0.45 }}>
-              <input type="checkbox" checked={insertAtTop} disabled={!singleRowPerOrder} onChange={(e) => setInsertAtTop(e.target.checked)} style={{ marginTop: 3, accentColor: "#008060", width: 16, height: 16, flexShrink: 0 }} />
-              <BlockStack gap="0">
-                <Text as="span" variant="bodyMd" fontWeight="medium">Insert new orders at the top of the sheet</Text>
-                <Text as="span" variant="bodySm" tone="subdued">If enabled, new orders will appear at the top of the sheet, just below the header, instead of at the bottom.</Text>
-              </BlockStack>
-            </label>
+            <Checkbox
+              label="Use a single row per order in Google Sheets"
+              helpText="If enabled, all items in an order will be combined into a single row in Google Sheets."
+              checked={singleRowPerOrder}
+              onChange={setSingleRowPerOrder}
+            />
+            <Checkbox
+              label="Insert new orders at the top of the sheet"
+              helpText="If enabled, new orders will appear at the top of the sheet, just below the header, instead of at the bottom."
+              checked={insertAtTop}
+              onChange={setInsertAtTop}
+              disabled={!singleRowPerOrder}
+            />
           </BlockStack>
         </div>
 
