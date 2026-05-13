@@ -174,6 +174,7 @@ type SheetsStatus =
       layoutDesign: string;
       importPreset: string;
       isEnabled: boolean;
+      headerRowWritten: boolean;
       lastSyncAt: string | null;
       lastSyncError: string | null;
     };
