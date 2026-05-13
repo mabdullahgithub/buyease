@@ -668,6 +668,20 @@ function GoogleSheetsPage({ onBack }: { onBack: () => void }): ReactElement {
     finally { setIsExporting(false); }
   }, [getBearer, fetchStatus, shopify]);
 
+  const handleDisconnectSheet = useCallback(async (): Promise<void> => {
+    setIsDisconnecting(true);
+    try {
+      const token = await getBearer();
+      await fetch("/api/google/disconnect-sheet", { method: "POST", headers: { Authorization: `Bearer ${token}` } });
+      setSpreadsheetId(""); setSheetName("Orders"); setIsEnabled(false);
+      setSaveError(""); setAvailableTabs([]); setTabsLoaded(false);
+      setConnectedSheetTitle(null);
+      shopify.toast.show("Google Sheet disconnected");
+      void fetchStatus();
+    } catch { /* non-critical */ }
+    finally { setIsDisconnecting(false); }
+  }, [getBearer, fetchStatus]);
+
   const handleDisconnect = useCallback(async (): Promise<void> => {
     setIsDisconnecting(true);
     try {
@@ -823,54 +837,88 @@ function GoogleSheetsPage({ onBack }: { onBack: () => void }): ReactElement {
           </SaveBar>
         )}
 
-        {/* Master Toggle */}
+        {/* ── Activation & Sync Status ── */}
         <div style={stepCardStyle}>
-          <div style={{ ...stepHeaderStyle, cursor: "default" }}>
-            <InlineStack gap="300" blockAlign="center">
-              <div style={{ width: 10, height: 10, borderRadius: "50%", background: isEnabled ? "#008060" : "#D8E0EC" }} />
-              <BlockStack gap="0">
-                <Text as="p" variant="bodyMd" fontWeight="bold">
-                  Integration Status: {isEnabled ? "Active" : "Inactive"}
-                </Text>
-                <Text as="p" variant="bodySm" tone="subdued">
-                  {isEnabled ? "Your orders are being synced to Google Sheets." : "Syncing is currently disabled."}
-                </Text>
-              </BlockStack>
-            </InlineStack>
-            <Button 
-              variant="primary" 
-              tone={isEnabled ? "critical" : undefined}
-              onClick={() => {
-                const newStatus = !isEnabled;
-                setIsEnabled(newStatus);
-                // Trigger immediate save for the master toggle
-                void (async () => {
-                   const token = await getBearer();
-                   const paddedFields = [...selectedFields];
-                   while (paddedFields.length < 52) paddedFields.push("");
-                   await fetch("/api/google/configure-sheet", {
-                     method: "POST",
-                     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-                     body: JSON.stringify({
-                       spreadsheetId,
-                       sheetName,
-                       abandonedSheetName,
-                       selectedFields: paddedFields,
-                       singleRowPerOrder,
-                       insertAtTop,
-                       autoSync,
-                       layoutDesign,
-                       importPreset,
-                       isEnabled: newStatus
-                     })
-                   });
-                   shopify.toast.show(`Integration ${newStatus ? "activated" : "deactivated"}`);
-                   void fetchStatus();
-                })();
-              }}
-            >
-              {isEnabled ? "Deactivate" : "Activate Now"}
-            </Button>
+          <div style={{ padding: "20px" }}>
+            <BlockStack gap="400">
+              <InlineStack align="space-between" blockAlign="center">
+                <InlineStack gap="300" blockAlign="center">
+                  <div style={{ width: 10, height: 10, borderRadius: "50%", background: isEnabled ? "#008060" : "#D8E0EC" }} />
+                  <BlockStack gap="0">
+                    <Text as="p" variant="bodyMd" fontWeight="bold">
+                      Integration Status: {isEnabled ? "Active" : "Inactive"}
+                    </Text>
+                    <Text as="p" variant="bodySm" tone="subdued">
+                      {isEnabled ? "Your orders are being synced to Google Sheets." : "Syncing is currently disabled."}
+                    </Text>
+                  </BlockStack>
+                </InlineStack>
+                <Button 
+                  variant="primary" 
+                  tone={isEnabled ? "critical" : undefined}
+                  loading={isDisconnecting}
+                  onClick={() => {
+                    if (isEnabled) {
+                       void handleDisconnectSheet();
+                    } else {
+                       // Activate existing
+                       setIsEnabled(true);
+                       void (async () => {
+                         const token = await getBearer();
+                         const paddedFields = [...selectedFields];
+                         while (paddedFields.length < 52) paddedFields.push("");
+                         await fetch("/api/google/configure-sheet", {
+                           method: "POST",
+                           headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+                           body: JSON.stringify({
+                             spreadsheetId,
+                             sheetName,
+                             abandonedSheetName,
+                             selectedFields: paddedFields,
+                             singleRowPerOrder,
+                             insertAtTop,
+                             autoSync,
+                             layoutDesign,
+                             importPreset,
+                             isEnabled: true
+                           })
+                         });
+                         shopify.toast.show("Integration activated");
+                         void fetchStatus();
+                       })();
+                    }
+                  }}
+                >
+                  {isEnabled ? "Deactivate" : "Activate Now"}
+                </Button>
+              </InlineStack>
+
+              {isEnabled && status?.connected && spreadsheetId && (
+                <>
+                  <Divider />
+                  <InlineStack align="space-between" blockAlign="center">
+                    <BlockStack gap="100">
+                      <InlineStack gap="100" blockAlign="center">
+                        <Text as="p" variant="bodySm" fontWeight="semibold">Connected to:</Text>
+                        <Text as="p" variant="bodySm">{connectedSheetTitle || "Google Sheet"}</Text>
+                        {status.spreadsheetUrl && (
+                           <Link url={status.spreadsheetUrl} external target="_blank">
+                             <Icon source={ExternalIcon} tone="subdued" />
+                           </Link>
+                        )}
+                      </InlineStack>
+                      <InlineStack gap="100" blockAlign="center">
+                        <Text as="p" variant="bodySm" fontWeight="semibold">Last sync:</Text>
+                        <Text as="p" variant="bodySm" tone="subdued">
+                          {status.lastSyncAt ? formatRelativeTime(status.lastSyncAt) : "No syncs yet"}
+                        </Text>
+                      </InlineStack>
+                    </BlockStack>
+                    <Button icon={DataTableIcon} loading={isExporting} onClick={() => void handleExport()}>Export all orders</Button>
+                  </InlineStack>
+                </>
+              )}
+            </BlockStack>
           </div>
         </div>
         {saveError && <Banner tone="critical" onDismiss={() => setSaveError("")}><Text as="p" variant="bodyMd">{saveError}</Text></Banner>}
@@ -1244,20 +1292,6 @@ function GoogleSheetsPage({ onBack }: { onBack: () => void }): ReactElement {
           </div>
         )}
 
-        {/* ── Sync & Export ── */}
-        <div style={{ ...stepCardStyle, padding: "16px 20px" }}>
-          <InlineStack align="space-between" blockAlign="center">
-            <BlockStack gap="050">
-              <Text as="p" variant="bodySm" fontWeight="semibold">Last sync</Text>
-              <Text as="p" variant="bodySm" tone="subdued">{connectedStatus.lastSyncAt ? formatRelativeTime(connectedStatus.lastSyncAt) : "No syncs yet"}</Text>
-            </BlockStack>
-            <InlineStack gap="200" blockAlign="center">
-              {connectedStatus.spreadsheetUrl && (
-                <Button onClick={() => window.open(connectedStatus.spreadsheetUrl ?? undefined, "_blank", "noopener,noreferrer")} icon={ExternalIcon} variant="plain">Open spreadsheet</Button>
-              )}
-              <Button icon={DataTableIcon} loading={isExporting} disabled={!connectedStatus.spreadsheetId} onClick={() => void handleExport()}>Export all orders</Button>
-            </InlineStack>
-          </InlineStack>
         </div>
       </BlockStack>
     );
