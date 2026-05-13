@@ -176,45 +176,45 @@ export async function applySheetDesign(
   
   try {
     const spreadsheet = (await sheetsRequest(accessToken, `/${spreadsheetId}?fields=sheets(properties(sheetId,title))`)) as { sheets: Array<{ properties: { sheetId: number, title: string } }> };
-    const sheet = spreadsheet.sheets.find(s => s.properties.title === sheetName);
+    const sheet = spreadsheet.sheets.find(s => s.properties.title.trim().toLowerCase() === sheetName.trim().toLowerCase());
     if (!sheet) return;
 
     const sheetId = sheet.properties.sheetId;
+    
     const requests = [
-      // 1. Clear existing alternating groups and conditional formats to start fresh
-      {
-        updateCells: {
-          range: { sheetId, startRowIndex: 0, endRowIndex: 1000 },
-          fields: "userEnteredFormat"
-        }
-      },
-      // 2. Add professional alternating colors (Zebra Striping + Header)
-      {
-        addAlternatingGroup: {
-          alternatingGroup: {
-            range: { sheetId, startRowIndex: 0, endRowIndex: 1000, startColumnIndex: 0, endColumnIndex: 52 },
-            headerColor: hexToRgb(theme.headerBg),
-            firstRowColor: hexToRgb(theme.row1Bg),
-            secondRowColor: hexToRgb(theme.row2Bg),
-          }
-        }
-      },
-      // 3. Explicitly set header text style (Bold + Foreground Color)
+      // 1. Apply header row styling (background + text)
       {
         repeatCell: {
-          range: { sheetId, startRowIndex: 0, endRowIndex: 1 },
+          range: { sheetId, startRowIndex: 0, endRowIndex: 1, startColumnIndex: 0, endColumnIndex: 26 },
           cell: {
             userEnteredFormat: {
-              textFormat: {
-                foregroundColor: hexToRgb(theme.headerText),
-                bold: true,
-                fontSize: 10
-              },
-              horizontalAlignment: "LEFT",
-              verticalAlignment: "MIDDLE"
+              backgroundColor: hexToRgb(theme.headerBg),
+              textFormat: { foregroundColor: hexToRgb(theme.headerText), bold: true, fontSize: 10 },
+              horizontalAlignment: "LEFT"
             }
           },
-          fields: "userEnteredFormat(textFormat,horizontalAlignment,verticalAlignment)"
+          fields: "userEnteredFormat(backgroundColor,textFormat,horizontalAlignment)"
+        }
+      },
+      // 2. Apply zebra striping for rows 2-1000 using basic repeatCell (more reliable than alternating groups)
+      {
+        repeatCell: {
+          range: { sheetId, startRowIndex: 1, endRowIndex: 1000, startColumnIndex: 0, endColumnIndex: 26 },
+          cell: { userEnteredFormat: { backgroundColor: hexToRgb(theme.row1Bg) } },
+          fields: "userEnteredFormat.backgroundColor"
+        }
+      },
+      // 3. Apply alternate background for even rows using a conditional rule (highest compatibility)
+      {
+        addConditionalFormatRule: {
+          rule: {
+            ranges: [{ sheetId, startRowIndex: 1, endRowIndex: 1000, startColumnIndex: 0, endColumnIndex: 26 }],
+            booleanRule: {
+              condition: { type: "CUSTOM_FORMULA", values: [{ userEnteredValue: "=ISEVEN(ROW())" }] },
+              format: { backgroundColor: hexToRgb(theme.row2Bg) }
+            }
+          },
+          index: 0
         }
       }
     ];
