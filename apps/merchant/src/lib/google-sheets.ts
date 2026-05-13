@@ -181,43 +181,40 @@ export async function applySheetDesign(
 
     const sheetId = sheet.properties.sheetId;
     const requests = [
-      // Header row formatting
+      // 1. Clear existing alternating groups and conditional formats to start fresh
+      {
+        updateCells: {
+          range: { sheetId, startRowIndex: 0, endRowIndex: 1000 },
+          fields: "userEnteredFormat"
+        }
+      },
+      // 2. Add professional alternating colors (Zebra Striping + Header)
+      {
+        addAlternatingGroup: {
+          alternatingGroup: {
+            range: { sheetId, startRowIndex: 0, endRowIndex: 1000, startColumnIndex: 0, endColumnIndex: 52 },
+            headerColor: hexToRgb(theme.headerBg),
+            firstRowColor: hexToRgb(theme.row1Bg),
+            secondRowColor: hexToRgb(theme.row2Bg),
+          }
+        }
+      },
+      // 3. Explicitly set header text style (Bold + Foreground Color)
       {
         repeatCell: {
           range: { sheetId, startRowIndex: 0, endRowIndex: 1 },
           cell: {
             userEnteredFormat: {
-              backgroundColor: hexToRgb(theme.headerBg),
-              textFormat: { foregroundColor: hexToRgb(theme.headerText), bold: true },
-              horizontalAlignment: "LEFT"
+              textFormat: {
+                foregroundColor: hexToRgb(theme.headerText),
+                bold: true,
+                fontSize: 10
+              },
+              horizontalAlignment: "LEFT",
+              verticalAlignment: "MIDDLE"
             }
           },
-          fields: "userEnteredFormat(backgroundColor,textFormat(foregroundColor,bold),horizontalAlignment)"
-        }
-      },
-      // Alternating row colors (Zebra striping)
-      {
-        addConditionalFormatRule: {
-          rule: {
-            ranges: [{ sheetId, startRowIndex: 1, endRowIndex: 1000 }],
-            booleanRule: {
-              condition: { type: "CUSTOM_FORMULA", values: [{ userEnteredValue: "=ISEVEN(ROW())" }] },
-              format: { backgroundColor: hexToRgb(theme.row2Bg) }
-            }
-          },
-          index: 0
-        }
-      },
-      {
-        addConditionalFormatRule: {
-          rule: {
-            ranges: [{ sheetId, startRowIndex: 1, endRowIndex: 1000 }],
-            booleanRule: {
-              condition: { type: "CUSTOM_FORMULA", values: [{ userEnteredValue: "=ISODD(ROW())" }] },
-              format: { backgroundColor: hexToRgb(theme.row1Bg) }
-            }
-          },
-          index: 1
+          fields: "userEnteredFormat(textFormat,horizontalAlignment,verticalAlignment)"
         }
       }
     ];
