@@ -20,6 +20,7 @@ export type GoogleSheetsStatus =
       layoutDesign: string;
       importPreset: string;
       isEnabled: boolean;
+      headerRowWritten: boolean;
       lastSyncAt: string | null;
       lastSyncError: string | null;
     };
@@ -41,6 +42,7 @@ export const GET = withGuards({ skipPlanGate: true }, async (_req: NextRequest, 
       layoutDesign: true,
       importPreset: true,
       isEnabled: true,
+      headerRowWritten: true,
       lastSyncAt: true,
       lastSyncError: true,
     },
@@ -64,6 +66,7 @@ export const GET = withGuards({ skipPlanGate: true }, async (_req: NextRequest, 
     layoutDesign: integration.layoutDesign,
     importPreset: integration.importPreset,
     isEnabled: integration.isEnabled,
+    headerRowWritten: integration.headerRowWritten,
     lastSyncAt: integration.lastSyncAt?.toISOString() ?? null,
     lastSyncError: integration.lastSyncError,
   });

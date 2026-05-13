@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useShopifyBridge } from "@/lib/use-shopify-bridge";
 import type { ReactElement } from "react";
+import { SaveBar } from "@shopify/app-bridge-react";
 import type { IconSource } from "@shopify/polaris";
 import Image from "next/image";
 import {
@@ -439,6 +440,31 @@ function GoogleSheetsPage({ onBack }: { onBack: () => void }): ReactElement {
     finally { setIsLoadingSheets(false); }
   }, []);
 
+  const isDirty = useMemo(() => {
+    if (!status || !status.connected) return false;
+    
+    // Normalize selectedFields for comparison
+    const statusSelectedFields = status.selectedFields ?? Array(52).fill("");
+    const paddedStatusFields = [...statusSelectedFields];
+    while (paddedStatusFields.length < 52) paddedStatusFields.push("");
+    
+    const paddedCurrentFields = [...selectedFields];
+    while (paddedCurrentFields.length < 52) paddedCurrentFields.push("");
+
+    return (
+      spreadsheetId !== (status.spreadsheetId ?? "") ||
+      sheetName !== status.sheetName ||
+      abandonedSheetName !== status.abandonedSheetName ||
+      JSON.stringify(paddedCurrentFields) !== JSON.stringify(paddedStatusFields) ||
+      singleRowPerOrder !== status.singleRowPerOrder ||
+      insertAtTop !== status.insertAtTop ||
+      autoSync !== status.autoSync ||
+      layoutDesign !== status.layoutDesign ||
+      importPreset !== status.importPreset ||
+      isEnabled !== status.isEnabled
+    );
+  }, [status, spreadsheetId, sheetName, abandonedSheetName, selectedFields, singleRowPerOrder, insertAtTop, autoSync, layoutDesign, importPreset, isEnabled]);
+
   const fetchStatus = useCallback(async (): Promise<void> => {
     try {
       const token = await getBearer();
@@ -563,7 +589,7 @@ function GoogleSheetsPage({ onBack }: { onBack: () => void }): ReactElement {
           autoSync,
           layoutDesign,
           importPreset,
-          isEnabled: true 
+          isEnabled 
         }) 
       });
       const data = (await res.json()) as { ok?: boolean; error?: string; spreadsheetTitle?: string };
@@ -788,6 +814,64 @@ function GoogleSheetsPage({ onBack }: { onBack: () => void }): ReactElement {
             <Text as="p" variant="bodyMd">Your Google account needs to be reconnected.</Text>
           </Banner>
         )}
+
+        {status?.connected && (
+          <SaveBar id="google-sheets-save-bar" open={isDirty}>
+            <button variant="primary" onClick={() => void handleSave()} />
+            <button onClick={() => void fetchStatus()} />
+          </SaveBar>
+        )}
+
+        {/* Master Toggle */}
+        <div style={stepCardStyle}>
+          <div style={{ ...stepHeaderStyle, cursor: "default" }}>
+            <InlineStack gap="300" blockAlign="center">
+              <div style={{ width: 10, height: 10, borderRadius: "50%", background: isEnabled ? "#008060" : "#D8E0EC" }} />
+              <BlockStack gap="0">
+                <Text as="p" variant="bodyMd" fontWeight="bold">
+                  Integration Status: {isEnabled ? "Active" : "Inactive"}
+                </Text>
+                <Text as="p" variant="bodySm" tone="subdued">
+                  {isEnabled ? "Your orders are being synced to Google Sheets." : "Syncing is currently disabled."}
+                </Text>
+              </BlockStack>
+            </InlineStack>
+            <Button 
+              variant="primary" 
+              tone={isEnabled ? "critical" : undefined}
+              onClick={() => {
+                const newStatus = !isEnabled;
+                setIsEnabled(newStatus);
+                // Trigger immediate save for the master toggle
+                void (async () => {
+                   const token = await getBearer();
+                   const paddedFields = [...selectedFields];
+                   while (paddedFields.length < 52) paddedFields.push("");
+                   await fetch("/api/google/configure-sheet", {
+                     method: "POST",
+                     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+                     body: JSON.stringify({
+                       spreadsheetId,
+                       sheetName,
+                       abandonedSheetName,
+                       selectedFields: paddedFields,
+                       singleRowPerOrder,
+                       insertAtTop,
+                       autoSync,
+                       layoutDesign,
+                       importPreset,
+                       isEnabled: newStatus
+                     })
+                   });
+                   shopify.toast.show(`Integration ${newStatus ? "activated" : "deactivated"}`);
+                   void fetchStatus();
+                })();
+              }}
+            >
+              {isEnabled ? "Deactivate" : "Activate Now"}
+            </Button>
+          </div>
+        </div>
         {saveError && <Banner tone="critical" onDismiss={() => setSaveError("")}><Text as="p" variant="bodyMd">{saveError}</Text></Banner>}
 
         {/* ── Step 1: Connect Google Account ── */}
@@ -1112,12 +1196,7 @@ function GoogleSheetsPage({ onBack }: { onBack: () => void }): ReactElement {
                   </div>
                 </BlockStack>
 
-                <InlineStack align="end">
-                  <Button variant="primary" loading={isSaving} onClick={() => void handleSave()}>
-                    Save Field Mapping
-                  </Button>
-                </InlineStack>
-
+                </BlockStack>
               </BlockStack>
             </div>
           )}
@@ -1145,13 +1224,6 @@ function GoogleSheetsPage({ onBack }: { onBack: () => void }): ReactElement {
               checked={autoSync}
               onChange={setAutoSync}
             />
-            <Box paddingBlockStart="200">
-              <InlineStack align="end">
-                <Button variant="primary" loading={isSaving} onClick={() => void handleSave()}>
-                  Save All Settings
-                </Button>
-              </InlineStack>
-            </Box>
           </BlockStack>
         </div>
 
