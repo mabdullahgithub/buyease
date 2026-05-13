@@ -21,7 +21,13 @@ export const GET = withGuards({ skipPlanGate: true }, async (req: NextRequest, c
 
   try {
     const tabs = await getSheetTabs(accessToken, spreadsheetId);
-    return NextResponse.json({ tabs });
+    let title = "Untitled spreadsheet";
+    try {
+      title = await getSpreadsheetTitle(accessToken, spreadsheetId);
+    } catch {
+      // Ignore title fetch error
+    }
+    return NextResponse.json({ tabs, title });
   } catch {
     return NextResponse.json(
       {

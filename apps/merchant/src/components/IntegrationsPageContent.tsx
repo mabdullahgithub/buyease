@@ -199,6 +199,7 @@ function GoogleSheetsPage({ onBack }: { onBack: () => void }): ReactElement {
   const [needsDriveApiEnabled, setNeedsDriveApiEnabled] = useState(false);
   const [spreadsheetId, setSpreadsheetId] = useState("");
   const [sheetName, setSheetName] = useState("Orders");
+  const [abandonedSheetName, setAbandonedSheetName] = useState("Orders");
   const [isEnabled, setIsEnabled] = useState(false);
   const [availableSheets, setAvailableSheets] = useState<{ id: string; name: string }[]>([]);
   const [availableTabs, setAvailableTabs] = useState<string[]>([]);
@@ -309,9 +310,16 @@ function GoogleSheetsPage({ onBack }: { onBack: () => void }): ReactElement {
     try {
       const token = await getBearer();
       const res = await fetch(`/api/google/sheet-tabs?spreadsheetId=${encodeURIComponent(id)}`, { headers: { Authorization: `Bearer ${token}` } });
-      const data = (await res.json()) as { tabs?: string[]; error?: string };
+      const data = (await res.json()) as { tabs?: string[]; title?: string; error?: string };
       if (!res.ok || data.error) { setTabsError(data.error ?? "Could not load sheet tabs."); }
-      else { const tabs = data.tabs ?? ["Orders"]; setAvailableTabs(tabs); setTabsLoaded(true); setSheetName(tabs[0] ?? "Orders"); }
+      else { 
+        const tabs = data.tabs ?? ["Orders"]; 
+        setAvailableTabs(tabs); 
+        setTabsLoaded(true); 
+        setSheetName(tabs[0] ?? "Orders"); 
+        setAbandonedSheetName(tabs[0] ?? "Orders");
+        if (data.title) setConnectedSheetTitle(data.title);
+      }
     } catch { setTabsError("Network error loading tabs."); }
     finally { setIsLoadingTabs(false); }
   }, [getBearer]);
@@ -322,12 +330,32 @@ function GoogleSheetsPage({ onBack }: { onBack: () => void }): ReactElement {
     try {
       const token = await getBearer();
       const res = await fetch(`/api/google/sheet-tabs?spreadsheetId=${encodeURIComponent(spreadsheetId)}`, { headers: { Authorization: `Bearer ${token}` } });
-      const data = (await res.json()) as { tabs?: string[]; error?: string };
+      const data = (await res.json()) as { tabs?: string[]; title?: string; error?: string };
       if (!res.ok || data.error) { setTabsError(data.error ?? "Could not load sheet tabs."); }
-      else { const tabs = data.tabs ?? ["Orders"]; setAvailableTabs(tabs); setTabsLoaded(true); if (!tabs.includes(sheetName)) setSheetName(tabs[0] ?? "Orders"); }
+      else { 
+        const tabs = data.tabs ?? ["Orders"]; 
+        setAvailableTabs(tabs); 
+        setTabsLoaded(true); 
+        if (!tabs.includes(sheetName)) setSheetName(tabs[0] ?? "Orders"); 
+        if (!tabs.includes(abandonedSheetName)) setAbandonedSheetName(tabs[0] ?? "Orders");
+        if (data.title) setConnectedSheetTitle(data.title);
+      }
     } catch { setTabsError("Network error loading tabs."); }
     finally { setIsLoadingTabs(false); }
-  }, [getBearer, spreadsheetId, sheetName]);
+  }, [getBearer, spreadsheetId, sheetName, abandonedSheetName]);
+
+  const handleGetSheets = useCallback(async (): Promise<void> => {
+    let idToUse = existingSheetUrl.trim();
+    if (idToUse) {
+      idToUse = existingSheetUrl.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/)?.[1] ?? existingSheetUrl.trim();
+    }
+    if (!idToUse) {
+      setSheetsError("Please enter a valid Google Sheets link.");
+      return;
+    }
+    setSheetsError("");
+    await handleSelectSpreadsheet(idToUse);
+  }, [existingSheetUrl, handleSelectSpreadsheet]);
 
   const handleSave = useCallback(async (): Promise<void> => {
     setSaveError(""); setIsSaving(true);
@@ -658,19 +686,68 @@ function GoogleSheetsPage({ onBack }: { onBack: () => void }): ReactElement {
                       {/* Sub-option 2: Paste spreadsheet link */}
                       <BlockStack gap="100">
                         <Text as="p" variant="bodySm" fontWeight="semibold">Spreadsheet Link</Text>
-                        <TextField
-                          label="" labelHidden
-                          placeholder="Ex: https://docs.google.com/spreadsheets/d/1-XxrZH…/edit"
-                          value={existingSheetUrl}
-                          onChange={setExistingSheetUrl}
-                          autoComplete="off"
-                        />
+                        <InlineStack gap="200" blockAlign="center" wrap={false}>
+                          <div style={{ flex: 1 }}>
+                            <TextField
+                              label="" labelHidden
+                              placeholder="https://docs.google.com/spreadsheets/d/1-XxrZH…/edit"
+                              value={existingSheetUrl}
+                              onChange={setExistingSheetUrl}
+                              autoComplete="off"
+                            />
+                          </div>
+                          <Button onClick={() => void handleGetSheets()} loading={isLoadingTabs}>Get Sheets</Button>
+                        </InlineStack>
                       </BlockStack>
+
+                      {tabsLoaded && availableTabs.length > 0 && (
+                        <Box paddingBlockStart="300">
+                          <BlockStack gap="300">
+                            <Text as="p" variant="bodySm" fontWeight="bold">
+                              Select which Sheets you want to use from: <span style={{ color: "#008060" }}>{connectedSheetTitle || "Untitled spreadsheet"}</span>
+                            </Text>
+                            <div style={{ background: "#F7F7F7", borderRadius: 8, padding: 16 }}>
+                              <InlineGrid columns={{ xs: 1, sm: 2 }} gap="400">
+                                <BlockStack gap="200">
+                                  <Text as="p" variant="bodySm" fontWeight="bold" tone="subdued">Normal orders sheet</Text>
+                                  <BlockStack gap="100">
+                                    {availableTabs.map((tab) => (
+                                      <RadioButton
+                                        key={`normal-${tab}`}
+                                        label={tab}
+                                        checked={sheetName === tab}
+                                        id={`normal-${tab}`}
+                                        name="normal-sheet"
+                                        onChange={() => setSheetName(tab)}
+                                      />
+                                    ))}
+                                  </BlockStack>
+                                </BlockStack>
+                                <BlockStack gap="200">
+                                  <Text as="p" variant="bodySm" fontWeight="bold" tone="subdued">Abandoned orders sheet</Text>
+                                  <BlockStack gap="100">
+                                    {availableTabs.map((tab) => (
+                                      <RadioButton
+                                        key={`abandoned-${tab}`}
+                                        label={tab}
+                                        checked={abandonedSheetName === tab}
+                                        id={`abandoned-${tab}`}
+                                        name="abandoned-sheet"
+                                        onChange={() => setAbandonedSheetName(tab)}
+                                      />
+                                    ))}
+                                  </BlockStack>
+                                </BlockStack>
+                              </InlineGrid>
+                            </div>
+                          </BlockStack>
+                        </Box>
+                      )}
                     </BlockStack>
                   )}
                   <InlineStack align="end">
                     <Button variant="primary" loading={isSaving} onClick={() => void handleNext()}>
-                      {sheetMode === "new" ? "Create & Connect" : "Next"}
+                      {sheetMode === "new" ? "Create & Connect" : "Save & Continue"}
                     </Button>
                   </InlineStack>
                 </BlockStack>
