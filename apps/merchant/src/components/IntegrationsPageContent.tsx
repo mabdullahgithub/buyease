@@ -1292,7 +1292,6 @@ function GoogleSheetsPage({ onBack }: { onBack: () => void }): ReactElement {
           </div>
         )}
 
-        </div>
       </BlockStack>
     );
   };
