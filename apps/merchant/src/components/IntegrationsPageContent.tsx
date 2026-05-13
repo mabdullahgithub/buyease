@@ -374,7 +374,6 @@ function GoogleSheetsPage({ onBack }: { onBack: () => void }): ReactElement {
   const [availableTabs, setAvailableTabs] = useState<string[]>([]);
   const [tabsLoaded, setTabsLoaded] = useState(false);
   const [connectedSheetTitle, setConnectedSheetTitle] = useState<string | null>(null);
-  const bearerRef = useRef<string | null>(null);
 
   // Accordion state
   const [step1Open, setStep1Open] = useState(false);
@@ -415,10 +414,8 @@ function GoogleSheetsPage({ onBack }: { onBack: () => void }): ReactElement {
   }, []);
 
   const getBearer = useCallback(async (): Promise<string> => {
-    if (bearerRef.current) return bearerRef.current;
     const w = window as Window & { shopify?: { idToken?: () => Promise<string> } };
     const token = (await w.shopify?.idToken?.()) ?? "";
-    bearerRef.current = token;
     return token;
   }, []);
 
