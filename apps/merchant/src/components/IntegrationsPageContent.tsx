@@ -798,7 +798,7 @@ function GoogleSheetsPage({ onBack }: { onBack: () => void }): ReactElement {
               <Text as="p" variant="bodyMd" fontWeight="semibold">Connect your Google Account</Text>
             </InlineStack>
             <InlineStack gap="400" blockAlign="center">
-              {completedBadge}
+              {status?.connected ? completedBadge : pendingBadge}
               <InlineStack gap="100" blockAlign="center">
                 <span style={{ fontSize: 13, color: "#5C5F62" }}>Open</span>
                 {chevronRight}
@@ -968,7 +968,7 @@ function GoogleSheetsPage({ onBack }: { onBack: () => void }): ReactElement {
               <Text as="p" variant="bodyMd" fontWeight="semibold">Select fields you want to export to Google Sheet</Text>
             </InlineStack>
             <InlineStack gap="400" blockAlign="center">
-              {pendingBadge}
+              {status?.headerRowWritten ? completedBadge : pendingBadge}
               <InlineStack gap="100" blockAlign="center">
                 <span style={{ fontSize: 13, color: "#5C5F62" }}>{step3Open ? "Close" : "Open"}</span>
                 {step3Open ? chevronDown : chevronRight}
