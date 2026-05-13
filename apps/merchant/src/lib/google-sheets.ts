@@ -145,11 +145,98 @@ export async function getSheetTabs(
   return data.sheets.map((s) => s.properties.title);
 }
 
+const SHEET_THEMES: Record<string, any> = {
+  "Standard": { headerBg: "#FFFFFF", headerText: "#5C5F62", row1Bg: "#FFFFFF", row2Bg: "#FFFFFF" },
+  "Sunset (Orange)": { headerBg: "#D35400", headerText: "#FFFFFF", row1Bg: "#FFF8F0", row2Bg: "#FFFFFF" },
+  "With Headers": { headerBg: "#F4F6F8", headerText: "#202223", row1Bg: "#FFFFFF", row2Bg: "#FFFFFF" },
+  "Minimal": { headerBg: "#FFFFFF", headerText: "#202223", row1Bg: "#FFFFFF", row2Bg: "#FAFAFA" },
+  "Professional (Dark)": { headerBg: "#202223", headerText: "#FFFFFF", row1Bg: "#FFFFFF", row2Bg: "#FAFAFA" },
+  "Slate (Gray)": { headerBg: "#5C5F62", headerText: "#FFFFFF", row1Bg: "#FFFFFF", row2Bg: "#F4F6F8" },
+  "Colorful (Purple)": { headerBg: "#5C6AC4", headerText: "#FFFFFF", row1Bg: "#F4F5FA", row2Bg: "#FFFFFF" },
+  "Ocean (Cyan)": { headerBg: "#00A0AC", headerText: "#FFFFFF", row1Bg: "#E0F5F5", row2Bg: "#FFFFFF" },
+  "Forest (Green)": { headerBg: "#50B83C", headerText: "#FFFFFF", row1Bg: "#EBF5EB", row2Bg: "#FFFFFF" },
+  "Rose (Pink)": { headerBg: "#F49342", headerText: "#FFFFFF", row1Bg: "#FDF4EC", row2Bg: "#FFFFFF" },
+  "Gold (Yellow)": { headerBg: "#EEC200", headerText: "#202223", row1Bg: "#FCF9E8", row2Bg: "#FFFFFF" },
+};
+
+function hexToRgb(hex: string) {
+  const r = parseInt(hex.slice(1, 3), 16) / 255;
+  const g = parseInt(hex.slice(3, 5), 16) / 255;
+  const b = parseInt(hex.slice(5, 7), 16) / 255;
+  return { red: r, green: g, blue: b };
+}
+
+export async function applySheetDesign(
+  accessToken: string,
+  spreadsheetId: string,
+  sheetName: string,
+  designName: string = "Standard"
+): Promise<void> {
+  const theme = SHEET_THEMES[designName] || SHEET_THEMES["Standard"];
+  
+  try {
+    const spreadsheet = (await sheetsRequest(accessToken, `/${spreadsheetId}?fields=sheets(properties(sheetId,title))`)) as { sheets: Array<{ properties: { sheetId: number, title: string } }> };
+    const sheet = spreadsheet.sheets.find(s => s.properties.title === sheetName);
+    if (!sheet) return;
+
+    const sheetId = sheet.properties.sheetId;
+    const requests = [
+      // Header row formatting
+      {
+        repeatCell: {
+          range: { sheetId, startRowIndex: 0, endRowIndex: 1 },
+          cell: {
+            userEnteredFormat: {
+              backgroundColor: hexToRgb(theme.headerBg),
+              textFormat: { foregroundColor: hexToRgb(theme.headerText), bold: true },
+              horizontalAlignment: "LEFT"
+            }
+          },
+          fields: "userEnteredFormat(backgroundColor,textFormat(foregroundColor,bold),horizontalAlignment)"
+        }
+      },
+      // Alternating row colors (Zebra striping)
+      {
+        addConditionalFormatRule: {
+          rule: {
+            ranges: [{ sheetId, startRowIndex: 1, endRowIndex: 1000 }],
+            booleanRule: {
+              condition: { type: "CUSTOM_FORMULA", values: [{ userEnteredValue: "=ISEVEN(ROW())" }] },
+              format: { backgroundColor: hexToRgb(theme.row2Bg) }
+            }
+          },
+          index: 0
+        }
+      },
+      {
+        addConditionalFormatRule: {
+          rule: {
+            ranges: [{ sheetId, startRowIndex: 1, endRowIndex: 1000 }],
+            booleanRule: {
+              condition: { type: "CUSTOM_FORMULA", values: [{ userEnteredValue: "=ISODD(ROW())" }] },
+              format: { backgroundColor: hexToRgb(theme.row1Bg) }
+            }
+          },
+          index: 1
+        }
+      }
+    ];
+
+    await sheetsRequest(accessToken, `/${spreadsheetId}:batchUpdate`, {
+      method: "POST",
+      body: JSON.stringify({ requests })
+    });
+  } catch (e) {
+    console.error("Failed to apply sheet design:", e);
+  }
+}
+
 export async function ensureHeaderRow(
   accessToken: string,
   spreadsheetId: string,
   sheetName: string,
   selectedFields: string[] | null = null,
+  designName: string = "Standard"
 ): Promise<void> {
   const header = (selectedFields || ["Order number", "Order ID", "Date", "Status", "Customer Name", "Customer Phone", "Customer Email", "Total Price", "Order Details"]).filter(f => f !== "");
   if (header.length === 0) return;
@@ -160,29 +247,7 @@ export async function ensureHeaderRow(
     body: JSON.stringify({ values: [header] }),
   });
 
-  // Basic styling for header row (bold)
-  try {
-    const spreadsheet = (await sheetsRequest(accessToken, `/${spreadsheetId}?fields=sheets(properties(sheetId,title))`)) as { sheets: Array<{ properties: { sheetId: number, title: string } }> };
-    const sheet = spreadsheet.sheets.find(s => s.properties.title === sheetName);
-    if (sheet) {
-      await sheetsRequest(accessToken, `/${spreadsheetId}:batchUpdate`, {
-        method: "POST",
-        body: JSON.stringify({
-          requests: [
-            {
-              repeatCell: {
-                range: { sheetId: sheet.properties.sheetId, startRowIndex: 0, endRowIndex: 1 },
-                cell: { userEnteredFormat: { textFormat: { bold: true } } },
-                fields: "userEnteredFormat.textFormat.bold",
-              },
-            },
-          ],
-        }),
-      });
-    }
-  } catch (e) {
-    // Styling is non-critical
-  }
+  await applySheetDesign(accessToken, spreadsheetId, sheetName, designName);
 }
 
 // ---------------------------------------------------------------------------
@@ -272,9 +337,9 @@ export async function syncOrderToSheet(
   const selectedFields = integration.selectedFields as string[] || [];
 
   if (!integration.headerRowWritten) {
-    await ensureHeaderRow(accessToken, integration.spreadsheetId, integration.sheetName, selectedFields);
+    await ensureHeaderRow(accessToken, integration.spreadsheetId, integration.sheetName, selectedFields, integration.layoutDesign);
     if (integration.abandonedSheetName !== integration.sheetName) {
-      await ensureHeaderRow(accessToken, integration.spreadsheetId, integration.abandonedSheetName, selectedFields);
+      await ensureHeaderRow(accessToken, integration.spreadsheetId, integration.abandonedSheetName, selectedFields, integration.layoutDesign);
     }
     await db.googleSheetsIntegration.update({
       where: { shop },
@@ -311,9 +376,9 @@ export async function exportAllOrdersToSheet(shop: string): Promise<{ count: num
   const selectedFields = integration.selectedFields as string[] || [];
 
   // Write headers
-  await ensureHeaderRow(accessToken, integration.spreadsheetId, integration.sheetName, selectedFields);
+  await ensureHeaderRow(accessToken, integration.spreadsheetId, integration.sheetName, selectedFields, integration.layoutDesign);
   if (integration.abandonedSheetName !== integration.sheetName) {
-    await ensureHeaderRow(accessToken, integration.spreadsheetId, integration.abandonedSheetName, selectedFields);
+    await ensureHeaderRow(accessToken, integration.spreadsheetId, integration.abandonedSheetName, selectedFields, integration.layoutDesign);
   }
 
   const orders = await db.order.findMany({

@@ -66,14 +66,15 @@ export const POST = withGuards({ skipPlanGate: true }, async (req: NextRequest, 
   // Write header row now so first-time setup is visible immediately
   // We write it to both sheets if they are different
   try {
-    await ensureHeaderRow(accessToken, spreadsheetId, sheetName);
+    await ensureHeaderRow(accessToken, spreadsheetId, sheetName, selectedFields, layoutDesign);
     if (abandonedSheetName && abandonedSheetName !== sheetName) {
-      await ensureHeaderRow(accessToken, spreadsheetId, abandonedSheetName);
+      await ensureHeaderRow(accessToken, spreadsheetId, abandonedSheetName, selectedFields, layoutDesign);
     }
-  } catch {
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "";
     return NextResponse.json(
       {
-        error: `Could not write to sheet. Make sure the sheet tabs exist in your spreadsheet.`,
+        error: `Could not write to sheet. Make sure the sheet tabs exist in your spreadsheet. ${msg}`,
       },
       { status: 400 },
     );
