@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ReactElement } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { RichTextEditor } from "@/components/RichTextEditor";
 import type { IconSource } from "@shopify/polaris";
 import Image from "next/image";
@@ -1579,6 +1579,7 @@ function resolveTab(raw: string | null): SettingsTab {
 }
 
 export function SettingsPageContent(): ReactElement {
+  const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isMounted, setIsMounted] = useState(false);
@@ -1597,9 +1598,9 @@ export function SettingsPageContent(): ReactElement {
     (tab: SettingsTab): void => {
       const params = new URLSearchParams(searchParams?.toString() ?? "");
       params.set("tab", tab);
-      router.replace(`?${params.toString()}`, { scroll: false });
+      router.replace(`${pathname}?${params.toString()}`, { scroll: false });
     },
-    [router, searchParams],
+    [router, searchParams, pathname],
   );
 
   if (!isMounted) {
