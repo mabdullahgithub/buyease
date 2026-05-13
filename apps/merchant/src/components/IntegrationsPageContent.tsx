@@ -1312,6 +1312,7 @@ function GoogleSheetsPage({ onBack }: { onBack: () => void }): ReactElement {
 function SmsWhatsAppPage({ onBack }: { onBack: () => void }): ReactElement {
   const shopify = useShopifyBridge();
   const [topUpAmount, setTopUpAmount] = useState("5.00");
+  const [balance, setBalance] = useState(0);
   const [channel, setChannel] = useState<Channel>("sms");
   const [shopName, setShopName] = useState("Product Store");
   const [services, setServices] = useState(INITIAL_SMS_SERVICES);
@@ -1348,6 +1349,7 @@ function SmsWhatsAppPage({ onBack }: { onBack: () => void }): ReactElement {
       const data = await res.json();
       
       setInitialSettings(data);
+      setBalance(data.balance);
       setChannel(data.channel as Channel);
       setShopName(data.shopName);
       setAbandonedCartAutoOpen(data.abandonedCartAutoOpen);
@@ -1464,6 +1466,33 @@ function SmsWhatsAppPage({ onBack }: { onBack: () => void }): ReactElement {
     }
   };
 
+  const handleTopUp = async () => {
+    try {
+      const token = await shopify.idToken();
+      const res = await fetch("/api/billing/top-up", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          amount: topUpAmount,
+          host: new URLSearchParams(window.location.search).get("host"),
+        }),
+      });
+
+      const data = await res.json();
+      if (data.confirmationUrl) {
+        window.top!.location.href = data.confirmationUrl;
+      } else {
+        shopify.toast.show(data.error || "Failed to initiate top-up");
+      }
+    } catch (error) {
+      console.error(error);
+      shopify.toast.show("Failed to initiate top-up");
+    }
+  };
+
   const handleDiscard = () => {
     if (initialSettings) {
       setChannel(initialSettings.channel as Channel);
@@ -1538,9 +1567,9 @@ function SmsWhatsAppPage({ onBack }: { onBack: () => void }): ReactElement {
       title="SMS & WhatsApp Messages"
     >
       {isDirty && (
-        <SaveBar id="messaging-settings-save-bar" open={isDirty} loading={isSaving}>
-          <button variant="primary" onClick={handleSave} />
-          <button onClick={handleDiscard} />
+        <SaveBar id="messaging-settings-save-bar" open={isDirty}>
+          <button variant="primary" onClick={handleSave} disabled={isSaving} />
+          <button onClick={handleDiscard} disabled={isSaving} />
         </SaveBar>
       )}
       <div style={{ width: "65.5rem", maxWidth: "100%" }}>
@@ -1579,7 +1608,7 @@ function SmsWhatsAppPage({ onBack }: { onBack: () => void }): ReactElement {
                     alignment="center"
                     fontWeight="bold"
                   >
-                    $1.000
+                    ${balance.toFixed(3)}
                   </Text>
                 </BlockStack>
                 <Box paddingBlockStart="100" paddingBlockEnd="100" width="100%">
@@ -1607,7 +1636,7 @@ function SmsWhatsAppPage({ onBack }: { onBack: () => void }): ReactElement {
                       onChange={(value) => setTopUpAmount(value)}
                     />
                   </div>
-                  <Button variant="primary">{buttonLabel}</Button>
+                  <Button variant="primary" onClick={handleTopUp}>Top up ${topUpAmount}</Button>
                 </BlockStack>
               </BlockStack>
             </Card>
