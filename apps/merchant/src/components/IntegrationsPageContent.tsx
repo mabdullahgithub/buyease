@@ -6,6 +6,7 @@ import type { ReactElement } from "react";
 import type { IconSource } from "@shopify/polaris";
 import Image from "next/image";
 import {
+  ActionList,
   Banner,
   BlockStack,
   Box,
@@ -20,7 +21,9 @@ import {
   Link,
   List,
   Page,
+  Popover,
   RadioButton,
+  Scrollable,
   Select,
   SkeletonBodyText,
   SkeletonDisplayText,
@@ -30,14 +33,19 @@ import {
 } from "@shopify/polaris";
 import {
   AlertCircleIcon,
+  ArrowLeftIcon,
   CashDollarFilledIcon,
   ChartVerticalIcon,
   ChatIcon,
   ChevronDownIcon,
+  ChevronRightIcon,
   ChevronUpIcon,
   DataTableIcon,
+  DeliveryIcon,
   ExternalIcon,
   LocationIcon,
+  OrderIcon,
+  PersonIcon,
   RefreshIcon,
 } from "@shopify/polaris-icons";
 
@@ -183,6 +191,127 @@ function GoogleGIcon(): ReactElement {
   );
 }
 
+const ALL_COLUMNS = Array.from({ length: 52 }, (_, i) => {
+  if (i < 26) return String.fromCharCode(65 + i);
+  return "A" + String.fromCharCode(65 + i - 26);
+});
+
+const FIELD_GROUPS = [
+  {
+    id: "order",
+    title: "Order Details",
+    icon: OrderIcon,
+    items: [
+      "Order Number", "Order ID", "Date & Time", "Date", "Product Name", "Product Variant",
+      "Product Name & Variant", "Product Price", "Product SKU", "Product Quantity", "Product Link",
+      "Product Type", "Vendor", "Product ID", "Variant ID", "Custom Attributes", "Total Price",
+      "Subtotal Price", "Discount", "Discount code", "Note", "Date & Timezone", "Additional details",
+      "Currency", "UTM source", "UTM medium", "UTM campaign", "UTM content", "UTM term", "IP Address",
+      "Order Type"
+    ]
+  },
+  {
+    id: "shipping",
+    title: "Shipping",
+    icon: DeliveryIcon,
+    items: [
+      "Shipping price", "Delivery method"
+    ]
+  },
+  {
+    id: "customer",
+    title: "Customer Information",
+    icon: PersonIcon,
+    items: [
+      "First Name", "Last Name", "Full Name", "Phone", "Email", "Country", "City", "Province",
+      "ZIP Code", "Address 1", "Address 2", "Company", "Latitude", "Longitude", "Customer ID"
+    ]
+  }
+];
+
+function FieldSelector({ value, onChange }: { value: string; onChange: (val: string) => void }) {
+  const [popoverActive, setPopoverActive] = useState(false);
+  const [activeMenu, setActiveMenu] = useState<string>("main");
+
+  const togglePopover = useCallback(
+    () => setPopoverActive((active) => !active),
+    [],
+  );
+
+  const activator = (
+    <button
+      onClick={togglePopover}
+      style={{
+        width: "100%",
+        padding: "7px 8px",
+        border: "1px solid #C9CCCF",
+        borderRadius: 6,
+        fontSize: 13,
+        background: "white",
+        color: "#303030",
+        cursor: "pointer",
+        textAlign: "left",
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center"
+      }}
+    >
+      <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+        {value || "- Blank -"}
+      </span>
+      <span style={{ width: 16, height: 16, color: "#6D7175" }}>
+        <Icon source={ChevronDownIcon} />
+      </span>
+    </button>
+  );
+
+  return (
+    <Popover
+      active={popoverActive}
+      activator={activator}
+      onClose={() => { setPopoverActive(false); setActiveMenu("main"); }}
+      autofocusTarget="first-node"
+      preferredAlignment="left"
+      fullWidth
+    >
+      <Box padding="200" minWidth="240px">
+        {activeMenu === "main" ? (
+          <ActionList
+            actionRole="menuitem"
+            items={[
+              ...FIELD_GROUPS.map((group) => ({
+                content: group.title,
+                icon: group.icon,
+                suffix: <Icon source={ChevronRightIcon} />,
+                onAction: () => setActiveMenu(group.id)
+              })),
+              {
+                content: "- Blank -",
+                onAction: () => { onChange(""); setPopoverActive(false); }
+              }
+            ]}
+          />
+        ) : (
+          <BlockStack gap="200">
+            <Button variant="plain" icon={ArrowLeftIcon} onClick={() => setActiveMenu("main")}>
+              Back
+            </Button>
+            <div style={{ maxHeight: "300px", overflowY: "auto" }}>
+              <ActionList
+                actionRole="menuitem"
+                items={(FIELD_GROUPS.find((g) => g.id === activeMenu)?.items || []).map((item) => ({
+                  content: item,
+                  onAction: () => { onChange(item); setPopoverActive(false); setActiveMenu("main"); }
+                }))}
+              />
+            </div>
+          </BlockStack>
+        )}
+      </Box>
+    </Popover>
+  );
+}
+
 function GoogleSheetsPage({ onBack }: { onBack: () => void }): ReactElement {
   const shopify = useShopifyBridge();
   const [status, setStatus] = useState<SheetsStatus | null>(null);
@@ -216,22 +345,8 @@ function GoogleSheetsPage({ onBack }: { onBack: () => void }): ReactElement {
   const [singleRowPerOrder, setSingleRowPerOrder] = useState(true);
   const [insertAtTop, setInsertAtTop] = useState(false);
   const [showWarningBanner, setShowWarningBanner] = useState(true);
-  const FIELD_OPTIONS = [
-    { label: "Select a field", value: "" },
-    { label: "Order Number", value: "order_number" },
-    { label: "Customer Name", value: "customer_name" },
-    { label: "Phone", value: "phone" },
-    { label: "Email", value: "email" },
-    { label: "Total Price", value: "total_price" },
-    { label: "Payment Status", value: "payment_status" },
-    { label: "Fulfillment Status", value: "fulfillment_status" },
-    { label: "Created At", value: "created_at" },
-    { label: "Shipping Address", value: "shipping_address" },
-    { label: "Line Items", value: "line_items" },
-    { label: "Tags", value: "tags" },
-    { label: "Note", value: "note" },
-  ];
-  const [selectedFields, setSelectedFields] = useState<string[]>(["", "", "", "", "", ""]);
+  
+  const [selectedFields, setSelectedFields] = useState<string[]>(Array(52).fill(""));
   const updateField = (index: number, value: string): void => {
     setSelectedFields((prev) => { const next = [...prev]; next[index] = value; return next; });
   };
@@ -773,25 +888,24 @@ function GoogleSheetsPage({ onBack }: { onBack: () => void }): ReactElement {
           </div>
           {step3Open && (
             <div style={{ borderTop: "1px solid #F1F1F1" }}>
-              {/* Column headers */}
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", background: "#EAF0FB" }}>
-                {["A","B","C","D","E","F"].map((col) => (
-                  <div key={col} style={{ padding: "10px 0", textAlign: "center", fontWeight: 700, fontSize: 13, color: "#303030", borderRight: "1px solid #D8E0EC" }}>{col}</div>
-                ))}
-              </div>
-              {/* Field selectors */}
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", padding: "12px 12px" , gap: 8 }}>
-                {selectedFields.map((val, i) => (
-                  <select
-                    key={i}
-                    value={val}
-                    onChange={(e) => updateField(i, e.target.value)}
-                    style={{ width: "100%", padding: "7px 8px", border: "1px solid #C9CCCF", borderRadius: 6, fontSize: 13, background: "white", color: "#303030", cursor: "pointer" }}
-                  >
-                    {FIELD_OPTIONS.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-                  </select>
-                ))}
-              </div>
+              <Scrollable horizontal style={{ width: "100%", paddingBottom: "16px" }}>
+                <div style={{ display: "inline-flex", flexDirection: "column", minWidth: "100%" }}>
+                  {/* Column headers */}
+                  <div style={{ display: "flex", background: "#EAF0FB", width: "max-content" }}>
+                    {ALL_COLUMNS.map((col) => (
+                      <div key={col} style={{ width: "160px", flexShrink: 0, padding: "10px 0", textAlign: "center", fontWeight: 700, fontSize: 13, color: "#303030", borderRight: "1px solid #D8E0EC", borderBottom: "1px solid #D8E0EC" }}>{col}</div>
+                    ))}
+                  </div>
+                  {/* Field selectors */}
+                  <div style={{ display: "flex", padding: "12px 0", gap: 8, width: "max-content", marginLeft: "8px" }}>
+                    {selectedFields.map((val, i) => (
+                      <div key={i} style={{ width: "152px", flexShrink: 0 }}>
+                        <FieldSelector value={val} onChange={(newVal) => updateField(i, newVal)} />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </Scrollable>
             </div>
           )}
         </div>
