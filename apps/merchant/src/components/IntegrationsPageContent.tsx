@@ -312,6 +312,24 @@ function FieldSelector({ value, onChange }: { value: string; onChange: (val: str
   );
 }
 
+function getLayoutColor(design: string, element: 'headerBg' | 'headerText' | 'row1Bg' | 'row2Bg'): string {
+  const themes: Record<string, Record<'headerBg' | 'headerText' | 'row1Bg' | 'row2Bg', string>> = {
+    "Standard": { headerBg: "#FFFFFF", headerText: "#5C5F62", row1Bg: "#FFFFFF", row2Bg: "#FFFFFF" },
+    "Sunset (Orange)": { headerBg: "#D35400", headerText: "#FFFFFF", row1Bg: "#FFF8F0", row2Bg: "#FFFFFF" },
+    "With Headers": { headerBg: "#F4F6F8", headerText: "#202223", row1Bg: "#FFFFFF", row2Bg: "#FFFFFF" },
+    "Minimal": { headerBg: "#FFFFFF", headerText: "#202223", row1Bg: "#FFFFFF", row2Bg: "#FAFAFA" },
+    "Professional (Dark)": { headerBg: "#202223", headerText: "#FFFFFF", row1Bg: "#FFFFFF", row2Bg: "#FAFAFA" },
+    "Slate (Gray)": { headerBg: "#5C5F62", headerText: "#FFFFFF", row1Bg: "#FFFFFF", row2Bg: "#F4F6F8" },
+    "Colorful (Purple)": { headerBg: "#5C6AC4", headerText: "#FFFFFF", row1Bg: "#F4F5FA", row2Bg: "#FFFFFF" },
+    "Ocean (Cyan)": { headerBg: "#00A0AC", headerText: "#FFFFFF", row1Bg: "#E0F5F5", row2Bg: "#FFFFFF" },
+    "Forest (Green)": { headerBg: "#50B83C", headerText: "#FFFFFF", row1Bg: "#EBF5EB", row2Bg: "#FFFFFF" },
+    "Rose (Pink)": { headerBg: "#F49342", headerText: "#FFFFFF", row1Bg: "#FDF4EC", row2Bg: "#FFFFFF" },
+    "Gold (Yellow)": { headerBg: "#EEC200", headerText: "#202223", row1Bg: "#FCF9E8", row2Bg: "#FFFFFF" },
+  };
+  const theme = themes[design] || themes["Standard"];
+  return theme[element];
+}
+
 function GoogleSheetsPage({ onBack }: { onBack: () => void }): ReactElement {
   const shopify = useShopifyBridge();
   const [status, setStatus] = useState<SheetsStatus | null>(null);
@@ -345,6 +363,11 @@ function GoogleSheetsPage({ onBack }: { onBack: () => void }): ReactElement {
   const [singleRowPerOrder, setSingleRowPerOrder] = useState(true);
   const [insertAtTop, setInsertAtTop] = useState(false);
   const [showWarningBanner, setShowWarningBanner] = useState(true);
+
+  // Layout & Presets
+  const [importPreset, setImportPreset] = useState("Custom");
+  const [layoutDesign, setLayoutDesign] = useState("Standard");
+  const [layoutDesignExpanded, setLayoutDesignExpanded] = useState(true);
   
   const [selectedFields, setSelectedFields] = useState<string[]>(Array(52).fill(""));
   const updateField = (index: number, value: string): void => {
@@ -887,25 +910,143 @@ function GoogleSheetsPage({ onBack }: { onBack: () => void }): ReactElement {
             </InlineStack>
           </div>
           {step3Open && (
-            <div style={{ borderTop: "1px solid #F1F1F1" }}>
-              <Scrollable horizontal style={{ width: "100%", paddingBottom: "16px" }}>
-                <div style={{ display: "inline-flex", flexDirection: "column", minWidth: "100%" }}>
-                  {/* Column headers */}
-                  <div style={{ display: "flex", background: "#EAF0FB", width: "max-content" }}>
-                    {ALL_COLUMNS.map((col) => (
-                      <div key={col} style={{ width: "160px", flexShrink: 0, padding: "10px 0", textAlign: "center", fontWeight: 700, fontSize: 13, color: "#303030", borderRight: "1px solid #D8E0EC", borderBottom: "1px solid #D8E0EC" }}>{col}</div>
-                    ))}
+            <div style={{ borderTop: "1px solid #F1F1F1", padding: "20px" }}>
+              <BlockStack gap="500">
+                
+                {/* Import Presets */}
+                <BlockStack gap="200">
+                  <Text as="p" variant="headingSm">Import Presets</Text>
+                  <Text as="p" variant="bodyMd" tone="subdued">Select a preset to quickly configure your column mapping, or customize individual fields below.</Text>
+                  <div style={{ width: 200 }}>
+                    <Select
+                      label=""
+                      labelHidden
+                      options={[
+                        { label: "Minimal (19 fields)", value: "Minimal" },
+                        { label: "Marketing (30 fields)", value: "Marketing" },
+                        { label: "Full (42 fields)", value: "Full" },
+                        { label: "Custom", value: "Custom" }
+                      ]}
+                      value={importPreset}
+                      onChange={setImportPreset}
+                    />
                   </div>
-                  {/* Field selectors */}
-                  <div style={{ display: "flex", padding: "12px 0", gap: 8, width: "max-content", marginLeft: "8px" }}>
-                    {selectedFields.map((val, i) => (
-                      <div key={i} style={{ width: "152px", flexShrink: 0 }}>
-                        <FieldSelector value={val} onChange={(newVal) => updateField(i, newVal)} />
-                      </div>
-                    ))}
+                  {importPreset === "Full" && (
+                    <Banner tone="info" onDismiss={() => {}}>
+                      <Text as="p" variant="bodySm">
+                        Full preset provides complete Shopify order schema compatibility including product variants, SKUs, shipping details, and store domain. Best for migrations and detailed reconciliations.
+                      </Text>
+                    </Banner>
+                  )}
+                </BlockStack>
+
+                {/* Sheet Layout Design */}
+                <div style={{ background: "#FAFAFA", borderRadius: 8, border: "1px solid #E1E3E5" }}>
+                  <div 
+                    style={{ padding: "16px", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }}
+                    onClick={() => setLayoutDesignExpanded(!layoutDesignExpanded)}
+                  >
+                    <InlineStack gap="200" blockAlign="center">
+                      <Text as="p" variant="headingSm">Sheet Layout Design</Text>
+                      <span style={{ background: "#E4F0FF", color: "#005BD3", padding: "2px 8px", borderRadius: 12, fontSize: 12, fontWeight: 600 }}>{layoutDesign}</span>
+                    </InlineStack>
+                    <div style={{ padding: 4, background: "#F1F1F1", borderRadius: 4, display: "flex" }}>
+                      <Icon source={layoutDesignExpanded ? ChevronUpIcon : ChevronDownIcon} />
+                    </div>
                   </div>
+                  {layoutDesignExpanded && (
+                    <div style={{ padding: "0 16px 16px 16px", borderTop: "1px solid #E1E3E5" }}>
+                      <Box paddingBlockStart="400">
+                        <InlineGrid columns={{ xs: 1, sm: "1fr 2fr" }} gap="400">
+                          <BlockStack gap="200">
+                            <Text as="p" variant="headingSm">Select design</Text>
+                            <Select
+                              label=""
+                              labelHidden
+                              options={[
+                                { label: "Standard", value: "Standard" },
+                                { label: "With Headers", value: "With Headers" },
+                                { label: "Minimal", value: "Minimal" },
+                                { label: "Professional (Dark)", value: "Professional (Dark)" },
+                                { label: "Slate (Gray)", value: "Slate (Gray)" },
+                                { label: "Colorful (Purple)", value: "Colorful (Purple)" },
+                                { label: "Ocean (Cyan)", value: "Ocean (Cyan)" },
+                                { label: "Forest (Green)", value: "Forest (Green)" },
+                                { label: "Sunset (Orange)", value: "Sunset (Orange)" },
+                                { label: "Rose (Pink)", value: "Rose (Pink)" },
+                                { label: "Gold (Yellow)", value: "Gold (Yellow)" }
+                              ]}
+                              value={layoutDesign}
+                              onChange={setLayoutDesign}
+                            />
+                            <Text as="p" variant="bodySm" tone="subdued">
+                              New orders will use this design.<br/>Clear your sheet to apply to all data.
+                            </Text>
+                          </BlockStack>
+                          
+                          <BlockStack gap="200">
+                            <Text as="p" variant="headingSm">Preview</Text>
+                            <div style={{ background: "white", borderRadius: 8, border: "1px solid #E1E3E5", overflow: "hidden" }}>
+                              <div style={{ padding: "12px", borderBottom: "1px solid #E1E3E5", display: "flex", alignItems: "center", gap: 8 }}>
+                                <div style={{ width: 8, height: 8, borderRadius: 4, background: "#20A020" }} />
+                                <Text as="p" variant="bodySm" tone="subdued" fontWeight="medium">Orders Sheet</Text>
+                              </div>
+                              {layoutDesign !== "Standard" && (
+                                <div style={{ background: getLayoutColor(layoutDesign, 'headerBg'), color: getLayoutColor(layoutDesign, 'headerText'), padding: "8px 12px", display: "flex", justifyContent: "space-between", fontWeight: 700, fontSize: 13 }}>
+                                  <span>Order #</span>
+                                  <span>Customer</span>
+                                  <span>Total</span>
+                                </div>
+                              )}
+                              <div style={{ background: getLayoutColor(layoutDesign, 'row1Bg'), padding: "8px 12px", display: "flex", justifyContent: "space-between", fontSize: 13, borderBottom: "1px solid #F1F1F1" }}>
+                                <span>#1001</span>
+                                <span>John Doe</span>
+                                <span>$99.00</span>
+                              </div>
+                              <div style={{ background: getLayoutColor(layoutDesign, 'row2Bg'), padding: "8px 12px", display: "flex", justifyContent: "space-between", fontSize: 13, borderBottom: "1px solid #F1F1F1" }}>
+                                <span>#1002</span>
+                                <span>Jane Smith</span>
+                                <span>$149.50</span>
+                              </div>
+                              <div style={{ background: getLayoutColor(layoutDesign, 'row1Bg'), padding: "8px 12px", display: "flex", justifyContent: "space-between", fontSize: 13 }}>
+                                <span>#1003</span>
+                                <span>Bob Wilson</span>
+                                <span>$75.25</span>
+                              </div>
+                            </div>
+                          </BlockStack>
+                        </InlineGrid>
+                      </Box>
+                    </div>
+                  )}
                 </div>
-              </Scrollable>
+
+                {/* Column Mapping */}
+                <BlockStack gap="200">
+                  <Text as="p" variant="headingSm">Column Mapping</Text>
+                  <div style={{ border: "1px solid #D8E0EC", borderRadius: 8, overflow: "hidden" }}>
+                    <Scrollable horizontal style={{ width: "100%", paddingBottom: "16px" }}>
+                      <div style={{ display: "inline-flex", flexDirection: "column", minWidth: "100%" }}>
+                        {/* Column headers */}
+                        <div style={{ display: "flex", background: "#EAF0FB", width: "max-content" }}>
+                          {ALL_COLUMNS.map((col) => (
+                            <div key={col} style={{ width: "160px", flexShrink: 0, padding: "10px 0", textAlign: "center", fontWeight: 700, fontSize: 13, color: "#303030", borderRight: "1px solid #D8E0EC", borderBottom: "1px solid #D8E0EC" }}>{col}</div>
+                          ))}
+                        </div>
+                        {/* Field selectors */}
+                        <div style={{ display: "flex", padding: "12px 0", gap: 8, width: "max-content", marginLeft: "8px" }}>
+                          {selectedFields.map((val, i) => (
+                            <div key={i} style={{ width: "152px", flexShrink: 0 }}>
+                              <FieldSelector value={val} onChange={(newVal) => updateField(i, newVal)} />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </Scrollable>
+                  </div>
+                </BlockStack>
+
+              </BlockStack>
             </div>
           )}
         </div>

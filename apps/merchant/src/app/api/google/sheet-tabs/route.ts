@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { getValidAccessToken } from "@/lib/google-oauth";
-import { getSheetTabs } from "@/lib/google-sheets";
+import { getSheetTabs, getSpreadsheetTitle } from "@/lib/google-sheets";
 import { withGuards } from "@/lib/middleware-stack";
 
 export const GET = withGuards({ skipPlanGate: true }, async (req: NextRequest, ctx) => {
