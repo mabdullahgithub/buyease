@@ -3,7 +3,6 @@ import { CredentialsSignin } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
-import { Prisma } from "@buyease/db";
 import { getClientIpFromHeaders, parseLocationFromHeaders } from "@/lib/admin-network";
 import { isIpAllowedForAdminAccess } from "@/lib/admin-ip-policy";
 import {
@@ -80,6 +79,7 @@ async function logLoginActivity(params: {
   failureReason?: string;
   request: Request;
 }): Promise<void> {
+  const { Prisma } = await import("@buyease/db");
   const location = parseLocationFromHeaders(params.request.headers);
   try {
     await params.db.adminLoginActivity?.create({
