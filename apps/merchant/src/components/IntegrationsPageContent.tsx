@@ -1407,10 +1407,17 @@ function SmsWhatsAppPage({ onBack }: { onBack: () => void }): ReactElement {
       otpMaxAttempts: otpSettings.maxAttempts,
     };
 
-    return Object.keys(currentSettings).some(
-      (key) => (currentSettings as any)[key] !== (initialSettings as any)[key]
-    );
-  }, [initialSettings, channel, services, abandonedCartAutoOpen, otpSettings]);
+    return Object.keys(currentSettings).some((key) => {
+      const current = (currentSettings as any)[key];
+      const initial = (initialSettings as any)[key];
+      
+      // Normalize values for comparison (handles null/undefined/empty string/type mismatches)
+      const normCurrent = current === null || current === undefined ? "" : String(current);
+      const normInitial = initial === null || initial === undefined ? "" : String(initial);
+      
+      return normCurrent !== normInitial;
+    });
+  }, [initialSettings, channel, shopName, services, abandonedCartAutoOpen, otpSettings]);
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -1531,7 +1538,7 @@ function SmsWhatsAppPage({ onBack }: { onBack: () => void }): ReactElement {
       title="SMS & WhatsApp Messages"
     >
       {isDirty && (
-        <SaveBar id="messaging-settings-save-bar" open={isDirty}>
+        <SaveBar id="messaging-settings-save-bar" open={isDirty} loading={isSaving}>
           <button variant="primary" onClick={handleSave} />
           <button onClick={handleDiscard} />
         </SaveBar>
