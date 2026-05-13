@@ -229,6 +229,18 @@ const FIELD_GROUPS = [
   }
 ];
 
+const PRESET_FIELDS: Record<string, string[]> = {
+  "Minimal": [
+    "Order Number", "Order ID", "Date & Time", "Date", "Product Name", "Product Price", "Product Quantity", "Total Price", "Subtotal Price", "Discount", "First Name", "Last Name", "Full Name", "Phone", "Email", "Country", "City", "ZIP Code", "Customer ID"
+  ],
+  "Marketing": [
+    "Order Number", "Order ID", "Date & Time", "Date", "Product Name", "Product Price", "Product Quantity", "Total Price", "Subtotal Price", "Discount", "Product Type", "Vendor", "Currency", "UTM source", "UTM medium", "UTM campaign", "UTM content", "UTM term", "Order Type", "Shipping price", "Delivery method", "First Name", "Last Name", "Full Name", "Phone", "Email", "Country", "City", "ZIP Code", "Customer ID"
+  ],
+  "Full": [
+    "Order Number", "Order ID", "Date & Time", "Date", "Product Name", "Product Variant", "Product Name & Variant", "Product Price", "Product SKU", "Product Quantity", "Product Link", "Product Type", "Vendor", "Product ID", "Variant ID", "Total Price", "Subtotal Price", "Discount", "Note", "Additional details", "Currency", "UTM source", "UTM medium", "UTM campaign", "UTM content", "UTM term", "IP Address", "Order Type", "Shipping price", "Delivery method", "First Name", "Last Name", "Full Name", "Phone", "Email", "Country", "City", "Province", "ZIP Code", "Address 1", "Address 2", "Customer ID"
+  ]
+};
+
 function FieldSelector({ value, onChange }: { value: string; onChange: (val: string) => void }) {
   const [popoverActive, setPopoverActive] = useState(false);
   const [activeMenu, setActiveMenu] = useState<string>("main");
@@ -368,11 +380,29 @@ function GoogleSheetsPage({ onBack }: { onBack: () => void }): ReactElement {
   const [importPreset, setImportPreset] = useState("Custom");
   const [layoutDesign, setLayoutDesign] = useState("Standard");
   const [layoutDesignExpanded, setLayoutDesignExpanded] = useState(true);
+  const [autoSync, setAutoSync] = useState(true);
   
   const [selectedFields, setSelectedFields] = useState<string[]>(Array(52).fill(""));
   const updateField = (index: number, value: string): void => {
-    setSelectedFields((prev) => { const next = [...prev]; next[index] = value; return next; });
+    setSelectedFields((prev) => { 
+      const next = [...prev]; 
+      next[index] = value; 
+      return next; 
+    });
+    setImportPreset("Custom");
   };
+
+  const handlePresetChange = useCallback((preset: string) => {
+    setImportPreset(preset);
+    if (preset !== "Custom" && PRESET_FIELDS[preset]) {
+      const fields = PRESET_FIELDS[preset];
+      const nextFields = Array(52).fill("");
+      fields.forEach((f, i) => {
+        if (i < 52) nextFields[i] = f;
+      });
+      setSelectedFields(nextFields);
+    }
+  }, []);
 
   const getBearer = useCallback(async (): Promise<string> => {
     if (bearerRef.current) return bearerRef.current;
@@ -928,7 +958,7 @@ function GoogleSheetsPage({ onBack }: { onBack: () => void }): ReactElement {
                         { label: "Custom", value: "Custom" }
                       ]}
                       value={importPreset}
-                      onChange={setImportPreset}
+                      onChange={handlePresetChange}
                     />
                   </div>
                   {importPreset === "Full" && (
@@ -1066,6 +1096,12 @@ function GoogleSheetsPage({ onBack }: { onBack: () => void }): ReactElement {
               checked={insertAtTop}
               onChange={setInsertAtTop}
               disabled={!singleRowPerOrder}
+            />
+            <Checkbox
+              label="Enable Auto Sync"
+              helpText="Automatically sync new Shopify orders to Google Sheets in real time."
+              checked={autoSync}
+              onChange={setAutoSync}
             />
           </BlockStack>
         </div>
