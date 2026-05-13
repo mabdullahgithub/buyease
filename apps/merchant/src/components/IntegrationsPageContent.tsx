@@ -202,12 +202,13 @@ const FIELD_GROUPS = [
     title: "Order Details",
     icon: OrderIcon,
     items: [
-      "Order Number", "Order ID", "Date & Time", "Date", "Product Name", "Product Variant",
-      "Product Name & Variant", "Product Price", "Product SKU", "Product Quantity", "Product Link",
-      "Product Type", "Vendor", "Product ID", "Variant ID", "Custom Attributes", "Total Price",
-      "Subtotal Price", "Discount", "Discount code", "Note", "Date & Timezone", "Additional details",
-      "Currency", "UTM source", "UTM medium", "UTM campaign", "UTM content", "UTM term", "IP Address",
-      "Order Type"
+      "Order number", "Order ID", "Creation date (YYYY-MM-DD)", "Date & Time", "Date", "Product name", "Variant name",
+      "Product name and variant", "Product price", "Product SKU", "Product quantity", "Product Link",
+      "Product Type", "Product vendor", "Product ID", "Variant ID", "Custom Attributes", "Total price",
+      "Subtotal price", "Total discounts", "Discount codes applied", "Order note", "Date & Timezone", "Additional details",
+      "Order currency", "UTM source", "UTM medium", "UTM campaign", "UTM content", "UTM term", "IP address",
+      "Order type (abandoned or normal)", "Page URL", "Total weight (grams)", "Shipping rate name", "Abandoned order recovery URL",
+      "Store domain (myshopify.com)", "All order details (in one cell)"
     ]
   },
   {
@@ -223,21 +224,21 @@ const FIELD_GROUPS = [
     title: "Customer Information",
     icon: PersonIcon,
     items: [
-      "First Name", "Last Name", "Full Name", "Phone", "Email", "Country", "City", "Province",
-      "ZIP Code", "Address 1", "Address 2", "Company", "Latitude", "Longitude", "Customer ID"
+      "First name", "Last name", "Full name", "Phone number", "Email", "Country", "City", "Province",
+      "Zip code", "Address", "Address 2", "Company", "Latitude", "Longitude", "Customer ID"
     ]
   }
 ];
 
 const PRESET_FIELDS: Record<string, string[]> = {
   "Minimal": [
-    "Order Number", "Order ID", "Date & Time", "Date", "Product Name", "Product Price", "Product Quantity", "Total Price", "Subtotal Price", "Discount", "First Name", "Last Name", "Full Name", "Phone", "Email", "Country", "City", "ZIP Code", "Customer ID"
+    "Order number", "Order ID", "Creation date (YYYY-MM-DD)", "First name", "Last name", "Email", "Phone number", "Address", "Address 2", "Province", "Zip code", "Product name and variant", "Product quantity", "Product price", "Total price", "Order currency", "Shipping price", "Total discounts", "Order note"
   ],
   "Marketing": [
-    "Order Number", "Order ID", "Date & Time", "Date", "Product Name", "Product Price", "Product Quantity", "Total Price", "Subtotal Price", "Discount", "Product Type", "Vendor", "Currency", "UTM source", "UTM medium", "UTM campaign", "UTM content", "UTM term", "Order Type", "Shipping price", "Delivery method", "First Name", "Last Name", "Full Name", "Phone", "Email", "Country", "City", "ZIP Code", "Customer ID"
+    "Order number", "Order ID", "Creation date (YYYY-MM-DD)", "First name", "Last name", "Email", "Phone number", "Address", "Address 2", "City", "Province", "Zip code", "Country", "Product name and variant", "Product quantity", "Product price", "Total price", "Order currency", "Shipping price", "Total discounts", "Discount codes applied", "Order note", "Order type (abandoned or normal)", "UTM source", "UTM medium", "UTM campaign", "UTM term", "UTM content", "Page URL", "IP address"
   ],
   "Full": [
-    "Order Number", "Order ID", "Date & Time", "Date", "Product Name", "Product Variant", "Product Name & Variant", "Product Price", "Product SKU", "Product Quantity", "Product Link", "Product Type", "Vendor", "Product ID", "Variant ID", "Total Price", "Subtotal Price", "Discount", "Note", "Additional details", "Currency", "UTM source", "UTM medium", "UTM campaign", "UTM content", "UTM term", "IP Address", "Order Type", "Shipping price", "Delivery method", "First Name", "Last Name", "Full Name", "Phone", "Email", "Country", "City", "Province", "ZIP Code", "Address 1", "Address 2", "Customer ID"
+    "Order number", "Order ID", "Creation date (YYYY-MM-DD)", "First name", "Last name", "Full name", "Company", "Email", "Phone number", "Address", "Address 2", "City", "Province", "Zip code", "Country", "Product name and variant", "Product name", "Variant name", "Product quantity", "Product SKU", "Product ID", "Product vendor", "Product price", "Total price", "Order currency", "Total weight (grams)", "Shipping price", "Shipping rate name", "Total discounts", "Discount codes applied", "Order note", "Order type (abandoned or normal)", "UTM source", "UTM medium", "UTM campaign", "UTM term", "UTM content", "Page URL", "IP address", "Abandoned order recovery URL", "Store domain (myshopify.com)", "All order details (in one cell)"
   ]
 };
 
