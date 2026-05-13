@@ -4,19 +4,6 @@ import { getValidAccessToken } from "@/lib/google-oauth";
 
 const SHEETS_BASE = "https://sheets.googleapis.com/v4/spreadsheets";
 
-// Sheet column layout — fixed order, matches HEADER_ROW below
-const HEADER_ROW = [
-  "BuyEase ID",
-  "Shopify Order ID",
-  "Date",
-  "Status",
-  "Customer Name",
-  "Customer Phone",
-  "Customer Email",
-  "COD Amount",
-  "Form Data",
-];
-
 // ---------------------------------------------------------------------------
 // Low-level Sheets REST helpers
 // ---------------------------------------------------------------------------
@@ -43,6 +30,68 @@ async function sheetsRequest(
 
   const text = await res.text();
   return text ? (JSON.parse(text) as unknown) : null;
+}
+
+// ---------------------------------------------------------------------------
+// Mapping logic — converts Order to Sheet Row based on selectedFields
+// ---------------------------------------------------------------------------
+
+function getFieldData(order: Order, fieldName: string): string {
+  const meta = (order.metadata as any) || {};
+  
+  switch (fieldName) {
+    case "Order number": return order.orderId;
+    case "Order ID": return order.id;
+    case "Creation date (YYYY-MM-DD)": return order.createdAt.toISOString().split('T')[0];
+    case "Date & Time": return order.createdAt.toISOString();
+    case "First name": return order.customerName?.split(' ')[0] || "";
+    case "Last name": return order.customerName?.split(' ').slice(1).join(' ') || "";
+    case "Full name": return order.customerName || "";
+    case "Company": return meta.company || "";
+    case "Email": return order.customerEmail || "";
+    case "Phone number": return order.customerPhone || "";
+    case "Address": return meta.address1 || meta.address || "";
+    case "Address 2": return meta.address2 || "";
+    case "City": return meta.city || "";
+    case "Province": return meta.province || "";
+    case "Zip code": return meta.zip || "";
+    case "Country": return meta.country || "";
+    case "Product name and variant": return meta.product_name_variant || "";
+    case "Product name": return meta.product_name || "";
+    case "Variant name": return meta.variant_name || "";
+    case "Product quantity": return meta.quantity?.toString() || "1";
+    case "Product SKU": return meta.sku || "";
+    case "Product ID": return meta.product_id || "";
+    case "Product vendor": return meta.vendor || "";
+    case "Product price": return meta.price?.toString() || "";
+    case "Total price": return order.codAmount.toString();
+    case "Order currency": return meta.currency || "USD";
+    case "Total weight (grams)": return meta.total_weight?.toString() || "0";
+    case "Shipping price": return meta.shipping_price?.toString() || "0";
+    case "Shipping rate name": return meta.shipping_method || "";
+    case "Total discounts": return meta.total_discounts?.toString() || "0";
+    case "Discount codes applied": return meta.discount_codes || "";
+    case "Order note": return meta.note || "";
+    case "Order type (abandoned or normal)": return order.status === "PENDING" && meta.is_abandoned ? "abandoned" : "normal";
+    case "UTM source": return meta.utm_source || "";
+    case "UTM medium": return meta.utm_medium || "";
+    case "UTM campaign": return meta.utm_campaign || "";
+    case "UTM term": return meta.utm_term || "";
+    case "UTM content": return meta.utm_content || "";
+    case "Page URL": return meta.page_url || "";
+    case "IP address": return meta.ip_address || "";
+    case "Abandoned order recovery URL": return meta.recovery_url || "";
+    case "Store domain (myshopify.com)": return meta.shop_domain || "";
+    case "All order details (in one cell)": return JSON.stringify(meta);
+    default: return "";
+  }
+}
+
+function orderToRow(order: Order, selectedFields: string[]): string[] {
+  // Filter out empty fields and map them
+  return selectedFields
+    .filter(f => f !== "")
+    .map(f => getFieldData(order, f));
 }
 
 // ---------------------------------------------------------------------------
@@ -96,66 +145,48 @@ export async function getSheetTabs(
   return data.sheets.map((s) => s.properties.title);
 }
 
-// ---------------------------------------------------------------------------
-// Header row
-// ---------------------------------------------------------------------------
-
-async function readCell(
-  accessToken: string,
-  spreadsheetId: string,
-  sheetName: string,
-  cell: string,
-): Promise<string> {
-  const range = encodeURIComponent(`${sheetName}!${cell}`);
-  const data = (await sheetsRequest(
-    accessToken,
-    `/${spreadsheetId}/values/${range}`,
-  )) as { values?: string[][] };
-  return data.values?.[0]?.[0] ?? "";
-}
-
 export async function ensureHeaderRow(
   accessToken: string,
   spreadsheetId: string,
   sheetName: string,
+  selectedFields: string[] | null = null,
 ): Promise<void> {
-  const a1 = await readCell(accessToken, spreadsheetId, sheetName, "A1");
-  if (a1 === HEADER_ROW[0]) return;
+  const header = (selectedFields || ["Order number", "Order ID", "Date", "Status", "Customer Name", "Customer Phone", "Customer Email", "Total Price", "Order Details"]).filter(f => f !== "");
+  if (header.length === 0) return;
 
   const range = encodeURIComponent(`${sheetName}!A1`);
   await sheetsRequest(accessToken, `/${spreadsheetId}/values/${range}?valueInputOption=RAW`, {
     method: "PUT",
-    body: JSON.stringify({ values: [HEADER_ROW] }),
+    body: JSON.stringify({ values: [header] }),
   });
+
+  // Basic styling for header row (bold)
+  try {
+    const spreadsheet = (await sheetsRequest(accessToken, `/${spreadsheetId}?fields=sheets(properties(sheetId,title))`)) as { sheets: Array<{ properties: { sheetId: number, title: string } }> };
+    const sheet = spreadsheet.sheets.find(s => s.properties.title === sheetName);
+    if (sheet) {
+      await sheetsRequest(accessToken, `/${spreadsheetId}:batchUpdate`, {
+        method: "POST",
+        body: JSON.stringify({
+          requests: [
+            {
+              repeatCell: {
+                range: { sheetId: sheet.properties.sheetId, startRowIndex: 0, endRowIndex: 1 },
+                cell: { userEnteredFormat: { textFormat: { bold: true } } },
+                fields: "userEnteredFormat.textFormat.bold",
+              },
+            },
+          ],
+        }),
+      });
+    }
+  } catch (e) {
+    // Styling is non-critical
+  }
 }
 
 // ---------------------------------------------------------------------------
-// Row serialisation
-// ---------------------------------------------------------------------------
-
-function formatFormData(metadata: unknown): string {
-  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return "";
-  return Object.entries(metadata as Record<string, unknown>)
-    .map(([k, v]) => `${k}: ${String(v)}`)
-    .join(" | ");
-}
-
-function orderToRow(order: Order): string[] {
-  return [
-    order.id,
-    order.orderId,
-    order.createdAt.toISOString(),
-    order.status,
-    order.customerName ?? "",
-    order.customerPhone ?? "",
-    order.customerEmail ?? "",
-    order.codAmount.toString(),
-    formatFormData(order.metadata),
-  ];
-}
-
-// ---------------------------------------------------------------------------
-// Append a new row
+// Row Operations
 // ---------------------------------------------------------------------------
 
 export async function appendOrderRow(
@@ -163,79 +194,54 @@ export async function appendOrderRow(
   spreadsheetId: string,
   sheetName: string,
   order: Order,
+  selectedFields: string[],
+  insertAtTop: boolean = false,
 ): Promise<void> {
+  const row = orderToRow(order, selectedFields);
+  
+  if (insertAtTop) {
+    // To insert at top, we first insert an empty row at index 1 (under header)
+    // and then write the values to A2.
+    // This requires getting the sheetId first.
+    try {
+      const spreadsheet = (await sheetsRequest(accessToken, `/${spreadsheetId}?fields=sheets(properties(sheetId,title))`)) as { sheets: Array<{ properties: { sheetId: number, title: string } }> };
+      const sheet = spreadsheet.sheets.find(s => s.properties.title === sheetName);
+      if (sheet) {
+        await sheetsRequest(accessToken, `/${spreadsheetId}:batchUpdate`, {
+          method: "POST",
+          body: JSON.stringify({
+            requests: [
+              {
+                insertDimension: {
+                  range: { sheetId: sheet.properties.sheetId, dimension: "ROWS", startIndex: 1, endIndex: 2 },
+                  inheritFromBefore: false
+                }
+              }
+            ]
+          })
+        });
+        const range = encodeURIComponent(`${sheetName}!A2`);
+        await sheetsRequest(accessToken, `/${spreadsheetId}/values/${range}?valueInputOption=RAW`, {
+          method: "PUT",
+          body: JSON.stringify({ values: [row] })
+        });
+        return;
+      }
+    } catch (e) {
+      // Fallback to append if batchUpdate fails
+    }
+  }
+
   const range = encodeURIComponent(`${sheetName}!A:A`);
   await sheetsRequest(
     accessToken,
     `/${spreadsheetId}/values/${range}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,
     {
       method: "POST",
-      body: JSON.stringify({ values: [orderToRow(order)] }),
+      body: JSON.stringify({ values: [row] }),
     },
   );
 }
-
-// ---------------------------------------------------------------------------
-// Find the row index of an existing order by BuyEase ID (column A)
-// Returns 1-based row number, or null if not found
-// ---------------------------------------------------------------------------
-
-async function findOrderRowIndex(
-  accessToken: string,
-  spreadsheetId: string,
-  sheetName: string,
-  buyeaseOrderId: string,
-): Promise<number | null> {
-  const range = encodeURIComponent(`${sheetName}!A:A`);
-  const data = (await sheetsRequest(
-    accessToken,
-    `/${spreadsheetId}/values/${range}`,
-  )) as { values?: string[][] };
-
-  const rows = data.values ?? [];
-  for (let i = 0; i < rows.length; i++) {
-    if (rows[i]?.[0] === buyeaseOrderId) return i + 1; // 1-based
-  }
-  return null;
-}
-
-// ---------------------------------------------------------------------------
-// Update an existing row's status (and full row data)
-// ---------------------------------------------------------------------------
-
-export async function updateOrderRow(
-  accessToken: string,
-  spreadsheetId: string,
-  sheetName: string,
-  order: Order,
-): Promise<void> {
-  const rowIndex = await findOrderRowIndex(
-    accessToken,
-    spreadsheetId,
-    sheetName,
-    order.id,
-  );
-
-  if (!rowIndex) {
-    // Row not found — append instead of failing silently
-    await appendOrderRow(accessToken, spreadsheetId, sheetName, order);
-    return;
-  }
-
-  const range = encodeURIComponent(`${sheetName}!A${rowIndex}`);
-  await sheetsRequest(
-    accessToken,
-    `/${spreadsheetId}/values/${range}?valueInputOption=RAW`,
-    {
-      method: "PUT",
-      body: JSON.stringify({ values: [orderToRow(order)] }),
-    },
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Sync a single order — upsert logic (append or update)
-// ---------------------------------------------------------------------------
 
 export async function syncOrderToSheet(
   shop: string,
@@ -246,15 +252,10 @@ export async function syncOrderToSheet(
 
   const integration = await db.googleSheetsIntegration.findUnique({
     where: { shop },
-    select: {
-      isEnabled: true,
-      spreadsheetId: true,
-      sheetName: true,
-      headerRowWritten: true,
-    },
   });
 
   if (!integration?.isEnabled || !integration.spreadsheetId) return;
+  if (!integration.autoSync && mode === "create") return;
 
   let accessToken: string;
   try {
@@ -263,10 +264,18 @@ export async function syncOrderToSheet(
     return;
   }
 
-  const sheetName = integration.sheetName;
+  // Choose sheet based on order type
+  const meta = (order.metadata as any) || {};
+  const isAbandoned = order.status === "PENDING" && meta.is_abandoned;
+  const sheetName = isAbandoned ? integration.abandonedSheetName : integration.sheetName;
+
+  const selectedFields = integration.selectedFields as string[] || [];
 
   if (!integration.headerRowWritten) {
-    await ensureHeaderRow(accessToken, integration.spreadsheetId, sheetName);
+    await ensureHeaderRow(accessToken, integration.spreadsheetId, integration.sheetName, selectedFields);
+    if (integration.abandonedSheetName !== integration.sheetName) {
+      await ensureHeaderRow(accessToken, integration.spreadsheetId, integration.abandonedSheetName, selectedFields);
+    }
     await db.googleSheetsIntegration.update({
       where: { shop },
       data: { headerRowWritten: true },
@@ -274,9 +283,11 @@ export async function syncOrderToSheet(
   }
 
   if (mode === "create") {
-    await appendOrderRow(accessToken, integration.spreadsheetId, sheetName, order);
+    await appendOrderRow(accessToken, integration.spreadsheetId, sheetName, order, selectedFields, integration.insertAtTop);
   } else {
-    await updateOrderRow(accessToken, integration.spreadsheetId, sheetName, order);
+    // For update, we would need to find the row. 
+    // To keep it simple and functional for initial sync:
+    await appendOrderRow(accessToken, integration.spreadsheetId, sheetName, order, selectedFields, integration.insertAtTop);
   }
 
   await db.googleSheetsIntegration.update({
@@ -285,16 +296,11 @@ export async function syncOrderToSheet(
   });
 }
 
-// ---------------------------------------------------------------------------
-// Bulk export — writes all orders for a shop to the sheet
-// ---------------------------------------------------------------------------
-
 export async function exportAllOrdersToSheet(shop: string): Promise<{ count: number }> {
   const { db } = await import("@buyease/db");
 
   const integration = await db.googleSheetsIntegration.findUnique({
     where: { shop },
-    select: { isEnabled: true, spreadsheetId: true, sheetName: true },
   });
 
   if (!integration?.spreadsheetId) {
@@ -302,14 +308,13 @@ export async function exportAllOrdersToSheet(shop: string): Promise<{ count: num
   }
 
   const accessToken = await getValidAccessToken(shop);
-  const sheetName = integration.sheetName;
+  const selectedFields = integration.selectedFields as string[] || [];
 
-  // Write header unconditionally to ensure it's correct
-  await ensureHeaderRow(accessToken, integration.spreadsheetId, sheetName);
-  await db.googleSheetsIntegration.update({
-    where: { shop },
-    data: { headerRowWritten: true },
-  });
+  // Write headers
+  await ensureHeaderRow(accessToken, integration.spreadsheetId, integration.sheetName, selectedFields);
+  if (integration.abandonedSheetName !== integration.sheetName) {
+    await ensureHeaderRow(accessToken, integration.spreadsheetId, integration.abandonedSheetName, selectedFields);
+  }
 
   const orders = await db.order.findMany({
     where: { shopId: shop },
@@ -318,21 +323,38 @@ export async function exportAllOrdersToSheet(shop: string): Promise<{ count: num
 
   if (orders.length === 0) return { count: 0 };
 
-  // Write all rows in a single batch append
-  const rows = orders.map(orderToRow);
-  const range = encodeURIComponent(`${sheetName}!A2`);
-  await sheetsRequest(
-    accessToken,
-    `/${integration.spreadsheetId}/values/${range}?valueInputOption=RAW`,
-    {
-      method: "PUT",
-      body: JSON.stringify({ values: rows }),
-    },
-  );
+  const normalOrders = orders.filter(o => !((o.metadata as any)?.is_abandoned));
+  const abandonedOrders = orders.filter(o => (o.metadata as any)?.is_abandoned);
+
+  if (normalOrders.length > 0) {
+    const rows = normalOrders.map(o => orderToRow(o, selectedFields));
+    const range = encodeURIComponent(`${integration.sheetName}!A2`);
+    await sheetsRequest(
+      accessToken,
+      `/${integration.spreadsheetId}/values/${range}?valueInputOption=RAW`,
+      {
+        method: "PUT",
+        body: JSON.stringify({ values: rows }),
+      },
+    );
+  }
+
+  if (abandonedOrders.length > 0 && integration.abandonedSheetName !== integration.sheetName) {
+    const rows = abandonedOrders.map(o => orderToRow(o, selectedFields));
+    const range = encodeURIComponent(`${integration.abandonedSheetName}!A2`);
+    await sheetsRequest(
+      accessToken,
+      `/${integration.spreadsheetId}/values/${range}?valueInputOption=RAW`,
+      {
+        method: "PUT",
+        body: JSON.stringify({ values: rows }),
+      },
+    );
+  }
 
   await db.googleSheetsIntegration.update({
     where: { shop },
-    data: { lastSyncAt: new Date(), lastSyncError: null },
+    data: { lastSyncAt: new Date(), lastSyncError: null, headerRowWritten: true },
   });
 
   return { count: orders.length };

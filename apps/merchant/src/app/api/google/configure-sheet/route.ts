@@ -11,6 +11,13 @@ import { parseBody } from "@/lib/validation";
 const configureSchema = z.object({
   spreadsheetId: z.string().trim().min(1).max(255),
   sheetName: z.string().trim().min(1).max(100).default("Orders"),
+  abandonedSheetName: z.string().trim().min(1).max(100).optional(),
+  selectedFields: z.array(z.string()).length(52).optional(),
+  singleRowPerOrder: z.boolean().optional(),
+  insertAtTop: z.boolean().optional(),
+  autoSync: z.boolean().optional(),
+  layoutDesign: z.string().optional(),
+  importPreset: z.string().optional(),
   isEnabled: z.boolean(),
 });
 
@@ -19,7 +26,18 @@ export const POST = withGuards({ skipPlanGate: true }, async (req: NextRequest, 
   const parsed = parseBody(configureSchema, body);
   if (!parsed.success) return parsed.response;
 
-  const { spreadsheetId, sheetName, isEnabled } = parsed.data;
+  const {
+    spreadsheetId,
+    sheetName,
+    abandonedSheetName,
+    selectedFields,
+    singleRowPerOrder,
+    insertAtTop,
+    autoSync,
+    layoutDesign,
+    importPreset,
+    isEnabled
+  } = parsed.data;
 
   let accessToken: string;
   try {
@@ -46,12 +64,16 @@ export const POST = withGuards({ skipPlanGate: true }, async (req: NextRequest, 
   }
 
   // Write header row now so first-time setup is visible immediately
+  // We write it to both sheets if they are different
   try {
     await ensureHeaderRow(accessToken, spreadsheetId, sheetName);
+    if (abandonedSheetName && abandonedSheetName !== sheetName) {
+      await ensureHeaderRow(accessToken, spreadsheetId, abandonedSheetName);
+    }
   } catch {
     return NextResponse.json(
       {
-        error: `Could not write to sheet "${sheetName}". Make sure the sheet tab exists in your spreadsheet.`,
+        error: `Could not write to sheet. Make sure the sheet tabs exist in your spreadsheet.`,
       },
       { status: 400 },
     );
@@ -65,6 +87,13 @@ export const POST = withGuards({ skipPlanGate: true }, async (req: NextRequest, 
       spreadsheetId,
       spreadsheetUrl,
       sheetName,
+      abandonedSheetName: abandonedSheetName ?? sheetName,
+      selectedFields: selectedFields ? (selectedFields as any) : undefined,
+      singleRowPerOrder,
+      insertAtTop,
+      autoSync,
+      layoutDesign,
+      importPreset,
       isEnabled,
       headerRowWritten: true,
       lastSyncError: null,

@@ -565,6 +565,18 @@ model GoogleSheetsIntegration {
   spreadsheetId    String?
   spreadsheetUrl   String?
   sheetName        String  @default("Orders")
+  abandonedSheetName String @default("Orders")
+
+  /// Array of field names for column A to AZ (Json array of 52 strings)
+  selectedFields   Json?
+
+  singleRowPerOrder Boolean @default(true)
+  insertAtTop       Boolean @default(false)
+  autoSync          Boolean @default(true)
+
+  layoutDesign      String  @default("Standard")
+  importPreset      String  @default("Custom")
+
   headerRowWritten Boolean @default(false)
   isEnabled        Boolean @default(false)
 

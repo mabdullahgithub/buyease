@@ -165,6 +165,13 @@ type SheetsStatus =
       spreadsheetId: string | null;
       spreadsheetUrl: string | null;
       sheetName: string;
+      abandonedSheetName: string;
+      selectedFields: string[] | null;
+      singleRowPerOrder: boolean;
+      insertAtTop: boolean;
+      autoSync: boolean;
+      layoutDesign: string;
+      importPreset: string;
       isEnabled: boolean;
       lastSyncAt: string | null;
       lastSyncError: string | null;
@@ -442,8 +449,19 @@ function GoogleSheetsPage({ onBack }: { onBack: () => void }): ReactElement {
       if (data.connected) {
         setSpreadsheetId(data.spreadsheetId ?? "");
         setSheetName(data.sheetName);
+        setAbandonedSheetName(data.abandonedSheetName);
+        if (data.selectedFields) {
+          const padded = [...data.selectedFields];
+          while (padded.length < 52) padded.push("");
+          setSelectedFields(padded);
+        }
+        setSingleRowPerOrder(data.singleRowPerOrder);
+        setInsertAtTop(data.insertAtTop);
+        setAutoSync(data.autoSync);
+        setLayoutDesign(data.layoutDesign);
+        setImportPreset(data.importPreset);
         setIsEnabled(data.isEnabled);
-        setConnectedSheetTitle(data.sheetName ?? null);
+        setConnectedSheetTitle(data.spreadsheetId ? (availableSheets.find(s => s.id === data.spreadsheetId)?.name ?? "Connected Sheet") : null);
         if (data.spreadsheetId && data.sheetName) { setAvailableTabs([data.sheetName]); setTabsLoaded(true); }
         void fetchSpreadsheets(token);
       }
@@ -530,18 +548,35 @@ function GoogleSheetsPage({ onBack }: { onBack: () => void }): ReactElement {
     setSaveError(""); setIsSaving(true);
     try {
       const token = await getBearer();
-      const res = await fetch("/api/google/configure-sheet", { method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify({ spreadsheetId, sheetName, isEnabled }) });
+      const paddedFields = [...selectedFields];
+      while (paddedFields.length < 52) paddedFields.push("");
+      const res = await fetch("/api/google/configure-sheet", { 
+        method: "POST", 
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, 
+        body: JSON.stringify({ 
+          spreadsheetId, 
+          sheetName, 
+          abandonedSheetName,
+          selectedFields: paddedFields,
+          singleRowPerOrder,
+          insertAtTop,
+          autoSync,
+          layoutDesign,
+          importPreset,
+          isEnabled: true 
+        }) 
+      });
       const data = (await res.json()) as { ok?: boolean; error?: string; spreadsheetTitle?: string };
       if (!res.ok || data.error) { setSaveError(data.error ?? "Failed to save settings."); }
       else {
         const name = data.spreadsheetTitle ?? availableSheets.find((s) => s.id === spreadsheetId)?.name ?? spreadsheetId;
         setConnectedSheetTitle(name);
-        shopify.toast.show(`Connected to "${name}"`);
+        shopify.toast.show(`Settings saved successfully!`);
         await fetchStatus();
       }
     } catch { setSaveError("Network error. Please try again."); }
     finally { setIsSaving(false); }
-  }, [getBearer, spreadsheetId, sheetName, isEnabled, availableSheets, fetchStatus, shopify]);
+  }, [getBearer, spreadsheetId, sheetName, abandonedSheetName, selectedFields, singleRowPerOrder, insertAtTop, autoSync, layoutDesign, importPreset, availableSheets, fetchStatus, shopify]);
 
   const handleNext = useCallback(async (): Promise<void> => {
     setSaveError(""); setIsSaving(true);
@@ -1077,6 +1112,12 @@ function GoogleSheetsPage({ onBack }: { onBack: () => void }): ReactElement {
                   </div>
                 </BlockStack>
 
+                <InlineStack align="end">
+                  <Button variant="primary" loading={isSaving} onClick={() => void handleSave()}>
+                    Save Field Mapping
+                  </Button>
+                </InlineStack>
+
               </BlockStack>
             </div>
           )}
@@ -1104,6 +1145,13 @@ function GoogleSheetsPage({ onBack }: { onBack: () => void }): ReactElement {
               checked={autoSync}
               onChange={setAutoSync}
             />
+            <Box paddingBlockStart="200">
+              <InlineStack align="end">
+                <Button variant="primary" loading={isSaving} onClick={() => void handleSave()}>
+                  Save All Settings
+                </Button>
+              </InlineStack>
+            </Box>
           </BlockStack>
         </div>
 

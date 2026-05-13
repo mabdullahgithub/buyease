@@ -12,6 +12,13 @@ export type GoogleSheetsStatus =
       spreadsheetId: string | null;
       spreadsheetUrl: string | null;
       sheetName: string;
+      abandonedSheetName: string;
+      selectedFields: string[] | null;
+      singleRowPerOrder: boolean;
+      insertAtTop: boolean;
+      autoSync: boolean;
+      layoutDesign: string;
+      importPreset: string;
       isEnabled: boolean;
       lastSyncAt: string | null;
       lastSyncError: string | null;
@@ -26,6 +33,13 @@ export const GET = withGuards({ skipPlanGate: true }, async (_req: NextRequest, 
       spreadsheetId: true,
       spreadsheetUrl: true,
       sheetName: true,
+      abandonedSheetName: true,
+      selectedFields: true,
+      singleRowPerOrder: true,
+      insertAtTop: true,
+      autoSync: true,
+      layoutDesign: true,
+      importPreset: true,
       isEnabled: true,
       lastSyncAt: true,
       lastSyncError: true,
@@ -42,6 +56,13 @@ export const GET = withGuards({ skipPlanGate: true }, async (_req: NextRequest, 
     spreadsheetId: integration.spreadsheetId,
     spreadsheetUrl: integration.spreadsheetUrl,
     sheetName: integration.sheetName,
+    abandonedSheetName: integration.abandonedSheetName,
+    selectedFields: integration.selectedFields as string[] | null,
+    singleRowPerOrder: integration.singleRowPerOrder,
+    insertAtTop: integration.insertAtTop,
+    autoSync: integration.autoSync,
+    layoutDesign: integration.layoutDesign,
+    importPreset: integration.importPreset,
     isEnabled: integration.isEnabled,
     lastSyncAt: integration.lastSyncAt?.toISOString() ?? null,
     lastSyncError: integration.lastSyncError,
