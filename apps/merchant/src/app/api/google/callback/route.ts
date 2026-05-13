@@ -42,26 +42,35 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     );
   }
 
-  await db.googleSheetsIntegration.upsert({
-    where: { shop },
-    create: {
-      shop,
-      googleAccessToken: encryptToken(tokens.accessToken),
-      googleRefreshToken: encryptToken(tokens.refreshToken),
-      googleTokenExpiresAt: tokens.expiresAt,
-      googleEmail: tokens.email,
-      isEnabled: false,
-      headerRowWritten: false,
-    },
-    update: {
-      googleAccessToken: encryptToken(tokens.accessToken),
-      googleRefreshToken: encryptToken(tokens.refreshToken),
-      googleTokenExpiresAt: tokens.expiresAt,
-      googleEmail: tokens.email,
-      // Reset header flag when reconnecting so we re-verify the sheet
-      headerRowWritten: false,
-    },
-  });
+  try {
+    await db.googleSheetsIntegration.upsert({
+      where: { shop },
+      create: {
+        shop,
+        googleAccessToken: encryptToken(tokens.accessToken),
+        googleRefreshToken: encryptToken(tokens.refreshToken as string),
+        googleTokenExpiresAt: tokens.expiresAt,
+        googleEmail: tokens.email,
+        isEnabled: false,
+        headerRowWritten: false,
+      },
+      update: {
+        googleAccessToken: encryptToken(tokens.accessToken),
+        googleRefreshToken: encryptToken(tokens.refreshToken as string),
+        googleTokenExpiresAt: tokens.expiresAt,
+        googleEmail: tokens.email,
+        // Reset header flag when reconnecting so we re-verify the sheet
+        headerRowWritten: false,
+      },
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Database update failed";
+    console.error("Google Sheets connection error:", err);
+    return htmlResponse(
+      false,
+      `Failed to save connection to database: ${msg}. If you recently added new fields, make sure to run your database migrations.`,
+    );
+  }
 
   return htmlResponse(true, "Connected successfully!");
 }
