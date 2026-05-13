@@ -1310,8 +1310,10 @@ function GoogleSheetsPage({ onBack }: { onBack: () => void }): ReactElement {
 }
 
 function SmsWhatsAppPage({ onBack }: { onBack: () => void }): ReactElement {
+  const shopify = useShopifyBridge();
   const [topUpAmount, setTopUpAmount] = useState("5.00");
   const [channel, setChannel] = useState<Channel>("sms");
+  const [shopName, setShopName] = useState("Product Store");
   const [services, setServices] = useState(INITIAL_SMS_SERVICES);
   const [personalizeOpen, setPersonalizeOpen] = useState<Record<string, boolean>>({});
   const [showOtpHelp, setShowOtpHelp] = useState(true);
@@ -1331,6 +1333,156 @@ function SmsWhatsAppPage({ onBack }: { onBack: () => void }): ReactElement {
     askBeforeCreating: false,
     maxAttempts: "3",
   });
+
+  const [initialSettings, setInitialSettings] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const fetchSettings = useCallback(async () => {
+    try {
+      const token = await shopify.idToken();
+      const res = await fetch("/api/messaging/settings", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("Failed to fetch settings");
+      const data = await res.json();
+      
+      setInitialSettings(data);
+      setChannel(data.channel as Channel);
+      setShopName(data.shopName);
+      setAbandonedCartAutoOpen(data.abandonedCartAutoOpen);
+      setOtpSettings({
+        verificationCode: data.otpVerificationCode,
+        description: data.otpDescription,
+        verifyButton: data.otpVerifyButton,
+        resend: data.otpResend,
+        changeNumber: data.otpChangeNumber,
+        invalidCode: data.otpInvalidCode,
+        codeSent: data.otpCodeSent,
+        resentAttempts: data.otpResentAttempts,
+        askBeforeCreating: data.otpAskBeforeCreating,
+        maxAttempts: data.otpMaxAttempts,
+      });
+      setServices([
+        { ...INITIAL_SMS_SERVICES[0], isActive: data.otpActive, message: data.otpMessage },
+        { ...INITIAL_SMS_SERVICES[1], isActive: data.orderConfirmationActive, message: data.orderConfirmationMessage },
+        { ...INITIAL_SMS_SERVICES[2], isActive: data.shippingConfirmationActive, message: data.shippingConfirmationMessage },
+        { ...INITIAL_SMS_SERVICES[3], isActive: data.abandonedCartActive, message: data.abandonedCartMessage },
+      ]);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [shopify]);
+
+  useEffect(() => {
+    fetchSettings();
+  }, [fetchSettings]);
+
+  const isDirty = useMemo(() => {
+    if (!initialSettings) return false;
+    
+    const currentSettings = {
+      channel,
+      shopName,
+      otpActive: services[0].isActive,
+      otpMessage: services[0].message,
+      orderConfirmationActive: services[1].isActive,
+      orderConfirmationMessage: services[1].message,
+      shippingConfirmationActive: services[2].isActive,
+      shippingConfirmationMessage: services[2].message,
+      abandonedCartActive: services[3].isActive,
+      abandonedCartMessage: services[3].message,
+      abandonedCartAutoOpen,
+      otpVerificationCode: otpSettings.verificationCode,
+      otpDescription: otpSettings.description,
+      otpVerifyButton: otpSettings.verifyButton,
+      otpResend: otpSettings.resend,
+      otpChangeNumber: otpSettings.changeNumber,
+      otpInvalidCode: otpSettings.invalidCode,
+      otpCodeSent: otpSettings.codeSent,
+      otpResentAttempts: otpSettings.resentAttempts,
+      otpAskBeforeCreating: otpSettings.askBeforeCreating,
+      otpMaxAttempts: otpSettings.maxAttempts,
+    };
+
+    return Object.keys(currentSettings).some(
+      (key) => (currentSettings as any)[key] !== (initialSettings as any)[key]
+    );
+  }, [initialSettings, channel, services, abandonedCartAutoOpen, otpSettings]);
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      const token = await shopify.idToken();
+      const res = await fetch("/api/messaging/settings", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          channel,
+          shopName,
+          otpActive: services[0].isActive,
+          otpMessage: services[0].message,
+          orderConfirmationActive: services[1].isActive,
+          orderConfirmationMessage: services[1].message,
+          shippingConfirmationActive: services[2].isActive,
+          shippingConfirmationMessage: services[2].message,
+          abandonedCartActive: services[3].isActive,
+          abandonedCartMessage: services[3].message,
+          abandonedCartAutoOpen,
+          otpVerificationCode: otpSettings.verificationCode,
+          otpDescription: otpSettings.description,
+          otpVerifyButton: otpSettings.verifyButton,
+          otpResend: otpSettings.resend,
+          otpChangeNumber: otpSettings.changeNumber,
+          otpInvalidCode: otpSettings.invalidCode,
+          otpCodeSent: otpSettings.codeSent,
+          otpResentAttempts: otpSettings.resentAttempts,
+          otpAskBeforeCreating: otpSettings.askBeforeCreating,
+          otpMaxAttempts: otpSettings.maxAttempts,
+        }),
+      });
+
+      if (!res.ok) throw new Error("Failed to save settings");
+      shopify.toast.show("Settings saved");
+      await fetchSettings();
+    } catch (error) {
+      shopify.toast.show("Failed to save settings");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDiscard = () => {
+    if (initialSettings) {
+      setChannel(initialSettings.channel as Channel);
+      setShopName(initialSettings.shopName);
+      setAbandonedCartAutoOpen(initialSettings.abandonedCartAutoOpen);
+      setOtpSettings({
+        verificationCode: initialSettings.otpVerificationCode,
+        description: initialSettings.otpDescription,
+        verifyButton: initialSettings.otpVerifyButton,
+        resend: initialSettings.otpResend,
+        changeNumber: initialSettings.otpChangeNumber,
+        invalidCode: initialSettings.otpInvalidCode,
+        codeSent: initialSettings.otpCodeSent,
+        resentAttempts: initialSettings.otpResentAttempts,
+        askBeforeCreating: initialSettings.otpAskBeforeCreating,
+        maxAttempts: initialSettings.otpMaxAttempts,
+      });
+      setServices([
+        { ...INITIAL_SMS_SERVICES[0], isActive: initialSettings.otpActive, message: initialSettings.otpMessage },
+        { ...INITIAL_SMS_SERVICES[1], isActive: initialSettings.orderConfirmationActive, message: initialSettings.orderConfirmationMessage },
+        { ...INITIAL_SMS_SERVICES[2], isActive: initialSettings.shippingConfirmationActive, message: initialSettings.shippingConfirmationMessage },
+        { ...INITIAL_SMS_SERVICES[3], isActive: initialSettings.abandonedCartActive, message: initialSettings.abandonedCartMessage },
+      ]);
+    }
+  };
+
 
   const toggleService = (id: string) => {
     setServices((prev) =>
@@ -1354,7 +1506,7 @@ function SmsWhatsAppPage({ onBack }: { onBack: () => void }): ReactElement {
       .replace(/\{first_name\}/g, "John")
       .replace(/\{customer_name\}/g, "John")
       .replace(/\{checkout_url\}/g, "https://store.com/c/123")
-      .replace(/\{shop_name\}/g, "Product Store")
+      .replace(/\{shop_name\}/g, shopName)
       .replace(/\{order_url\}/g, "product-store-122417.myshopify.com/abc")
       .replace(/\{order_id\}/g, "#1001")
       .replace(/\{order_total\}/g, "$50.00")
@@ -1378,8 +1530,20 @@ function SmsWhatsAppPage({ onBack }: { onBack: () => void }): ReactElement {
       backAction={{ content: "Integrations", onAction: onBack }}
       title="SMS & WhatsApp Messages"
     >
+      {isDirty && (
+        <SaveBar id="messaging-settings-save-bar" open={isDirty}>
+          <button variant="primary" onClick={handleSave} />
+          <button onClick={handleDiscard} />
+        </SaveBar>
+      )}
       <div style={{ width: "65.5rem", maxWidth: "100%" }}>
-        <BlockStack gap="400">
+        {isLoading ? (
+          <BlockStack gap="400">
+            <Card><BlockStack gap="400"><SkeletonBodyText lines={4} /></BlockStack></Card>
+            <Card><BlockStack gap="400"><SkeletonBodyText lines={6} /></BlockStack></Card>
+          </BlockStack>
+        ) : (
+          <BlockStack gap="400">
         {/* Left: Balance + Channel | Right: Pricing */}
         <div
           style={{
@@ -2220,10 +2384,10 @@ function SmsWhatsAppPage({ onBack }: { onBack: () => void }): ReactElement {
         <Card>
           <TextField
             label="Store name for Messages"
-            value="Product Store"
+            value={shopName}
             helpText="This will be used in the message as the store name."
             autoComplete="off"
-            onChange={() => {}}
+            onChange={setShopName}
           />
         </Card>
 
@@ -2236,10 +2400,12 @@ function SmsWhatsAppPage({ onBack }: { onBack: () => void }): ReactElement {
           </Text>
         </InlineStack>
       </BlockStack>
+      )}
       </div>
     </Page>
   );
 }
+
 
 export function IntegrationsPageContent(): ReactElement {
   const [activeView, setActiveView] = useState<ActiveView>("list");

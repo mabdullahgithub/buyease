@@ -73,6 +73,7 @@ model Merchant {
   shippingRates     ShippingRate[]
   whatsAppConfig          MerchantWhatsAppConfig?
   googleSheetsIntegration GoogleSheetsIntegration?
+  messagingSettings       MessagingSettings?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -602,4 +603,47 @@ model AppSettings {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// ---------------------------------------------------------------------------
+// MessagingSettings — per-shop SMS & WhatsApp configuration
+// ---------------------------------------------------------------------------
+model MessagingSettings {
+  id       String   @id @default(cuid())
+  shop     String   @unique
+  merchant Merchant @relation(fields: [shop], references: [shop], onDelete: Cascade)
+
+  channel  String   @default("sms") // "sms" or "whatsapp"
+  shopName String   @default("Product Store")
+
+  // Services
+  otpActive                Boolean @default(true)
+  otpMessage               String  @default("Your verification code is {otp}")
+  
+  orderConfirmationActive  Boolean @default(false)
+  orderConfirmationMessage String  @default("Thanks for your purchase from {shop_name} {order_url}")
+  
+  shippingConfirmationActive  Boolean @default(false)
+  shippingConfirmationMessage String  @default("Your order has been shipped from {shop_name} - Track your order at {tracking_url}")
+  
+  abandonedCartActive      Boolean @default(false)
+  abandonedCartMessage     String  @default("We noticed you left something in your cart at {shop_name}. Don't miss out, finish your purchase today! {recovery_url}")
+  abandonedCartAutoOpen    Boolean @default(false)
+
+  // OTP Popup Text
+  otpVerificationCode      String  @default("Verify your phone number to complete your order")
+  otpDescription           String  @default("We've sent a verification code via {channel} to your phone number {phone}. Please enter the code below to verify your number and complete your order")
+  otpVerifyButton          String  @default("Verify")
+  otpResend                String  @default("Resend code")
+  otpChangeNumber          String  @default("Change number")
+  otpInvalidCode           String  @default("The code you entered is invalid.")
+  otpCodeSent              String  @default("A new verification code has been sent to your mobile number.")
+  otpResentAttempts        String  @default("You've exceeded the maximum number of attempts.")
+  otpAskBeforeCreating     Boolean @default(false)
+  otpMaxAttempts           String  @default("3")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([shop])
 }
