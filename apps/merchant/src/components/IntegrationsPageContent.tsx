@@ -1195,8 +1195,6 @@ function GoogleSheetsPage({ onBack }: { onBack: () => void }): ReactElement {
                     </Scrollable>
                   </div>
                 </BlockStack>
-
-                </BlockStack>
               </BlockStack>
             </div>
           )}
