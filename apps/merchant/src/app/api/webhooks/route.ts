@@ -1,11 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { verifyShopifyWebhookHmac } from "@buyease/utils";
-import {
-  creditMerchantBalanceForActivatedOneTimePurchase,
-  parseAppPurchasesOneTimeWebhookBody,
-  resolveOfflineMerchantAccessToken,
-} from "@/lib/messaging-top-up-credit";
+
 import { prisma } from "@/lib/db";
 import {
   getPlanRecord,
@@ -14,6 +10,12 @@ import {
   planDbIntervalFromShopifyWebhookInterval,
 } from "@/lib/billing";
 import { syncOrderToSheet } from "@/lib/google-sheets";
+import { INITIAL_MERCHANT_MESSAGING_BALANCE_USD } from "@/lib/merchant-defaults";
+import {
+  creditMerchantBalanceForActivatedOneTimePurchase,
+  parseAppPurchasesOneTimeWebhookBody,
+  resolveOfflineMerchantAccessToken,
+} from "@/lib/messaging-top-up-credit";
 import { sessionStorage } from "@/lib/shopify";
 
 type AppSubscriptionPayload = {
@@ -181,6 +183,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
             create: {
               shop,
               isActive: true,
+              balance: INITIAL_MERCHANT_MESSAGING_BALANCE_USD,
               planId: dbPlan.id,
               billingCycleStart: new Date(),
               ...(billingNumeric ? { planBillingId: billingNumeric } : {}),

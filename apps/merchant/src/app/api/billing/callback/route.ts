@@ -6,6 +6,7 @@ import {
   isShopifySubscriptionGraphqlActive,
   resolvePlanKeyFromBillingSources,
 } from "@/lib/billing";
+import { INITIAL_MERCHANT_MESSAGING_BALANCE_USD } from "@/lib/merchant-defaults";
 import { sessionStorage } from "@/lib/shopify";
 
 const ACTIVE_SUBSCRIPTIONS_QUERY = `
@@ -141,7 +142,7 @@ async function verifyAndActivate(
   if (!activeSub) {
     await prisma.merchant.upsert({
       where: { shop },
-      create: { shop, isActive: true },
+      create: { shop, isActive: true, balance: INITIAL_MERCHANT_MESSAGING_BALANCE_USD },
       update: { isActive: true, uninstalledAt: null },
     });
     return buildRedirect(host, shop, "billing");
@@ -179,6 +180,7 @@ async function verifyAndActivate(
     create: {
       shop,
       isActive: true,
+      balance: INITIAL_MERCHANT_MESSAGING_BALANCE_USD,
       planId: dbPlan.id,
       planBillingId: numericId,
       billingCycleStart: new Date(),

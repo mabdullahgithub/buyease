@@ -62,7 +62,8 @@ model Merchant {
   planBillingId         String?
   billingCycleStart     DateTime  @default(now())
   ordersThisCycle       Int       @default(0)
-  balance               Float     @default(0)
+  /// SMS / messaging prepaid wallet (USD). New merchants receive a welcome balance.
+  balance               Float     @default(1)
 
   planId String?
   plan   Plan?   @relation(fields: [planId], references: [id])

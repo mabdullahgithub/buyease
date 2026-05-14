@@ -9,6 +9,7 @@ import {
 
 import { prisma } from "@/lib/db";
 import { merchantAppOrigin } from "@/lib/merchant-app-url";
+import { INITIAL_MERCHANT_MESSAGING_BALANCE_USD } from "@/lib/merchant-defaults";
 import { seedDefaultFormConfig } from "@/lib/seed-default-form-config";
 import { saveSession } from "@/lib/session-cache";
 import shopify from "@/lib/shopify";
@@ -42,6 +43,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       create: {
         shop: session.shop,
         isActive: true,
+        balance: INITIAL_MERCHANT_MESSAGING_BALANCE_USD,
         accessToken: session.accessToken ?? null,
         scopes: session.scope ?? null,
       },

@@ -1,6 +1,7 @@
 import { Session } from "@shopify/shopify-api";
 
 import { prisma } from "@/lib/db";
+import { INITIAL_MERCHANT_MESSAGING_BALANCE_USD } from "@/lib/merchant-defaults";
 import { seedDefaultFormConfig } from "@/lib/seed-default-form-config";
 import { saveSession } from "@/lib/session-cache";
 import shopify from "@/lib/shopify";
@@ -85,6 +86,7 @@ export async function exchangeSessionToken(
     create: {
       shop,
       isActive: true,
+      balance: INITIAL_MERCHANT_MESSAGING_BALANCE_USD,
       accessToken: data.access_token,
       scopes: data.scope,
       ...(data.refresh_token ? { refreshToken: data.refresh_token } : {}),
