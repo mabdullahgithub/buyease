@@ -95,6 +95,18 @@ model ProcessedAppOneTimePurchase {
   @@index([shop])
 }
 
+/// Latest SMS top-up created via appPurchaseOneTimeCreate; used when Shopify’s return URL omits charge_id.
+model MessagingTopUpIntent {
+  id           String    @id @default(cuid())
+  shop         String
+  purchaseGid  String    @unique
+  amountUsd    Float
+  consumedAt   DateTime?
+  createdAt    DateTime  @default(now())
+
+  @@index([shop, consumedAt, createdAt])
+}
+
 // ---------------------------------------------------------------------------
 // WhatsAppGlobalConfig — singleton (id=1) controlled by admin panel.
 // Holds the shared Twilio credentials and per-message price for all merchants.

@@ -116,7 +116,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
           console.error("app_purchases_one_time/update: missing admin_graphql_api_id", { shop });
           break;
         }
-        if (String(status).trim().toUpperCase() !== "ACTIVE") {
+        const statusUpper = String(status).trim().toUpperCase();
+        if (statusUpper !== "ACTIVE" && statusUpper !== "ACCEPTED") {
           break;
         }
         const accessToken = await resolveOfflineMerchantAccessToken(shop);

@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+
+import { prisma } from "@/lib/db";
 import { merchantAppOrigin } from "@/lib/merchant-app-url";
+import { normalizeShopForMerchantDb } from "@/lib/messaging-top-up-credit";
 import { withGuards } from "@/lib/middleware-stack";
 
 const bodySchema = z.object({
@@ -69,6 +72,23 @@ export const POST = withGuards({ skipPlanGate: true }, async (req: NextRequest, 
         { error: result?.userErrors?.[0]?.message ?? "Top-up creation failed" },
         { status: 400 },
       );
+    }
+
+    const purchaseGid =
+      typeof result.appPurchaseOneTime?.id === "string" ? result.appPurchaseOneTime.id : undefined;
+    if (purchaseGid) {
+      const shopKey = normalizeShopForMerchantDb(ctx.shop);
+      try {
+        await prisma.messagingTopUpIntent.create({
+          data: {
+            shop: shopKey,
+            purchaseGid,
+            amountUsd: amount,
+          },
+        });
+      } catch {
+        // Duplicate gid is unexpected; ignore so the merchant can still approve the charge.
+      }
     }
 
     return NextResponse.json({

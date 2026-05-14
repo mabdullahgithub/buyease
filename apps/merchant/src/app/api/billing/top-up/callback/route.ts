@@ -2,21 +2,38 @@ import { NextRequest, NextResponse } from "next/server";
 
 import {
   creditMerchantBalanceForActivatedOneTimePurchase,
+  normalizeShopForMerchantDb,
   resolveOfflineMerchantAccessToken,
+  resolvePendingTopUpPurchaseGid,
 } from "@/lib/messaging-top-up-credit";
+import shopify from "@/lib/shopify";
 
 const SMS_VIEW_PATH = "integrations?view=sms-whatsapp&billing_sync=1";
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
-  const shop = req.nextUrl.searchParams.get("shop");
+  const rawShop = req.nextUrl.searchParams.get("shop");
+  const shop =
+    shopify.utils.sanitizeShop(rawShop ?? "", true) ?? rawShop?.trim().toLowerCase() ?? null;
   const host = req.nextUrl.searchParams.get("host");
-  const chargeId = req.nextUrl.searchParams.get("charge_id") ?? req.nextUrl.searchParams.get("id");
+  const chargeFromQuery =
+    req.nextUrl.searchParams.get("charge_id")?.trim() ||
+    req.nextUrl.searchParams.get("id")?.trim() ||
+    null;
 
-  if (!shop || !chargeId) {
-    return NextResponse.json({ error: "Missing parameters" }, { status: 400 });
+  if (!shop) {
+    return NextResponse.json({ error: "Missing shop parameter" }, { status: 400 });
   }
 
-  const accessToken = await resolveOfflineMerchantAccessToken(shop);
+  const chargeId =
+    chargeFromQuery && chargeFromQuery.length > 0
+      ? chargeFromQuery
+      : await resolvePendingTopUpPurchaseGid(shop);
+
+  if (!chargeId) {
+    return NextResponse.json({ error: "Missing charge reference" }, { status: 400 });
+  }
+
+  const accessToken = await resolveOfflineMerchantAccessToken(normalizeShopForMerchantDb(shop));
   if (!accessToken) {
     return buildRedirect(host, shop, SMS_VIEW_PATH);
   }

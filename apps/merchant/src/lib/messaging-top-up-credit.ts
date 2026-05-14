@@ -1,11 +1,11 @@
 import { Prisma } from "@buyease/db";
 
 import { prisma } from "@/lib/db";
-import { sessionStorage } from "@/lib/shopify";
+import shopify, { sessionStorage } from "@/lib/shopify";
 
 const ADMIN_GRAPHQL_API_VERSION_PATH = "2026-04";
-const ONE_TIME_POLL_ATTEMPTS = 7;
-const ONE_TIME_POLL_BASE_DELAY_MS = 400;
+const ONE_TIME_POLL_ATTEMPTS = 12;
+const ONE_TIME_POLL_BASE_DELAY_MS = 500;
 
 const ONE_TIME_CHARGE_QUERY = `
 query OneTimeCharge($id: ID!) {
@@ -22,12 +22,26 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+/** Aligns callback/webhook shop with rows created via session (sanitizeShop + lowercase fallback). */
+export function normalizeShopForMerchantDb(shop: string): string {
+  const sanitized = shopify.utils.sanitizeShop(shop, true);
+  if (sanitized) {
+    return sanitized;
+  }
+  return shop.trim().toLowerCase();
+}
+
 export function toAppPurchaseOneTimeGid(raw: string): string {
   const trimmed = raw.trim();
   if (trimmed.startsWith("gid://shopify/AppPurchaseOneTime/")) {
     return trimmed;
   }
   return `gid://shopify/AppPurchaseOneTime/${trimmed}`;
+}
+
+function isPaidOneTimePurchaseStatus(status: string): boolean {
+  const s = status.trim().toUpperCase();
+  return s === "ACTIVE" || s === "ACCEPTED";
 }
 
 type OneTimeChargeNode = {
@@ -87,7 +101,7 @@ export async function pollOneTimePurchaseUntilActive(
       await sleep(ONE_TIME_POLL_BASE_DELAY_MS * attempt);
     }
     const node = await fetchOneTimePurchase(shopDomain, accessToken, purchaseGid);
-    if (node && node.status.trim().toUpperCase() === "ACTIVE") {
+    if (node && isPaidOneTimePurchaseStatus(node.status)) {
       return node;
     }
   }
@@ -108,10 +122,11 @@ export type MessagingTopUpCreditOutcome =
  * once per Shopify purchase id (safe if return URL and webhook both run).
  */
 export async function creditMerchantBalanceForActivatedOneTimePurchase(
-  shopDomain: string,
+  shopDomainRaw: string,
   accessToken: string,
   rawChargeIdOrGid: string,
 ): Promise<MessagingTopUpCreditOutcome> {
+  const shopDomain = normalizeShopForMerchantDb(shopDomainRaw);
   const purchaseGid = toAppPurchaseOneTimeGid(rawChargeIdOrGid);
   const active = await pollOneTimePurchaseUntilActive(shopDomain, accessToken, purchaseGid);
   if (!active) {
@@ -146,6 +161,11 @@ export async function creditMerchantBalanceForActivatedOneTimePurchase(
         },
       }),
     ]);
+
+    await prisma.messagingTopUpIntent.updateMany({
+      where: { purchaseGid: active.id },
+      data: { consumedAt: new Date() },
+    });
   } catch (error: unknown) {
     if (isPrismaUniqueViolation(error)) {
       return { ok: true, reason: "already_credited" };
@@ -156,7 +176,8 @@ export async function creditMerchantBalanceForActivatedOneTimePurchase(
   return { ok: true, reason: "credited" };
 }
 
-export async function resolveOfflineMerchantAccessToken(shop: string): Promise<string | null> {
+export async function resolveOfflineMerchantAccessToken(shopRaw: string): Promise<string | null> {
+  const shop = normalizeShopForMerchantDb(shopRaw);
   const session = await prisma.session.findFirst({
     where: { shop, isOnline: false },
     select: { accessToken: true },
@@ -169,6 +190,17 @@ export async function resolveOfflineMerchantAccessToken(shop: string): Promise<s
   const sessions = await sessionStorage.findSessionsByShop(shop);
   const offline = sessions.find((s) => !s.isOnline && s.accessToken);
   return offline?.accessToken ?? null;
+}
+
+/** When Shopify omits charge_id on the billing return URL, use the latest pending intent for this shop. */
+export async function resolvePendingTopUpPurchaseGid(shopRaw: string): Promise<string | null> {
+  const shop = normalizeShopForMerchantDb(shopRaw);
+  const row = await prisma.messagingTopUpIntent.findFirst({
+    where: { shop, consumedAt: null },
+    orderBy: { createdAt: "desc" },
+    select: { purchaseGid: true },
+  });
+  return row?.purchaseGid ?? null;
 }
 
 export function parseAppPurchasesOneTimeWebhookBody(rawBody: string): {
