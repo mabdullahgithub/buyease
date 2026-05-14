@@ -213,7 +213,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           let trustedDeviceAllowed = false;
 
           if (trustedDeviceToken) {
-            const trustedDeviceHash = hashTrustedDeviceToken(trustedDeviceToken);
+            const trustedDeviceHash = await hashTrustedDeviceToken(trustedDeviceToken);
             const trustedDevice = await db.adminTrustedDevice.findUnique({
               where: { tokenHash: trustedDeviceHash },
               select: { adminUserId: true, expiresAt: true },
@@ -263,12 +263,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             }
 
             const normalizedCode = twoFactorCode.replace(/[\s-]/g, "").toUpperCase();
-            const decryptedSecret = decryptTwoFactorSecret(admin.twoFactorSecretEncrypted);
-            const totpValid = verifyTwoFactorCode(decryptedSecret, normalizedCode);
+            const decryptedSecret = await decryptTwoFactorSecret(admin.twoFactorSecretEncrypted);
+            const totpValid = await verifyTwoFactorCode(decryptedSecret, normalizedCode);
 
             if (!totpValid) {
               const recoveryCode = await db.adminTwoFactorBackupCode.findUnique({
-                where: { codeHash: hashTwoFactorRecoveryCode(normalizedCode) },
+                where: { codeHash: await hashTwoFactorRecoveryCode(normalizedCode) },
                 select: { id: true, adminUserId: true, usedAt: true },
               });
 
