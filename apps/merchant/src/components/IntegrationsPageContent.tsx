@@ -1382,6 +1382,18 @@ function SmsWhatsAppPage({ onBack }: { onBack: () => void }): ReactElement {
     fetchSettings();
   }, [fetchSettings]);
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("billing_sync") !== "1") {
+      return;
+    }
+    void fetchSettings().finally(() => {
+      const url = new URL(window.location.href);
+      url.searchParams.delete("billing_sync");
+      window.history.replaceState({}, "", url.toString());
+    });
+  }, [fetchSettings]);
+
   const isDirty = useMemo(() => {
     if (!initialSettings) return false;
     

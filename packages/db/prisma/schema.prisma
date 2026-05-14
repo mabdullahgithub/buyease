@@ -84,6 +84,16 @@ model Merchant {
   @@index([isActive])
 }
 
+/// Idempotency for SMS top-up: one row per credited Shopify AppPurchaseOneTime (callback + webhook safe).
+model ProcessedAppOneTimePurchase {
+  purchaseGid String   @id
+  shop        String
+  amountUsd   Float
+  createdAt   DateTime @default(now())
+
+  @@index([shop])
+}
+
 // ---------------------------------------------------------------------------
 // WhatsAppGlobalConfig — singleton (id=1) controlled by admin panel.
 // Holds the shared Twilio credentials and per-message price for all merchants.

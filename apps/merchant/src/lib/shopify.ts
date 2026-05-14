@@ -43,6 +43,10 @@ shopify.webhooks.addHandlers({
     deliveryMethod: DeliveryMethod.Http,
     callbackUrl: WEBHOOK_PATH,
   },
+  APP_PURCHASES_ONE_TIME_UPDATE: {
+    deliveryMethod: DeliveryMethod.Http,
+    callbackUrl: WEBHOOK_PATH,
+  },
   ORDERS_CREATE: {
     deliveryMethod: DeliveryMethod.Http,
     callbackUrl: WEBHOOK_PATH,

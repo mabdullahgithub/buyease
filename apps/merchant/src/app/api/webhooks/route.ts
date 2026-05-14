@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { verifyShopifyWebhookHmac } from "@buyease/utils";
+import {
+  creditMerchantBalanceForActivatedOneTimePurchase,
+  parseAppPurchasesOneTimeWebhookBody,
+  resolveOfflineMerchantAccessToken,
+} from "@/lib/messaging-top-up-credit";
 import { prisma } from "@/lib/db";
 import {
   getPlanRecord,
@@ -94,6 +99,33 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         console.log("app/uninstalled: merchant deactivated", { shop, rowsUpdated: merchantResult.count });
         if (merchantResult.count === 0) {
           console.warn("app/uninstalled: no Merchant row updated", { shop });
+        }
+        break;
+      }
+
+      case "app_purchases_one_time/update": {
+        const shop = headerShop;
+        if (!shop) {
+          console.error("app_purchases_one_time/update: missing x-shopify-shop-domain");
+          break;
+        }
+        const { adminGraphqlApiId, status } = parseAppPurchasesOneTimeWebhookBody(rawBody);
+        if (!adminGraphqlApiId) {
+          console.error("app_purchases_one_time/update: missing admin_graphql_api_id", { shop });
+          break;
+        }
+        if (String(status).trim().toUpperCase() !== "ACTIVE") {
+          break;
+        }
+        const accessToken = await resolveOfflineMerchantAccessToken(shop);
+        if (!accessToken) {
+          console.error("app_purchases_one_time/update: no offline session", { shop });
+          break;
+        }
+        try {
+          await creditMerchantBalanceForActivatedOneTimePurchase(shop, accessToken, adminGraphqlApiId);
+        } catch (error) {
+          console.error("app_purchases_one_time/update: credit failed", { shop, error });
         }
         break;
       }

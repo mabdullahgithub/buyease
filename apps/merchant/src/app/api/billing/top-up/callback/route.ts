@@ -1,66 +1,33 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
 
-const ONE_TIME_CHARGE_QUERY = `
-query OneTimeCharge($id: ID!) {
-  node(id: $id) {
-    ... on AppPurchaseOneTime {
-      id
-      status
-      amount { amount currencyCode }
-    }
-  }
-}`;
+import {
+  creditMerchantBalanceForActivatedOneTimePurchase,
+  resolveOfflineMerchantAccessToken,
+} from "@/lib/messaging-top-up-credit";
+
+const SMS_VIEW_PATH = "integrations?view=sms-whatsapp&billing_sync=1";
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
   const shop = req.nextUrl.searchParams.get("shop");
   const host = req.nextUrl.searchParams.get("host");
-  const amountStr = req.nextUrl.searchParams.get("amount");
-  const chargeId = req.nextUrl.searchParams.get("charge_id");
+  const chargeId = req.nextUrl.searchParams.get("charge_id") ?? req.nextUrl.searchParams.get("id");
 
-  if (!shop || !chargeId || !amountStr) {
+  if (!shop || !chargeId) {
     return NextResponse.json({ error: "Missing parameters" }, { status: 400 });
   }
 
-  const session = await prisma.session.findFirst({
-    where: { shop, isOnline: false },
-    orderBy: { updatedAt: "desc" },
-  });
-
-  if (!session?.accessToken) {
-    return buildRedirect(host, shop, "integrations?view=sms-whatsapp");
+  const accessToken = await resolveOfflineMerchantAccessToken(shop);
+  if (!accessToken) {
+    return buildRedirect(host, shop, SMS_VIEW_PATH);
   }
 
   try {
-    const response = await fetch(`https://${shop}/admin/api/2026-04/graphql.json`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Shopify-Access-Token": session.accessToken,
-      },
-      body: JSON.stringify({
-        query: ONE_TIME_CHARGE_QUERY,
-        variables: { id: `gid://shopify/AppPurchaseOneTime/${chargeId}` },
-      }),
-    });
-
-    const payload = await response.json();
-    const charge = payload.data?.node;
-
-    if (charge?.status === "ACTIVE") {
-      const amount = parseFloat(charge.amount.amount);
-      await prisma.merchant.update({
-        where: { shop },
-        data: {
-          balance: { increment: amount },
-        },
-      });
-    }
+    await creditMerchantBalanceForActivatedOneTimePurchase(shop, accessToken, chargeId);
   } catch (error) {
     console.error("Top-up callback failed", error);
   }
 
-  return buildRedirect(host, shop, "integrations?view=sms-whatsapp");
+  return buildRedirect(host, shop, SMS_VIEW_PATH);
 }
 
 function buildRedirect(host: string | null, shop: string, path: string): NextResponse {
