@@ -16,7 +16,6 @@ import {
 import {
   CartDownIcon,
   CartUpIcon,
-  ChatIcon,
   ClipboardChecklistIcon,
 } from "@shopify/polaris-icons";
 
@@ -149,7 +148,6 @@ export function UpsellsAndDownsellsPageContent(): ReactElement {
               onDismiss={() => setHelpDismissed(true)}
               action={{
                 content: "Contact us",
-                icon: ChatIcon,
                 onAction: () => {},
               }}
             >
