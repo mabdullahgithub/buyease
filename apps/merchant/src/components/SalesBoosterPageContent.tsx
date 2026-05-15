@@ -24,6 +24,8 @@ import {
   CartDownIcon,
   CartUpIcon,
   ClipboardChecklistIcon,
+  GiftCardIcon,
+  PlayCircleIcon,
 } from "@shopify/polaris-icons";
 
 type SalesBoosterTab = "upsells-downsells" | "quantity-offers" | "abandoned-cart";
@@ -56,11 +58,8 @@ const TABS: TabConfig[] = [
   },
   {
     id: "quantity-offers",
-    label: "Quantity Offers",
+    label: "Offers & Bundles",
     icon: CartDiscountIcon,
-    comingSoonHeading: "Quantity Offers — Coming Soon",
-    comingSoonDescription:
-      "Incentivize customers to buy more by unlocking discounts when they add multiple items to their order.",
   },
   {
     id: "abandoned-cart",
@@ -85,7 +84,7 @@ const UPSELL_FEATURES: UpsellFeatureItem[] = [
         offer will be shown.
       </>
     ),
-    buttonLabel: "1-Click Upsells",
+    buttonLabel: "Configure One-Click Upsells",
     imageSrc: "/images/upsellsanddownsells/funnel.svg",
     imageAlt: "1-Click Upsells funnel illustration",
     imageWidth: 100,
@@ -102,7 +101,7 @@ const UPSELL_FEATURES: UpsellFeatureItem[] = [
         <strong>(Shipping protection, Priority processing, Extended warranty, Gift wrapping…)</strong>
       </>
     ),
-    buttonLabel: "1-Tick Upsells",
+    buttonLabel: "Configure One-Tick Upsells",
     imageSrc: "/images/upsellsanddownsells/bumps.svg",
     imageAlt: "Order bump checklist illustration",
     imageWidth: 100,
@@ -119,9 +118,46 @@ const UPSELL_FEATURES: UpsellFeatureItem[] = [
         opened the form but then closed it.
       </>
     ),
-    buttonLabel: "Downsells",
+    buttonLabel: "Configure Downsells",
     imageSrc: "/images/upsellsanddownsells/downsell.svg",
     imageAlt: "Downsells discount illustration",
+    imageWidth: 100,
+    imageHeight: 100,
+  },
+];
+
+const OFFERS_BUNDLES_FEATURES: UpsellFeatureItem[] = [
+  {
+    id: "quantity-offers",
+    icon: CartDiscountIcon,
+    title: "Quantity Offers",
+    description: (
+      <>
+        <strong>Quantity offers</strong> incentivize customers to buy more by unlocking discounts
+        when they add multiple items to their order. Create tiered pricing rules — the more they
+        buy, the <strong>better the deal</strong>. A proven way to increase average order value.
+      </>
+    ),
+    buttonLabel: "Configure Quantity Offers",
+    imageSrc: "/images/offersandbundles/quantity-offers.svg",
+    imageAlt: "Quantity offers discount illustration",
+    imageWidth: 100,
+    imageHeight: 100,
+  },
+  {
+    id: "bundles",
+    icon: GiftCardIcon,
+    title: "Bundles",
+    description: (
+      <>
+        <strong>Bundles</strong> let you group complementary products together and offer them at
+        a special combined price. Encourage customers to buy related items in one click —{" "}
+        <strong>boosting revenue</strong> while delivering more value per order.
+      </>
+    ),
+    buttonLabel: "Configure Bundles",
+    imageSrc: "/images/offersandbundles/bundles.svg",
+    imageAlt: "Bundles product grouping illustration",
     imageWidth: 100,
     imageHeight: 100,
   },
@@ -133,6 +169,7 @@ const COMING_SOON_ILLUSTRATION =
 export function SalesBoosterPageContent(): ReactElement {
   const [activeTab, setActiveTab] = useState<SalesBoosterTab>("upsells-downsells");
   const [helpDismissed, setHelpDismissed] = useState(false);
+  const [offersHelpDismissed, setOffersHelpDismissed] = useState(false);
 
   const handleTabChange = useCallback((tab: SalesBoosterTab): void => {
     setActiveTab(tab);
@@ -145,7 +182,7 @@ export function SalesBoosterPageContent(): ReactElement {
       <BlockStack gap="400">
         <Box
           padding="100"
-          background="bg-surface-secondary"
+          background="bg-surface"
           borderWidth="025"
           borderColor="border"
           borderRadius="200"
@@ -154,24 +191,49 @@ export function SalesBoosterPageContent(): ReactElement {
             {TABS.map((tab) => {
               const isSelected = activeTab === tab.id;
               return (
-                <Button
+                <div
                   key={tab.id}
-                  icon={tab.icon}
-                  variant={isSelected ? "primary" : "tertiary"}
-                  fullWidth
-                  onClick={() => handleTabChange(tab.id)}
+                  style={{
+                    backgroundColor: isSelected ? "var(--p-color-bg-surface-secondary)" : undefined,
+                    borderRadius: "var(--p-border-radius-150)",
+                    fontWeight: isSelected ? "bold" : undefined,
+                  }}
                 >
-                  {tab.label}
-                </Button>
+                  <Button
+                    icon={tab.icon}
+                    variant="tertiary"
+                    fullWidth
+                    onClick={() => handleTabChange(tab.id)}
+                  >
+                    {tab.label}
+                  </Button>
+                </div>
               );
             })}
           </InlineGrid>
         </Box>
 
-        {activeTab === "upsells-downsells" ? (
+        {activeTab === "abandoned-cart" ? (
+          <Card>
+            <EmptyState
+              image={COMING_SOON_ILLUSTRATION}
+              imageContained
+              heading={active.comingSoonHeading ?? ""}
+            >
+              <BlockStack gap="300">
+                <Text as="p" variant="bodyMd" tone="subdued">
+                  {active.comingSoonDescription}
+                </Text>
+                <InlineStack>
+                  <Badge tone="attention">Coming Soon</Badge>
+                </InlineStack>
+              </BlockStack>
+            </EmptyState>
+          </Card>
+        ) : (
           <div style={{ width: "65.5rem", maxWidth: "100%" }}>
             <BlockStack gap="400">
-              {UPSELL_FEATURES.map((item) => (
+              {(activeTab === "upsells-downsells" ? UPSELL_FEATURES : OFFERS_BUNDLES_FEATURES).map((item) => (
                 <Card key={item.id}>
                   <InlineStack
                     align="space-between"
@@ -191,11 +253,14 @@ export function SalesBoosterPageContent(): ReactElement {
                         {item.description}
                       </div>
 
-                      <div>
+                      <InlineStack gap="300" blockAlign="center">
                         <Button icon={item.icon} variant="primary">
                           {item.buttonLabel}
                         </Button>
-                      </div>
+                        <Button icon={PlayCircleIcon} variant="plain">
+                          Watch demo
+                        </Button>
+                      </InlineStack>
                     </BlockStack>
 
                     <Image
@@ -213,7 +278,7 @@ export function SalesBoosterPageContent(): ReactElement {
                 </Card>
               ))}
 
-              {!helpDismissed && (
+              {activeTab === "upsells-downsells" && !helpDismissed && (
                 <Banner
                   title="Do you need help with the new Upsells?"
                   tone="info"
@@ -226,25 +291,22 @@ export function SalesBoosterPageContent(): ReactElement {
                   <p>Contact us, our support agents will be happy to help you!</p>
                 </Banner>
               )}
+
+              {activeTab === "quantity-offers" && !offersHelpDismissed && (
+                <Banner
+                  title="Do you need help with Offers & Bundles?"
+                  tone="info"
+                  onDismiss={() => setOffersHelpDismissed(true)}
+                  action={{
+                    content: "Contact us",
+                    onAction: () => {},
+                  }}
+                >
+                  <p>Contact us, our support agents will be happy to help you!</p>
+                </Banner>
+              )}
             </BlockStack>
           </div>
-        ) : (
-          <Card>
-            <EmptyState
-              image={COMING_SOON_ILLUSTRATION}
-              imageContained
-              heading={active.comingSoonHeading ?? ""}
-            >
-              <BlockStack gap="300">
-                <Text as="p" variant="bodyMd" tone="subdued">
-                  {active.comingSoonDescription}
-                </Text>
-                <InlineStack>
-                  <Badge tone="attention">Coming Soon</Badge>
-                </InlineStack>
-              </BlockStack>
-            </EmptyState>
-          </Card>
         )}
       </BlockStack>
     </Page>
