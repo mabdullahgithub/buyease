@@ -2,10 +2,14 @@ import { NextResponse } from "next/server";
 
 import { withGuards } from "@/lib/middleware-stack";
 
-// Extension UID from shopify.extension.toml — unique across all apps/shops.
-const EXTENSION_UID = "279c058d-e2b0-785d-0abc-9c4482a708772fe4d69a";
+// Extension UID as deployed to Shopify — visible in live theme settings_data.json.
+// Note: differs from the UID in shopify.extension.toml (279c058d…) which is the dev UID.
+const EXTENSION_UID = "019e0927-5422-7577-9e47-31bfe4c3a489";
 
-// App client_id from shopify.app.toml — used as app identifier in block keys.
+// App handle — used as primary identifier in block type URLs.
+const APP_HANDLE = "buyease-cod-form";
+
+// App client_id from shopify.app.toml — secondary fallback identifier.
 const APP_CLIENT_ID = process.env.SHOPIFY_API_KEY ?? "";
 
 type ShopifyTheme = {
@@ -33,17 +37,10 @@ type SettingsData = {
 };
 
 function isBuyEaseBlock(key: string, block: SettingsBlock): boolean {
-  // Shopify stores app embed blocks with keys like:
-  //   shopify://apps/{app_handle}/blocks/{block_file}/{ext_uid}
-  // OR using the client_id directly in some formats.
-  // The extension UID is globally unique — safest primary identifier.
-  // The client_id (APP_CLIENT_ID) is the app-level secondary identifier.
-  if (key.includes(EXTENSION_UID)) return true;
-  if (APP_CLIENT_ID && key.includes(APP_CLIENT_ID)) return true;
-  if (typeof block.type === "string") {
-    if (block.type.includes(EXTENSION_UID)) return true;
-    if (APP_CLIENT_ID && block.type.includes(APP_CLIENT_ID)) return true;
-  }
+  const haystack = key + "|" + (block.type ?? "");
+  if (haystack.includes(EXTENSION_UID)) return true;
+  if (haystack.includes(APP_HANDLE)) return true;
+  if (APP_CLIENT_ID && haystack.includes(APP_CLIENT_ID)) return true;
   return false;
 }
 
