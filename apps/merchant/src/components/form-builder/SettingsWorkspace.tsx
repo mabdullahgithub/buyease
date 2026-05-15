@@ -8,7 +8,6 @@ import {
   BlockStack,
   Box,
   Button,
-  ButtonGroup,
   Card,
   Checkbox,
   ChoiceList,
@@ -31,6 +30,17 @@ import {
 
 type FormPlacement = "whole-store" | "product-pages" | "cart-page";
 type WhenOpened = "product-only" | "product-and-cart";
+
+type PlacementConfig = {
+  value: FormPlacement;
+  label: string;
+};
+
+const PLACEMENTS: PlacementConfig[] = [
+  { value: "whole-store", label: "Whole store" },
+  { value: "product-pages", label: "Product pages" },
+  { value: "cart-page", label: "Cart page only" },
+];
 
 type DisableInState = {
   homePage: boolean;
@@ -58,12 +68,22 @@ function buildThemeEditorUrl(shopDomain: string): string {
   return `https://admin.shopify.com/store/${storeName}/themes/current/editor?context=apps&appEmbed=${SHOPIFY_API_KEY}%2F${EXTENSION_HANDLE}`;
 }
 
-const PLACEMENT_INFO: Record<FormPlacement, string> = {
-  "whole-store": "The form will be displayed on all pages.",
-  "product-pages":
-    "The form will appear on product pages, other pages (except the cart page), and in the cart drawer.",
-  "cart-page":
-    "The form appears only on the cart page, not in the cart drawer or other pages.",
+const PLACEMENT_INFO: Record<FormPlacement, { title: string; description: string }> = {
+  "whole-store": {
+    title: "Whole store",
+    description:
+      "The COD buy button appears on every page — product pages, home, collections, the cart page, and the cart drawer.",
+  },
+  "product-pages": {
+    title: "Product pages",
+    description:
+      "The buy button appears only on product pages and in the cart drawer. It is hidden on the home page, collection pages, and the cart page.",
+  },
+  "cart-page": {
+    title: "Cart page only",
+    description:
+      "The buy button appears only on the cart page. It is hidden everywhere else, including the cart drawer.",
+  },
 };
 
 const DISABLE_IN_CHOICES: { label: string; value: DisableInKey }[] = [
@@ -118,7 +138,8 @@ export function SettingsWorkspace({ embedEnabled }: Props): ReactElement {
     [],
   );
 
-  const isFullPlacement = formPlacement !== "cart-page";
+  const isCartPage = formPlacement === "cart-page";
+  const isWholeStore = formPlacement === "whole-store";
 
   return (
     <BlockStack gap="800">
@@ -314,105 +335,128 @@ export function SettingsWorkspace({ embedEnabled }: Props): ReactElement {
         </BlockStack>
 
         <Card padding="0">
-          <Box padding="400">
-            <ButtonGroup variant="segmented" fullWidth>
-              <Button
-                pressed={formPlacement === "whole-store"}
-                onClick={() => setFormPlacement("whole-store")}
-              >
-                Whole store
-              </Button>
-              <Button
-                pressed={formPlacement === "product-pages"}
-                onClick={() => setFormPlacement("product-pages")}
-              >
-                Product pages only
-              </Button>
-              <Button
-                pressed={formPlacement === "cart-page"}
-                onClick={() => setFormPlacement("cart-page")}
-              >
-                Cart page only
-              </Button>
-            </ButtonGroup>
+          {/* Placement selector — matches the tab-switching pattern in FormBuilderPageContent */}
+          <Box
+            padding="100"
+            background="bg-surface-secondary"
+            borderBlockEndWidth="025"
+            borderColor="border"
+          >
+            <InlineGrid columns={3} gap="100">
+              {PLACEMENTS.map((p) => (
+                <Button
+                  key={p.value}
+                  variant={formPlacement === p.value ? "primary" : "tertiary"}
+                  fullWidth
+                  onClick={() => setFormPlacement(p.value)}
+                >
+                  {p.label}
+                </Button>
+              ))}
+            </InlineGrid>
           </Box>
 
+          {/* Info banner describing current placement */}
           <Box background="bg-surface-info" paddingBlock="300" paddingInline="400">
             <InlineStack gap="200" blockAlign="start" wrap={false}>
               <Icon source={InfoIcon} tone="info" />
-              <Text as="p" variant="bodyMd">
-                {PLACEMENT_INFO[formPlacement]}
-              </Text>
+              <BlockStack gap="050">
+                <Text as="p" variant="bodyMd" fontWeight="semibold">
+                  {PLACEMENT_INFO[formPlacement].title}
+                </Text>
+                <Text as="p" variant="bodyMd">
+                  {PLACEMENT_INFO[formPlacement].description}
+                </Text>
+              </BlockStack>
             </InlineStack>
           </Box>
 
           <Divider />
 
-          <Box padding="400">
-            {isFullPlacement ? (
-              <BlockStack gap="500">
-                <BlockStack gap="300">
-                  <Text as="h3" variant="headingSm">
-                    Hide storefront buttons
-                  </Text>
-                  <BlockStack gap="200">
-                    <Checkbox
-                      label="Hide Checkout button"
-                      checked={hideCheckout}
-                      onChange={setHideCheckout}
-                    />
-                    <Checkbox
-                      label="Hide Add to Cart button"
-                      checked={hideAddToCart}
-                      onChange={setHideAddToCart}
-                    />
-                    <Checkbox
-                      label="Hide Buy Now button"
-                      checked={hideBuyNow}
-                      onChange={setHideBuyNow}
-                    />
-                  </BlockStack>
-                </BlockStack>
-
-                <ChoiceList
-                  title="When the form is opened"
-                  choices={[
-                    { label: "Buy only the product on page", value: "product-only" },
-                    { label: "Buy the product on page and items in cart", value: "product-and-cart" },
-                  ]}
-                  selected={[whenOpened]}
-                  onChange={(values) => setWhenOpened(values[0] as WhenOpened)}
+          {/* Options: whole-store and product-pages show full controls; cart-page is minimal */}
+          {isCartPage ? (
+            <Box padding="400">
+              <BlockStack gap="200">
+                <Text as="h3" variant="headingSm">
+                  Hide storefront buttons
+                </Text>
+                <Checkbox
+                  label="Hide Checkout button"
+                  checked={hideCheckout}
+                  onChange={setHideCheckout}
                 />
               </BlockStack>
-            ) : (
-              <Checkbox
-                label="Hide Checkout button"
-                checked={hideCheckout}
-                onChange={setHideCheckout}
-              />
-            )}
-          </Box>
-
-          {isFullPlacement && (
+            </Box>
+          ) : (
             <>
-              <Divider />
               <Box padding="400">
-                <ChoiceList
-                  allowMultiple
-                  title="Disable form in"
-                  choices={DISABLE_IN_CHOICES}
-                  selected={DISABLE_IN_CHOICES.filter((c) => disableIn[c.value]).map((c) => c.value)}
-                  onChange={(values) =>
-                    setDisableIn({
-                      homePage: values.includes("homePage"),
-                      collectionPage: values.includes("collectionPage"),
-                      regularPage: values.includes("regularPage"),
-                      searchResultPage: values.includes("searchResultPage"),
-                      cartDrawer: values.includes("cartDrawer"),
-                    })
-                  }
-                />
+                <BlockStack gap="500">
+                  <BlockStack gap="300">
+                    <Text as="h3" variant="headingSm">
+                      Hide storefront buttons
+                    </Text>
+                    <BlockStack gap="200">
+                      <Checkbox
+                        label="Hide Checkout button"
+                        checked={hideCheckout}
+                        onChange={setHideCheckout}
+                      />
+                      <Checkbox
+                        label="Hide Add to Cart button"
+                        checked={hideAddToCart}
+                        onChange={setHideAddToCart}
+                      />
+                      <Checkbox
+                        label="Hide Buy Now button"
+                        checked={hideBuyNow}
+                        onChange={setHideBuyNow}
+                      />
+                    </BlockStack>
+                  </BlockStack>
+
+                  <ChoiceList
+                    title="When the form is opened"
+                    choices={[
+                      {
+                        label: "Buy only the product on page",
+                        value: "product-only",
+                      },
+                      {
+                        label: "Buy the product on page and items in cart",
+                        value: "product-and-cart",
+                      },
+                    ]}
+                    selected={[whenOpened]}
+                    onChange={(values) => setWhenOpened(values[0] as WhenOpened)}
+                  />
+                </BlockStack>
               </Box>
+
+              {/* "Disable form in" only applies to whole-store; product-pages is already page-specific */}
+              {isWholeStore && (
+                <>
+                  <Divider />
+                  <Box padding="400">
+                    <ChoiceList
+                      allowMultiple
+                      title="Disable form in"
+                      choices={DISABLE_IN_CHOICES}
+                      selected={DISABLE_IN_CHOICES.filter((c) => disableIn[c.value]).map(
+                        (c) => c.value,
+                      )}
+                      onChange={(values) =>
+                        setDisableIn({
+                          homePage: values.includes("homePage"),
+                          collectionPage: values.includes("collectionPage"),
+                          regularPage: values.includes("regularPage"),
+                          searchResultPage: values.includes("searchResultPage"),
+                          cartDrawer: values.includes("cartDrawer"),
+                        })
+                      }
+                    />
+                  </Box>
+                </>
+              )}
             </>
           )}
         </Card>
