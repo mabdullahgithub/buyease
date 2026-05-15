@@ -335,6 +335,13 @@ model FormDesignConfig {
   countriesEnabled Boolean @default(false)
   countries        Json    @default("[]")
 
+  /// "none" | "enable-only" | "disable-for"
+  productRestrictionMode String @default("none")
+  /// Array of {id, title, imageUrl, isSoldOut} — products the restriction applies to
+  restrictedProducts     Json   @default("[]")
+  /// Array of {id, title, imageUrl} — collections the restriction applies to
+  restrictedCollections  Json   @default("[]")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

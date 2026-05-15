@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { ReactElement } from "react";
 import Image from "next/image";
 import {
+  Badge,
   Banner,
   BlockStack,
   Box,
@@ -17,6 +18,7 @@ import {
   InlineStack,
   Link,
   List,
+  Spinner,
   Text,
   TextField,
 } from "@shopify/polaris";
@@ -24,23 +26,37 @@ import {
   AlertCircleIcon,
   ChatIcon,
   CheckCircleIcon,
+  DeleteIcon,
   ExternalIcon,
+  ImageIcon,
   InfoIcon,
 } from "@shopify/polaris-icons";
 
+import { useShopifyBridge } from "@/lib/use-shopify-bridge";
+
+// ── Types ────────────────────────────────────────────────────────────────────
+
 type FormPlacement = "whole-store" | "product-pages" | "cart-page";
 type WhenOpened = "product-only" | "product-and-cart";
+type ProductRestrictionMode = "none" | "enable-only" | "disable-for";
+
+type RestrictedProduct = {
+  id: string;
+  title: string;
+  imageUrl: string;
+  isSoldOut: boolean;
+};
+
+type RestrictedCollection = {
+  id: string;
+  title: string;
+  imageUrl: string;
+};
 
 type PlacementConfig = {
   value: FormPlacement;
   label: string;
 };
-
-const PLACEMENTS: PlacementConfig[] = [
-  { value: "whole-store", label: "Whole store" },
-  { value: "product-pages", label: "Product pages" },
-  { value: "cart-page", label: "Cart page only" },
-];
 
 type DisableInState = {
   homePage: boolean;
@@ -51,13 +67,62 @@ type DisableInState = {
 };
 
 type RestrictState = {
-  enableForProducts: boolean;
-  disableForProducts: boolean;
   allowCountriesOnly: boolean;
   enableOrderEligibility: boolean;
 };
 
 type DisableInKey = keyof DisableInState;
+
+// ── Resource picker response shapes ─────────────────────────────────────────
+
+type PickerVariant = {
+  inventoryQuantity?: number;
+  inventoryPolicy?: string;
+};
+
+type PickerProduct = {
+  id: string;
+  title: string;
+  status?: string;
+  images?: { originalSrc?: string; src?: string }[];
+  variants?: PickerVariant[];
+};
+
+type PickerCollection = {
+  id: string;
+  title: string;
+  image?: { originalSrc?: string; src?: string } | null;
+};
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+function gidToNumericId(gid: string): string {
+  return gid.split("/").pop() ?? gid;
+}
+
+function isProductSoldOut(item: PickerProduct): boolean {
+  if (item.status && item.status !== "ACTIVE") return true;
+  if (!item.variants || item.variants.length === 0) return false;
+  return item.variants.every(
+    (v) => (v.inventoryQuantity ?? 0) <= 0 && v.inventoryPolicy !== "continue",
+  );
+}
+
+function productImageUrl(item: PickerProduct): string {
+  return item.images?.[0]?.originalSrc ?? item.images?.[0]?.src ?? "";
+}
+
+function collectionImageUrl(item: PickerCollection): string {
+  return item.image?.originalSrc ?? item.image?.src ?? "";
+}
+
+// ── Constants ────────────────────────────────────────────────────────────────
+
+const PLACEMENTS: PlacementConfig[] = [
+  { value: "whole-store", label: "Whole store" },
+  { value: "product-pages", label: "Product pages" },
+  { value: "cart-page", label: "Cart page only" },
+];
 
 const SHOPIFY_API_KEY = process.env.NEXT_PUBLIC_SHOPIFY_API_KEY ?? "";
 const EXTENSION_HANDLE = "cod-form";
@@ -94,13 +159,69 @@ const DISABLE_IN_CHOICES: { label: string; value: DisableInKey }[] = [
   { label: "Cart drawer", value: "cartDrawer" },
 ];
 
+// ── Thumbnail ─────────────────────────────────────────────────────────────────
+
+function ResourceThumbnail({ imageUrl, alt }: { imageUrl: string; alt: string }): ReactElement {
+  if (!imageUrl) {
+    return (
+      <Box
+        background="bg-surface-secondary"
+        borderWidth="025"
+        borderColor="border"
+        borderRadius="200"
+        width="48px"
+        minHeight="48px"
+      >
+        <div
+          style={{
+            width: 48,
+            height: 48,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Icon source={ImageIcon} tone="subdued" />
+        </div>
+      </Box>
+    );
+  }
+  return (
+    <Box
+      background="bg-surface"
+      borderWidth="025"
+      borderColor="border"
+      borderRadius="200"
+      overflowX="hidden"
+      overflowY="hidden"
+    >
+      <Image
+        src={imageUrl}
+        alt={alt}
+        width={48}
+        height={48}
+        unoptimized
+        style={{ display: "block", objectFit: "cover" }}
+      />
+    </Box>
+  );
+}
+
+// ── Component props ──────────────────────────────────────────────────────────
+
 type Props = {
   embedEnabled?: boolean | null;
 };
 
+// ── SettingsWorkspace ────────────────────────────────────────────────────────
+
 export function SettingsWorkspace({ embedEnabled }: Props): ReactElement {
+  const shopify = useShopifyBridge();
+
   const [themeEditorUrl, setThemeEditorUrl] = useState("");
   const [showBanner, setShowBanner] = useState(true);
+
+  // Form placement
   const [formPlacement, setFormPlacement] = useState<FormPlacement>("whole-store");
   const [hideCheckout, setHideCheckout] = useState(false);
   const [hideAddToCart, setHideAddToCart] = useState(false);
@@ -113,12 +234,23 @@ export function SettingsWorkspace({ embedEnabled }: Props): ReactElement {
     searchResultPage: false,
     cartDrawer: false,
   });
+
+  // Restriction (countries + order eligibility)
   const [restrict, setRestrict] = useState<RestrictState>({
-    enableForProducts: false,
-    disableForProducts: false,
     allowCountriesOnly: false,
     enableOrderEligibility: false,
   });
+
+  // Product / collection restriction
+  const [productRestrictionMode, setProductRestrictionMode] =
+    useState<ProductRestrictionMode>("none");
+  const [restrictedProducts, setRestrictedProducts] = useState<RestrictedProduct[]>([]);
+  const [restrictedCollections, setRestrictedCollections] = useState<RestrictedCollection[]>([]);
+  const [restrictionsLoading, setRestrictionsLoading] = useState(true);
+  const [addingProducts, setAddingProducts] = useState(false);
+  const [addingCollections, setAddingCollections] = useState(false);
+
+  // Form options
   const [hideSubmitButton, setHideSubmitButton] = useState(false);
   const [disableOutOfStock, setDisableOutOfStock] = useState(true);
   const [disableAllDiscounts, setDisableAllDiscounts] = useState(false);
@@ -131,15 +263,199 @@ export function SettingsWorkspace({ embedEnabled }: Props): ReactElement {
     if (domain) setThemeEditorUrl(buildThemeEditorUrl(domain));
   }, []);
 
-  const toggleRestrict = useCallback(
-    (key: keyof RestrictState, value: boolean): void => {
-      setRestrict((prev) => ({ ...prev, [key]: value }));
+  // ── Fetch existing restrictions on mount ────────────────────────────────────
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function fetchRestrictions(): Promise<void> {
+      try {
+        const token = await shopify.idToken();
+        if (!token || cancelled) return;
+        const res = await fetch("/api/form-restrictions", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok || cancelled) return;
+        const data = (await res.json()) as {
+          productRestrictionMode: ProductRestrictionMode;
+          restrictedProducts: RestrictedProduct[];
+          restrictedCollections: RestrictedCollection[];
+        };
+        if (cancelled) return;
+        setProductRestrictionMode(data.productRestrictionMode ?? "none");
+        setRestrictedProducts(
+          Array.isArray(data.restrictedProducts) ? data.restrictedProducts : [],
+        );
+        setRestrictedCollections(
+          Array.isArray(data.restrictedCollections) ? data.restrictedCollections : [],
+        );
+      } catch {
+        // leave defaults — user can re-configure
+      } finally {
+        if (!cancelled) setRestrictionsLoading(false);
+      }
+    }
+
+    void fetchRestrictions();
+    return () => { cancelled = true; };
+  }, [shopify]);
+
+  // ── Save restrictions to API ──────────────────────────────────────────────
+
+  const saveRestrictions = useCallback(
+    async (
+      mode: ProductRestrictionMode,
+      products: RestrictedProduct[],
+      collections: RestrictedCollection[],
+    ): Promise<void> => {
+      try {
+        const token = await shopify.idToken();
+        if (!token) return;
+        await fetch("/api/form-restrictions", {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            productRestrictionMode: mode,
+            restrictedProducts: products,
+            restrictedCollections: collections,
+          }),
+        });
+        shopify.toast.show("Restrictions saved");
+      } catch {
+        shopify.toast.show("Failed to save restrictions");
+      }
     },
-    [],
+    [shopify],
   );
+
+  // ── Toggle restriction mode (mutually exclusive) ──────────────────────────
+
+  const handleToggleEnableForProducts = useCallback(
+    (checked: boolean): void => {
+      const newMode: ProductRestrictionMode = checked ? "enable-only" : "none";
+      setProductRestrictionMode(newMode);
+      void saveRestrictions(newMode, restrictedProducts, restrictedCollections);
+    },
+    [restrictedProducts, restrictedCollections, saveRestrictions],
+  );
+
+  const handleToggleDisableForProducts = useCallback(
+    (checked: boolean): void => {
+      const newMode: ProductRestrictionMode = checked ? "disable-for" : "none";
+      setProductRestrictionMode(newMode);
+      void saveRestrictions(newMode, restrictedProducts, restrictedCollections);
+    },
+    [restrictedProducts, restrictedCollections, saveRestrictions],
+  );
+
+  // ── Resource picker: add products ─────────────────────────────────────────
+
+  const handleAddProducts = useCallback(async (): Promise<void> => {
+    setAddingProducts(true);
+    try {
+      const result = await window.shopify?.resourcePicker({
+        type: "product",
+        multiple: true,
+        action: "select",
+        initialSelectionIds: restrictedProducts.map((p) => ({
+          id: `gid://shopify/Product/${p.id}`,
+        })),
+      });
+
+      if (!result || !Array.isArray(result) || result.length === 0) return;
+
+      const selected = result as PickerProduct[];
+      const merged: RestrictedProduct[] = [...restrictedProducts];
+
+      for (const item of selected) {
+        const numId = gidToNumericId(item.id);
+        if (!merged.find((p) => p.id === numId)) {
+          merged.push({
+            id: numId,
+            title: item.title,
+            imageUrl: productImageUrl(item),
+            isSoldOut: isProductSoldOut(item),
+          });
+        }
+      }
+
+      setRestrictedProducts(merged);
+      void saveRestrictions(productRestrictionMode, merged, restrictedCollections);
+    } finally {
+      setAddingProducts(false);
+    }
+  }, [restrictedProducts, restrictedCollections, productRestrictionMode, saveRestrictions]);
+
+  // ── Resource picker: add collections ──────────────────────────────────────
+
+  const handleAddCollections = useCallback(async (): Promise<void> => {
+    setAddingCollections(true);
+    try {
+      const result = await window.shopify?.resourcePicker({
+        type: "collection",
+        multiple: true,
+        action: "select",
+        initialSelectionIds: restrictedCollections.map((c) => ({
+          id: `gid://shopify/Collection/${c.id}`,
+        })),
+      });
+
+      if (!result || !Array.isArray(result) || result.length === 0) return;
+
+      const selected = result as PickerCollection[];
+      const merged: RestrictedCollection[] = [...restrictedCollections];
+
+      for (const item of selected) {
+        const numId = gidToNumericId(item.id);
+        if (!merged.find((c) => c.id === numId)) {
+          merged.push({
+            id: numId,
+            title: item.title,
+            imageUrl: collectionImageUrl(item),
+          });
+        }
+      }
+
+      setRestrictedCollections(merged);
+      void saveRestrictions(productRestrictionMode, restrictedProducts, merged);
+    } finally {
+      setAddingCollections(false);
+    }
+  }, [restrictedCollections, restrictedProducts, productRestrictionMode, saveRestrictions]);
+
+  // ── Remove handlers ───────────────────────────────────────────────────────
+
+  const handleRemoveProduct = useCallback(
+    (id: string): void => {
+      const next = restrictedProducts.filter((p) => p.id !== id);
+      setRestrictedProducts(next);
+      void saveRestrictions(productRestrictionMode, next, restrictedCollections);
+    },
+    [restrictedProducts, restrictedCollections, productRestrictionMode, saveRestrictions],
+  );
+
+  const handleRemoveCollection = useCallback(
+    (id: string): void => {
+      const next = restrictedCollections.filter((c) => c.id !== id);
+      setRestrictedCollections(next);
+      void saveRestrictions(productRestrictionMode, restrictedProducts, next);
+    },
+    [restrictedCollections, restrictedProducts, productRestrictionMode, saveRestrictions],
+  );
+
+  // ── Misc toggle ───────────────────────────────────────────────────────────
+
+  const toggleRestrict = useCallback((key: keyof RestrictState, value: boolean): void => {
+    setRestrict((prev) => ({ ...prev, [key]: value }));
+  }, []);
 
   const isCartPage = formPlacement === "cart-page";
   const isWholeStore = formPlacement === "whole-store";
+  const isRestrictionActive =
+    productRestrictionMode === "enable-only" || productRestrictionMode === "disable-for";
 
   return (
     <BlockStack gap="800">
@@ -153,8 +469,8 @@ export function SettingsWorkspace({ embedEnabled }: Props): ReactElement {
             BuyEase Activation
           </Text>
           <Text as="p" variant="bodyMd" tone="subdued">
-            Enable the BuyEase app embed in your active theme to start
-            displaying the COD order form on your storefront.
+            Enable the BuyEase app embed in your active theme to start displaying the COD order form
+            on your storefront.
           </Text>
         </BlockStack>
 
@@ -294,10 +610,18 @@ export function SettingsWorkspace({ embedEnabled }: Props): ReactElement {
             showBanner && (
               <Banner tone="info" onDismiss={() => setShowBanner(false)}>
                 <Text as="p" variant="bodyMd">
-                  <Text as="span" variant="bodyMd" fontWeight="semibold">Tip: </Text>
-                  Use the <Text as="span" variant="bodyMd" fontWeight="semibold">Form Designer</Text> tab to
-                  customise colours, fields, and layout. Use <Text as="span" variant="bodyMd" fontWeight="semibold">Form Placement</Text> below
-                  to control which pages and countries show the form.
+                  <Text as="span" variant="bodyMd" fontWeight="semibold">
+                    Tip:{" "}
+                  </Text>
+                  Use the{" "}
+                  <Text as="span" variant="bodyMd" fontWeight="semibold">
+                    Form Designer
+                  </Text>{" "}
+                  tab to customise colours, fields, and layout. Use{" "}
+                  <Text as="span" variant="bodyMd" fontWeight="semibold">
+                    Form Placement
+                  </Text>{" "}
+                  below to control which pages and countries show the form.
                 </Text>
               </Banner>
             )
@@ -310,8 +634,8 @@ export function SettingsWorkspace({ embedEnabled }: Props): ReactElement {
                 secondaryAction={{ content: "Chat with us" }}
               >
                 <Text as="p" variant="bodyMd">
-                  If you can&apos;t see the form in your store, or you need help
-                  to enable it, please contact us.
+                  If you can&apos;t see the form in your store, or you need help to enable it,
+                  please contact us.
                 </Text>
               </Banner>
             )
@@ -328,14 +652,12 @@ export function SettingsWorkspace({ embedEnabled }: Props): ReactElement {
             Form placement
           </Text>
           <Text as="p" variant="bodyMd" tone="subdued">
-            Choose where you&apos;d like the form to be displayed. By default,
-            it appears across the entire store, but you can restrict it to only
-            show on the product page or cart page.
+            Choose where you&apos;d like the form to be displayed. By default, it appears across the
+            entire store, but you can restrict it to only show on the product page or cart page.
           </Text>
         </BlockStack>
 
         <Card padding="0">
-          {/* Placement selector — matches the tab-switching pattern in FormBuilderPageContent */}
           <Box
             padding="100"
             background="bg-surface-secondary"
@@ -356,7 +678,6 @@ export function SettingsWorkspace({ embedEnabled }: Props): ReactElement {
             </InlineGrid>
           </Box>
 
-          {/* Info banner describing current placement */}
           <Box background="bg-surface-info" paddingBlock="300" paddingInline="400">
             <InlineStack gap="200" blockAlign="start" wrap={false}>
               <Icon source={InfoIcon} tone="info" />
@@ -373,7 +694,6 @@ export function SettingsWorkspace({ embedEnabled }: Props): ReactElement {
 
           <Divider />
 
-          {/* Options: whole-store and product-pages show full controls; cart-page is minimal */}
           {isCartPage ? (
             <Box padding="400">
               <BlockStack gap="200">
@@ -417,10 +737,7 @@ export function SettingsWorkspace({ embedEnabled }: Props): ReactElement {
                   <ChoiceList
                     title="When the form is opened"
                     choices={[
-                      {
-                        label: "Buy only the product on page",
-                        value: "product-only",
-                      },
+                      { label: "Buy only the product on page", value: "product-only" },
                       {
                         label: "Buy the product on page and items in cart",
                         value: "product-and-cart",
@@ -432,7 +749,6 @@ export function SettingsWorkspace({ embedEnabled }: Props): ReactElement {
                 </BlockStack>
               </Box>
 
-              {/* "Disable form in" only applies to whole-store; product-pages is already page-specific */}
               {isWholeStore && (
                 <>
                   <Divider />
@@ -468,29 +784,147 @@ export function SettingsWorkspace({ embedEnabled }: Props): ReactElement {
       <InlineGrid columns={["oneThird", "twoThirds"]} gap="400">
         <BlockStack gap="200">
           <Text as="h2" variant="headingMd">
-            Restrict your order form to specific products, collections,
-            countries, or order totals
+            Restrict your order form to specific products, collections, countries, or order totals
           </Text>
           <Text as="p" variant="bodyMd" tone="subdued">
-            Choose to display your COD order form only for selected products and
-            collections, specific countries, or based on the order total.
+            Choose to display your COD order form only for selected products and collections,
+            specific countries, or based on the order total.
           </Text>
         </BlockStack>
 
         <Card padding="0">
+          {/* ── Product / collection restriction ─────────────────────────── */}
           <Box padding="400">
-            <BlockStack gap="300">
-              <Checkbox
-                label="Enable form only for specific products or collections"
-                checked={restrict.enableForProducts}
-                onChange={(v) => toggleRestrict("enableForProducts", v)}
-              />
-              <Checkbox
-                label="Disable form for one or more products or collections"
-                checked={restrict.disableForProducts}
-                onChange={(v) => toggleRestrict("disableForProducts", v)}
-              />
-            </BlockStack>
+            {restrictionsLoading ? (
+              <InlineStack gap="200" blockAlign="center">
+                <Spinner size="small" />
+                <Text as="p" variant="bodyMd" tone="subdued">
+                  Loading restriction settings…
+                </Text>
+              </InlineStack>
+            ) : (
+              <BlockStack gap="300">
+                <Checkbox
+                  label="Enable your form only for specific products and collections"
+                  checked={productRestrictionMode === "enable-only"}
+                  disabled={productRestrictionMode === "disable-for"}
+                  onChange={handleToggleEnableForProducts}
+                />
+                <Checkbox
+                  label="Disable your form for one or more products and collections"
+                  checked={productRestrictionMode === "disable-for"}
+                  disabled={productRestrictionMode === "enable-only"}
+                  onChange={handleToggleDisableForProducts}
+                />
+              </BlockStack>
+            )}
+
+            {/* ── Active restriction: product + collection lists ─────────── */}
+            {isRestrictionActive && !restrictionsLoading && (
+              <Box paddingBlockStart="400">
+                <BlockStack gap="400">
+                  <Text as="p" variant="bodyMd" fontWeight="semibold">
+                    {productRestrictionMode === "enable-only"
+                      ? "Your form will only be active on the following products and collections:"
+                      : "Your form will be disabled for the following products and collections:"}
+                  </Text>
+
+                  {/* ── Products ─────────────────────────────────────────── */}
+                  <BlockStack gap="200">
+                    <InlineStack>
+                      <Button
+                        variant="secondary"
+                        loading={addingProducts}
+                        onClick={() => void handleAddProducts()}
+                      >
+                        Add products
+                      </Button>
+                    </InlineStack>
+
+                    {restrictedProducts.map((product) => (
+                      <Box
+                        key={product.id}
+                        borderWidth="025"
+                        borderColor="border"
+                        borderRadius="200"
+                        padding="300"
+                        background="bg-surface"
+                      >
+                        <InlineStack align="space-between" blockAlign="center" gap="300">
+                          <InlineStack gap="300" blockAlign="center">
+                            <ResourceThumbnail imageUrl={product.imageUrl} alt={product.title} />
+                            <BlockStack gap="050">
+                              <Text as="p" variant="bodyMd" fontWeight="semibold">
+                                {product.title}
+                              </Text>
+                              <Text as="p" variant="bodySm" tone="subdued">
+                                Product ID: {product.id}
+                              </Text>
+                              {product.isSoldOut && <Badge tone="critical">Sold Out</Badge>}
+                            </BlockStack>
+                          </InlineStack>
+                          <Button
+                            variant="plain"
+                            tone="critical"
+                            icon={DeleteIcon}
+                            accessibilityLabel={`Remove ${product.title}`}
+                            onClick={() => handleRemoveProduct(product.id)}
+                          />
+                        </InlineStack>
+                      </Box>
+                    ))}
+                  </BlockStack>
+
+                  {/* ── Collections ──────────────────────────────────────── */}
+                  <BlockStack gap="200">
+                    <InlineStack>
+                      <Button
+                        variant="secondary"
+                        loading={addingCollections}
+                        onClick={() => void handleAddCollections()}
+                      >
+                        Add collections
+                      </Button>
+                    </InlineStack>
+
+                    {restrictedCollections.map((collection) => (
+                      <Box
+                        key={collection.id}
+                        borderWidth="025"
+                        borderColor="border"
+                        borderRadius="200"
+                        padding="300"
+                        background="bg-surface"
+                      >
+                        <InlineStack align="space-between" blockAlign="center" gap="300">
+                          <InlineStack gap="300" blockAlign="center">
+                            <ResourceThumbnail
+                              imageUrl={collection.imageUrl}
+                              alt={collection.title}
+                            />
+                            <BlockStack gap="050">
+                              <Text as="p" variant="bodyMd" fontWeight="semibold">
+                                {collection.title}
+                              </Text>
+                              <Text as="p" variant="bodySm" tone="subdued">
+                                Collection ID: {collection.id}
+                              </Text>
+                            </BlockStack>
+                          </InlineStack>
+                          <Button
+                            variant="plain"
+                            tone="critical"
+                            icon={DeleteIcon}
+                            accessibilityLabel={`Remove ${collection.title}`}
+                            onClick={() => handleRemoveCollection(collection.id)}
+                          />
+                        </InlineStack>
+                      </Box>
+                    ))}
+                  </BlockStack>
+                </BlockStack>
+              </Box>
+            )}
           </Box>
 
           <Divider />
