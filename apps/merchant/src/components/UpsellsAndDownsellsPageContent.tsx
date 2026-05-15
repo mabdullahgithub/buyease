@@ -21,6 +21,7 @@ type UpsellFeatureItem = {
   id: string;
   icon: Parameters<typeof Icon>[0]["source"];
   title: string;
+  description: ReactElement;
   buttonLabel: string;
   imageSrc: string;
   imageAlt: string;
