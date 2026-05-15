@@ -1,7 +1,7 @@
 import type { ReactElement } from "react";
 
-import { ComingSoonPage } from "@/components/ComingSoonPage";
+import { UpsellsAndDownsellsPageContent } from "@/components/UpsellsAndDownsellsPageContent";
 
 export default function UpsellsPage(): ReactElement {
-  return <ComingSoonPage title="Upsells & Downsells" />;
+  return <UpsellsAndDownsellsPageContent />;
 }

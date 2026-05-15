@@ -1,0 +1,136 @@
+"use client";
+
+import type { ReactElement, ReactNode } from "react";
+import Image from "next/image";
+import {
+  BlockStack,
+  Button,
+  Card,
+  Icon,
+  InlineStack,
+  Page,
+  Text,
+} from "@shopify/polaris";
+import {
+  ChartFunnelIcon,
+  ClipboardChecklistIcon,
+  DiscountIcon,
+} from "@shopify/polaris-icons";
+
+type UpsellFeatureItem = {
+  id: string;
+  icon: Parameters<typeof Icon>[0]["source"];
+  title: string;
+  description: ReactNode;
+  buttonLabel: string;
+  imageSrc: string;
+  imageAlt: string;
+};
+
+const UPSELL_FEATURES: UpsellFeatureItem[] = [
+  {
+    id: "one-click-upsells",
+    icon: ChartFunnelIcon,
+    title: "1-Click Upsells",
+    description: (
+      <>
+        <strong>1-Click upsells</strong> are extra offers shown to customers before they fill out
+        the form or right after they complete their purchase. Create up to{" "}
+        <strong>5 upsell offers</strong>. When the customer accept or reject an offer, the next
+        offer will be shown.
+      </>
+    ),
+    buttonLabel: "1-Click Upsells",
+    imageSrc: "/images/upsellsanddownsells/funnel.svg",
+    imageAlt: "1-Click Upsells funnel illustration",
+  },
+  {
+    id: "order-bump",
+    icon: ClipboardChecklistIcon,
+    title: "1-Tick Upsell / Order Bump",
+    description: (
+      <>
+        A quick <strong>1-Click upsell</strong>. A Tick box that adds a little extra $ to orders.
+        <br />
+        <strong>(Shipping protection, Priority processing, Extended warranty, Gift wrapping…)</strong>
+      </>
+    ),
+    buttonLabel: "1-Tick Upsells",
+    imageSrc: "/images/upsellsanddownsells/bumps.svg",
+    imageAlt: "Order bump checklist illustration",
+  },
+  {
+    id: "downsells",
+    icon: DiscountIcon,
+    title: "Downsells",
+    description: (
+      <>
+        <strong>Pop-up discounts</strong> that incentivize customers to complete their purchases
+        when they close the form. This can help recover potential lost sales from customers who
+        opened the form but then closed it.
+      </>
+    ),
+    buttonLabel: "Downsells",
+    imageSrc: "/images/upsellsanddownsells/downsell.svg",
+    imageAlt: "Downsells discount illustration",
+  },
+];
+
+/**
+ * Upsells & Downsells overview page.
+ * Shown when the merchant clicks "Upsells & Downsells" in the sidebar.
+ * Mirrors the Integrations & Messaging page layout exactly.
+ */
+export function UpsellsAndDownsellsPageContent(): ReactElement {
+  return (
+    <Page title="Upsells & Downsells">
+      <div style={{ width: "65.5rem", maxWidth: "100%" }}>
+        <BlockStack gap="400">
+          {UPSELL_FEATURES.map((item) => (
+            <Card key={item.id}>
+              <InlineStack
+                align="space-between"
+                blockAlign="center"
+                gap="600"
+                wrap={false}
+              >
+                {/* Left: icon + title + description + button */}
+                <BlockStack gap="300" inlineAlign="start">
+                  <InlineStack gap="200" align="start" blockAlign="center">
+                    <Icon source={item.icon} />
+                    <Text as="h2" variant="headingMd" fontWeight="semibold">
+                      {item.title}
+                    </Text>
+                  </InlineStack>
+
+                  <div style={{ fontSize: "var(--p-font-size-350)", lineHeight: "var(--p-font-line-height-500)", color: "var(--p-color-text-secondary)" }}>
+                    {item.description}
+                  </div>
+
+                  <div>
+                    <Button icon={item.icon} variant="primary">
+                      {item.buttonLabel}
+                    </Button>
+                  </div>
+                </BlockStack>
+
+                {/* Right: illustration */}
+                <Image
+                  src={item.imageSrc}
+                  alt={item.imageAlt}
+                  width={80}
+                  height={80}
+                  style={{
+                    display: "block",
+                    objectFit: "contain",
+                    flexShrink: 0,
+                  }}
+                />
+              </InlineStack>
+            </Card>
+          ))}
+        </BlockStack>
+      </div>
+    </Page>
+  );
+}
