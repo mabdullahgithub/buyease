@@ -44,8 +44,8 @@ const UPSELL_FEATURES: UpsellFeatureItem[] = [
     buttonLabel: "1-Click Upsells",
     imageSrc: "/images/upsellsanddownsells/funnel.svg",
     imageAlt: "1-Click Upsells funnel illustration",
-    imageWidth: 80,
-    imageHeight: 80,
+    imageWidth: 100,
+    imageHeight: 100,
   },
   {
     id: "order-bump",
@@ -61,8 +61,8 @@ const UPSELL_FEATURES: UpsellFeatureItem[] = [
     buttonLabel: "1-Tick Upsells",
     imageSrc: "/images/upsellsanddownsells/bumps.svg",
     imageAlt: "Order bump checklist illustration",
-    imageWidth: 80,
-    imageHeight: 80,
+    imageWidth: 100,
+    imageHeight: 100,
   },
   {
     id: "downsells",
@@ -78,8 +78,8 @@ const UPSELL_FEATURES: UpsellFeatureItem[] = [
     buttonLabel: "Downsells",
     imageSrc: "/images/upsellsanddownsells/downsell.svg",
     imageAlt: "Downsells discount illustration",
-    imageWidth: 80,
-    imageHeight: 80,
+    imageWidth: 100,
+    imageHeight: 100,
   },
 ];
 

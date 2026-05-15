@@ -1,7 +1,7 @@
 import type { ReactElement } from "react";
 
-import { ComingSoonPage } from "@/components/ComingSoonPage";
+import { OffersAndBundlesPageContent } from "@/components/OffersAndBundlesPageContent";
 
 export default function OffersBundlesPage(): ReactElement {
-  return <ComingSoonPage title="Offers & Bundles" />;
+  return <OffersAndBundlesPageContent />;
 }
