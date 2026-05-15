@@ -22,12 +22,16 @@ import {
   ButtonIcon,
   DeliveryIcon,
   FormsIcon,
+  SettingsIcon,
   TabletIcon,
   ThemeEditIcon,
 } from "@shopify/polaris-icons";
 
+import { useShopifyBridge } from "@/lib/use-shopify-bridge";
+
 import { BuyButtonDesignerWorkspace } from "@/components/form-builder/BuyButtonDesignerWorkspace";
 import { FormDesignerWorkspace } from "@/components/form-builder/FormDesignerWorkspace";
+import { SettingsWorkspace } from "@/components/form-builder/SettingsWorkspace";
 import { ShippingRatesWorkspace } from "@/components/form-builder/ShippingRatesWorkspace";
 
 /** Official Polaris empty-state illustration (decorative); required by `EmptyState`. */
@@ -36,7 +40,7 @@ const FORM_BUILDER_EMPTY_ILLUSTRATION =
 
 const BUYEASE_MARKETING_URL = "https://buyease-landing.vercel.app/";
 
-type FormBuilderMode = "buy-button" | "form-designer" | "shipping-rates";
+type FormBuilderMode = "buy-button" | "form-designer" | "shipping-rates" | "settings";
 
 type ModeConfig = {
   id: FormBuilderMode;
@@ -72,6 +76,14 @@ const MODES: ModeConfig[] = [
     description:
       "Publish rates and timelines so COD customers understand cost and speed up front.",
   },
+  {
+    id: "settings",
+    label: "Settings",
+    icon: SettingsIcon,
+    emptyHeading: "Configure how your COD form behaves",
+    description:
+      "Set up form visibility, placement restrictions, form options, and custom styles.",
+  },
 ];
 
 /**
@@ -90,17 +102,50 @@ function buildThemeEditorUrl(shopDomain: string): string {
 export function FormBuilderPageContent(): ReactElement {
   const [mode, setMode] = useState<FormBuilderMode>("buy-button");
   const [themeEditorUrl, setThemeEditorUrl] = useState("");
+  const [embedEnabled, setEmbedEnabled] = useState<boolean | null>(null);
+  const shopify = useShopifyBridge();
+
+  const fetchEmbedStatus = useCallback(async (): Promise<void> => {
+    try {
+      const token = await shopify.idToken();
+      if (!token) return;
+      const res = await fetch("/api/theme-embed-status", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) return;
+      const data = (await res.json()) as { enabled: boolean };
+      setEmbedEnabled(data.enabled);
+    } catch {
+      // leave as null — unknown state
+    }
+  }, [shopify]);
 
   useEffect(() => {
     const domain: string = (window as Window & { shopify?: { config?: { shop?: string } } }).shopify?.config?.shop ?? "";
     if (domain) setThemeEditorUrl(buildThemeEditorUrl(domain));
-  }, []);
+    void fetchEmbedStatus();
+  }, [fetchEmbedStatus]);
+
+  useEffect(() => {
+    const onVisible = (): void => {
+      if (!document.hidden) void fetchEmbedStatus();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [fetchEmbedStatus]);
 
   const handleModeChange = useCallback((next: FormBuilderMode): void => {
     setMode(next);
   }, []);
 
   const active = MODES.find((m) => m.id === mode) ?? MODES[0]!;
+
+  const embedStatusBadge =
+    embedEnabled === true ? (
+      <Badge tone="success">Form enabled</Badge>
+    ) : embedEnabled === false ? (
+      <Badge tone="attention">Form not enabled</Badge>
+    ) : null;
 
   return (
     <Page
@@ -110,10 +155,15 @@ export function FormBuilderPageContent(): ReactElement {
           ? "Design your COD buy button and preview it before publishing to your storefront."
           : undefined
       }
-      titleMetadata={<Badge tone="success">New</Badge>}
+      titleMetadata={
+        <>
+          <Badge tone="success">New</Badge>
+          {embedStatusBadge}
+        </>
+      }
       secondaryActions={[
         {
-          content: "Customize theme",
+          content: "Enable form",
           icon: ThemeEditIcon,
           url: themeEditorUrl || undefined,
           target: "_blank",
@@ -129,7 +179,7 @@ export function FormBuilderPageContent(): ReactElement {
           borderColor="border"
           borderRadius="200"
         >
-          <InlineGrid columns={3} gap="100">
+          <InlineGrid columns={4} gap="100">
             {MODES.map((item) => {
               const isSelected = mode === item.id;
               return (
@@ -154,6 +204,8 @@ export function FormBuilderPageContent(): ReactElement {
           <FormDesignerWorkspace onNavigateToBuyButton={() => setMode("buy-button")} />
         ) : mode === "shipping-rates" ? (
           <ShippingRatesWorkspace />
+        ) : mode === "settings" ? (
+          <SettingsWorkspace />
         ) : (
           <InlineGrid
             columns={{

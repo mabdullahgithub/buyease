@@ -1133,6 +1133,14 @@ export function BuyButtonDesignerWorkspace(): ReactElement {
                 checked={stickyMobile}
                 onChange={setStickyMobile}
               />
+
+              <Checkbox
+                id="buy-button-mobile-full-width"
+                label="Full width on mobile"
+                helpText="Stretch the button to the full screen width on mobile devices."
+                checked={mobileFullWidth}
+                onChange={setMobileFullWidth}
+              />
             </FormLayout>
 
             <Banner

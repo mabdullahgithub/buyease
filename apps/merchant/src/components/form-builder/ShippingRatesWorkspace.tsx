@@ -78,16 +78,16 @@ const CONDITION_BADGE_TONES: Record<ConditionType, "info" | "success" | "warning
   cart_not_contains: "critical",
 };
 
-/** Simulated Shopify shipping zones for import. */
-const MOCK_SHOPIFY_ZONES = [
-  { name: "Domestic", rates: [
+/** Quick-start rate templates — pre-filled examples merchants can add with one click. */
+const QUICK_START_TEMPLATES = [
+  { category: "Standard", rates: [
     { name: "Standard Shipping", price: "5.99", description: "5-7 business days" },
-    { name: "Express Shipping", price: "12.99", description: "2-3 business days" },
-    { name: "Free Shipping", price: "0.00", description: "Orders over $50" },
+    { name: "Express Shipping",  price: "12.99", description: "2-3 business days" },
+    { name: "Free Shipping",     price: "0.00",  description: "Free for all orders" },
   ]},
-  { name: "International", rates: [
+  { category: "International", rates: [
     { name: "International Standard", price: "15.99", description: "10-15 business days" },
-    { name: "International Express", price: "29.99", description: "5-7 business days" },
+    { name: "International Express",  price: "29.99", description: "5-7 business days" },
   ]},
 ];
 
@@ -385,9 +385,15 @@ function ProvinceSelector({
       </Box>
       {selectedProvinces.length > 0 && (
         <InlineStack gap="100" wrap>
-          {selectedProvinces.map((fc) => (
-            <Badge key={fc} tone="success">{fc}</Badge>
-          ))}
+          {selectedProvinces.map((fc) => {
+            const [cc, pc] = fc.split("-");
+            const country = SHIPPING_COUNTRIES.find((c) => c.code === cc);
+            const province = country?.provinces.find((p) => p.code === pc);
+            const label = province && country
+              ? `${province.name} — ${country.name}`
+              : fc;
+            return <Badge key={fc} tone="success">{label}</Badge>;
+          })}
         </InlineStack>
       )}
     </BlockStack>
@@ -422,6 +428,30 @@ function RateEditForm({
           <FormLayout.Group>
             <TextField label="Rate name" value={rate.name} onChange={(v) => onUpdate({ name: v })} autoComplete="off" placeholder="e.g. Standard Shipping" />
             <TextField label="Rate description" value={rate.description} onChange={(v) => onUpdate({ description: v })} autoComplete="off" placeholder="e.g. 5-7 business days" />
+          </FormLayout.Group>
+          <FormLayout.Group>
+            <Select
+              label="Currency"
+              options={[
+                { label: "USD — US Dollar",           value: "USD" },
+                { label: "EUR — Euro",                value: "EUR" },
+                { label: "GBP — British Pound",       value: "GBP" },
+                { label: "AED — UAE Dirham",          value: "AED" },
+                { label: "SAR — Saudi Riyal",         value: "SAR" },
+                { label: "PKR — Pakistani Rupee",     value: "PKR" },
+                { label: "INR — Indian Rupee",        value: "INR" },
+                { label: "CAD — Canadian Dollar",     value: "CAD" },
+                { label: "AUD — Australian Dollar",   value: "AUD" },
+                { label: "EGP — Egyptian Pound",      value: "EGP" },
+                { label: "MAD — Moroccan Dirham",     value: "MAD" },
+                { label: "TRY — Turkish Lira",        value: "TRY" },
+                { label: "BRL — Brazilian Real",      value: "BRL" },
+                { label: "MXN — Mexican Peso",        value: "MXN" },
+                { label: "JPY — Japanese Yen",        value: "JPY" },
+              ]}
+              value={rate.currency}
+              onChange={(v) => onUpdate({ currency: v })}
+            />
             <TextField label="Rate price" value={rate.price} onChange={(v) => onUpdate({ price: v })} autoComplete="off" type="number" prefix={rate.currency} min={0} step={0.01} />
           </FormLayout.Group>
         </FormLayout>
@@ -598,9 +628,9 @@ export function ShippingRatesWorkspace(): ReactElement {
 
   const handleImport = useCallback(() => {
     const imported: ShippingRate[] = [];
-    for (const zone of MOCK_SHOPIFY_ZONES) {
-      for (const r of zone.rates) {
-        const key = `${zone.name}-${r.name}`;
+    for (const group of QUICK_START_TEMPLATES) {
+      for (const r of group.rates) {
+        const key = `${group.category}-${r.name}`;
         if (importSelections[key]) {
           imported.push({
             ...createEmptyRate(),
@@ -608,7 +638,7 @@ export function ShippingRatesWorkspace(): ReactElement {
             description: r.description,
             price: r.price,
             isEditing: false,
-            importedFromShopify: true,
+            importedFromShopify: false,
           });
         }
       }
@@ -626,9 +656,9 @@ export function ShippingRatesWorkspace(): ReactElement {
 
   const selectAllImports = useCallback(() => {
     const all: Record<string, boolean> = {};
-    for (const zone of MOCK_SHOPIFY_ZONES) {
-      for (const r of zone.rates) {
-        all[`${zone.name}-${r.name}`] = true;
+    for (const group of QUICK_START_TEMPLATES) {
+      for (const r of group.rates) {
+        all[`${group.category}-${r.name}`] = true;
       }
     }
     setImportSelections(all);
@@ -706,7 +736,7 @@ export function ShippingRatesWorkspace(): ReactElement {
         <Box padding="400">
           <InlineStack gap="200">
             <Button variant="primary" icon={PlusIcon} onClick={addRate}>Add rate</Button>
-            <Button icon={ImportIcon} onClick={() => setImportModalOpen(true)}>Import from Shopify</Button>
+            <Button icon={ImportIcon} onClick={() => setImportModalOpen(true)}>Quick start templates</Button>
           </InlineStack>
         </Box>
 
@@ -747,7 +777,7 @@ export function ShippingRatesWorkspace(): ReactElement {
                       {rate.importedFromShopify && <Badge tone="info">Shopify</Badge>}
                     </InlineStack>
                     <Text as="span" variant="bodyMd">
-                      {parseFloat(rate.price) === 0 ? "Free" : `$${parseFloat(rate.price).toFixed(2)}`}
+                      {parseFloat(rate.price) === 0 ? "Free" : `${rate.currency} ${parseFloat(rate.price).toFixed(2)}`}
                     </Text>
                     {/* Active / Inactive toggle pill */}
                     <div>
@@ -814,8 +844,8 @@ export function ShippingRatesWorkspace(): ReactElement {
       <Modal
         open={importModalOpen}
         onClose={() => setImportModalOpen(false)}
-        title="Import shipping rates from Shopify"
-        primaryAction={{ content: `Import ${selectedImportCount} rate${selectedImportCount !== 1 ? "s" : ""}`, onAction: handleImport, disabled: selectedImportCount === 0 }}
+        title="Quick start templates"
+        primaryAction={{ content: `Add ${selectedImportCount} rate${selectedImportCount !== 1 ? "s" : ""}`, onAction: handleImport, disabled: selectedImportCount === 0 }}
         secondaryActions={[
           { content: "Select all", onAction: selectAllImports },
           { content: "Cancel", onAction: () => setImportModalOpen(false) },
@@ -824,13 +854,13 @@ export function ShippingRatesWorkspace(): ReactElement {
         <Modal.Section>
           <BlockStack gap="400">
             <Text as="p" variant="bodyMd">
-              Select the shipping rates you'd like to import from your Shopify shipping zones. Imported rates are fully editable after import.
+              Select ready-made rate templates to add to your form. All rates are fully editable after adding — update names, prices, and conditions to match your store.
             </Text>
-            {MOCK_SHOPIFY_ZONES.map((zone) => (
-              <BlockStack key={zone.name} gap="200">
-                <Text as="h3" variant="headingSm">{zone.name}</Text>
-                {zone.rates.map((r) => {
-                  const key = `${zone.name}-${r.name}`;
+            {QUICK_START_TEMPLATES.map((group) => (
+              <BlockStack key={group.category} gap="200">
+                <Text as="h3" variant="headingSm">{group.category}</Text>
+                {group.rates.map((r) => {
+                  const key = `${group.category}-${r.name}`;
                   return (
                     <Box key={key} padding="200" borderWidth="025" borderColor="border" borderRadius="200">
                       <Checkbox
