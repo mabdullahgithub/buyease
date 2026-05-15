@@ -280,7 +280,19 @@ type ApiConfig = {
   isVisible: boolean;
   countriesEnabled: boolean;
   countries: string[];
+  updatedAt?: string;
 };
+
+function isValidApiFieldDef(f: unknown): f is ApiFieldDef {
+  if (!f || typeof f !== "object") return false;
+  const field = f as Record<string, unknown>;
+  return (
+    typeof field.id === "string" && field.id.length > 0 &&
+    typeof field.title === "string" &&
+    typeof field.type === "string" &&
+    typeof field.deletable === "boolean"
+  );
+}
 
 const INITIAL_FIELDS: FieldDef[] = [
   { id: "header",   title: "Please fill in the form to order", type: "header",   deletable: false },
@@ -441,6 +453,7 @@ export function FormDesignerWorkspace({
   const [error,    setError]    = useState<string | null>(null);
   const [dirty,    setDirty]    = useState(false);
   const savedRef        = useRef<string | null>(null);
+  const updatedAtRef    = useRef<string | null>(null);
   const justAppliedRef  = useRef(false);
   const dirtyTimerRef   = useRef<ReturnType<typeof setTimeout> | null>(null);
   const preferencesRef  = useRef<HTMLDivElement>(null);
@@ -601,12 +614,16 @@ export function FormDesignerWorkspace({
   ]);
 
   const applyConfig = useCallback((cfg: ApiConfig): void => {
+    updatedAtRef.current = cfg.updatedAt ?? null;
     setFormType((cfg.formType as "popup" | "embedded") ?? "popup");
     if (Array.isArray(cfg.fields) && cfg.fields.length > 0) {
-      setFields(cfg.fields.map((f) => ({
-        ...f,
-        options: f.options?.map((v) => ({ id: crypto.randomUUID(), value: v })),
-      })));
+      const validFields = cfg.fields.filter(isValidApiFieldDef);
+      if (validFields.length > 0) {
+        setFields(validFields.map((f) => ({
+          ...f,
+          options: f.options?.map((v) => ({ id: crypto.randomUUID(), value: v })),
+        })));
+      }
     }
     setFormBgColor(hexToHsb(cfg.formBgColor));
     setFormTextColor(hexToHsb(cfg.formTextColor));
@@ -656,12 +673,16 @@ export function FormDesignerWorkspace({
           setError("Failed to load form configuration.");
         }
         if (shippingRes.ok) {
-          const shippingData: Array<{ id: string; name: string; description: string | null; price: number; currency: string; isActive: boolean }> = await shippingRes.json();
-          const active = shippingData
-            .filter((r) => r.isActive)
-            .map((r) => ({ id: r.id, name: r.name, description: r.description ?? "", price: r.price, currency: r.currency }));
-          setPreviewRates(active);
-          if (active.length > 0) setSelectedPreviewRateId(active[0]!.id);
+          try {
+            const shippingData: Array<{ id: string; name: string; description: string | null; price: number; currency: string; isActive: boolean }> = await shippingRes.json();
+            const active = shippingData
+              .filter((r) => r.isActive)
+              .map((r) => ({ id: r.id, name: r.name, description: r.description ?? "", price: r.price, currency: r.currency }));
+            setPreviewRates(active);
+            if (active.length > 0) setSelectedPreviewRateId(active[0]!.id);
+          } catch {
+            setPreviewRates([]);
+          }
         }
       } catch {
         if (!cancelled) setError("Unable to connect. Please check your connection and reload.");
@@ -699,20 +720,27 @@ export function FormDesignerWorkspace({
     setSaving(true);
     setError(null);
     try {
-      const payload = buildPayload();
       const res = await fetch("/api/cod-form-config", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${await shopify.idToken()}`,
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          ...buildPayload(),
+          ...(updatedAtRef.current ? { clientUpdatedAt: updatedAtRef.current } : {}),
+        }),
       });
       if (res.ok) {
         const data: ApiConfig = await res.json();
-        savedRef.current = JSON.stringify(data);
+        updatedAtRef.current = data.updatedAt ?? null;
+        const { updatedAt: _at, ...configData } = data;
+        savedRef.current = JSON.stringify(configData);
         setDirty(false);
         shopify.toast.show("Form configuration saved");
+      } else if (res.status === 409) {
+        const err = await res.json().catch(() => null);
+        setError(err?.error ?? "Your configuration was updated in another session. Refresh the page to get the latest version.");
       } else {
         const err = await res.json().catch(() => null);
         const msg = (err?.details?.[0]?.message ?? err?.error) || "Save failed. Please try again.";

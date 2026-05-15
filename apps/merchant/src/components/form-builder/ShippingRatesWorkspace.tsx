@@ -158,6 +158,31 @@ function stripEditingState(rates: ShippingRate[]): Omit<ShippingRate, "isEditing
   return rates.map(({ isEditing: _, ...rest }) => rest);
 }
 
+function detectContradictions(conditions: RateCondition[]): string | null {
+  const bounds: Record<string, { gte?: number; lt?: number }> = {
+    order_total: {}, order_weight: {}, quantity: {},
+  };
+  for (const c of conditions) {
+    const num = Number(c.value);
+    if (!Number.isFinite(num)) continue;
+    if      (c.type === "order_total_gte")  bounds.order_total!.gte  = num;
+    else if (c.type === "order_total_lte")  bounds.order_total!.lt   = num;
+    else if (c.type === "order_weight_gte") bounds.order_weight!.gte = num;
+    else if (c.type === "order_weight_lte") bounds.order_weight!.lt  = num;
+    else if (c.type === "quantity_gte")     bounds.quantity!.gte     = num;
+    else if (c.type === "quantity_lte")     bounds.quantity!.lt      = num;
+  }
+  const LABELS: Record<string, string> = {
+    order_total: "Order total", order_weight: "Order weight", quantity: "Quantity",
+  };
+  for (const [dim, b] of Object.entries(bounds)) {
+    if (b.gte !== undefined && b.lt !== undefined && b.gte >= b.lt) {
+      return `${LABELS[dim]} cannot satisfy both ≥ ${b.gte} and < ${b.lt} simultaneously — this rate will never apply.`;
+    }
+  }
+  return null;
+}
+
 function ConditionBadges({ conditions }: { conditions: RateCondition[] }): ReactElement {
   if (conditions.length === 0) {
     return (
@@ -506,6 +531,14 @@ export function ShippingRatesWorkspace(): ReactElement {
   }, [loading, rates]);
 
   const handleSave = useCallback(async (): Promise<void> => {
+    for (const rate of rates) {
+      const contradiction = detectContradictions(rate.conditions);
+      if (contradiction) {
+        setError(`"${rate.name || "Untitled"}": ${contradiction}`);
+        return;
+      }
+    }
+
     setSaving(true);
     setError(null);
 

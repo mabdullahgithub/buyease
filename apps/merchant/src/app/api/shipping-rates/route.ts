@@ -118,5 +118,9 @@ export const PUT = withGuards({ skipPlanGate: true }, async (req: NextRequest, c
     price: Number(r.price),
   }));
 
+  void prisma.formConfigChangeLog.create({
+    data: { shop: ctx.shop, configType: "shipping_rates" },
+  }).catch(() => {});
+
   return NextResponse.json(serialized);
 });

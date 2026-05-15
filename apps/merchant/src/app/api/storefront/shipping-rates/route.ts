@@ -58,12 +58,23 @@ function parseCart(req: NextRequest): CartContext {
   };
 }
 
+const VALID_CONDITION_TYPES = new Set<string>([
+  "order_total_gte",
+  "order_total_lte",
+  "order_weight_gte",
+  "order_weight_lte",
+  "quantity_gte",
+  "quantity_lte",
+  "cart_contains",
+  "cart_not_contains",
+]);
+
 function isValidCondition(c: unknown): c is StoredCondition {
   if (!c || typeof c !== "object") return false;
   const obj = c as Record<string, unknown>;
   return (
-    typeof obj.type === "string" &&
-    (typeof obj.value === "number" || typeof obj.value === "string")
+    VALID_CONDITION_TYPES.has(String(obj.type)) &&
+    (typeof obj.value === "number" || (typeof obj.value === "string" && obj.value.length > 0))
   );
 }
 

@@ -3,38 +3,39 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { formDesignConfigSchema } from "@/lib/form-config-schemas";
 import { withGuards } from "@/lib/middleware-stack";
-import { invalidateFormConfig } from "@/lib/storefront-config-cache";
+import { setCachedFormConfig } from "@/lib/storefront-config-cache";
 import { parseBody } from "@/lib/validation";
 
 const SELECT = {
-  formType:          true,
-  fields:            true,
-  formBgColor:       true,
-  formTextColor:     true,
-  formBorderColor:   true,
-  formBorderRadiusPx:true,
-  formBorderWidthPx: true,
-  formShadowPx:      true,
-  formPaddingPx:     true,
-  formTextBold:      true,
-  formTextItalic:    true,
-  fieldBgColor:      true,
-  fieldTextColor:    true,
-  fieldBorderColor:  true,
-  fieldBorderRadiusPx:true,
-  fieldFontSizePx:   true,
-  textAlign:         true,
-  hideLabels:        true,
-  showIcons:         true,
-  rtl:               true,
-  autocomplete:      true,
-  stickyMobile:      true,
-  errorRequired:     true,
-  errorInvalid:      true,
-  errorSoldOut:      true,
-  isVisible:         true,
-  countriesEnabled:  true,
-  countries:         true,
+  formType:            true,
+  fields:              true,
+  formBgColor:         true,
+  formTextColor:       true,
+  formBorderColor:     true,
+  formBorderRadiusPx:  true,
+  formBorderWidthPx:   true,
+  formShadowPx:        true,
+  formPaddingPx:       true,
+  formTextBold:        true,
+  formTextItalic:      true,
+  fieldBgColor:        true,
+  fieldTextColor:      true,
+  fieldBorderColor:    true,
+  fieldBorderRadiusPx: true,
+  fieldFontSizePx:     true,
+  textAlign:           true,
+  hideLabels:          true,
+  showIcons:           true,
+  rtl:                 true,
+  autocomplete:        true,
+  stickyMobile:        true,
+  errorRequired:       true,
+  errorInvalid:        true,
+  errorSoldOut:        true,
+  isVisible:           true,
+  countriesEnabled:    true,
+  countries:           true,
+  updatedAt:           true,
 } as const;
 
 export const GET = withGuards({ skipPlanGate: true }, async (_req, ctx) => {
@@ -51,11 +52,30 @@ export const GET = withGuards({ skipPlanGate: true }, async (_req, ctx) => {
 });
 
 export const PUT = withGuards({ skipPlanGate: true }, async (req: NextRequest, ctx) => {
-  const body = await req.json();
-  const parsed = parseBody(formDesignConfigSchema, body);
+  const rawBody = await req.json();
 
+  // Extract concurrency token before schema validation — it is not a config field.
+  const clientUpdatedAt = typeof rawBody?.clientUpdatedAt === "string" ? rawBody.clientUpdatedAt : null;
+
+  const parsed = parseBody(formDesignConfigSchema, rawBody);
   if (!parsed.success) {
     return parsed.response;
+  }
+
+  // Concurrency guard: if the client sent its last-known updatedAt and the DB
+  // has a newer version, refuse the save to prevent silently overwriting changes
+  // made in another session.
+  if (clientUpdatedAt) {
+    const current = await prisma.formDesignConfig.findUnique({
+      where: { shop: ctx.shop },
+      select: { updatedAt: true },
+    });
+    if (current && current.updatedAt.toISOString() !== clientUpdatedAt) {
+      return NextResponse.json(
+        { error: "Your configuration was updated in another session. Refresh the page to get the latest version." },
+        { status: 409 },
+      );
+    }
   }
 
   const updated = await prisma.formDesignConfig.upsert({
@@ -65,9 +85,15 @@ export const PUT = withGuards({ skipPlanGate: true }, async (req: NextRequest, c
     select: SELECT,
   });
 
-  // Bust the in-memory storefront cache so the next shopper sees the updated config
-  // within the next CDN TTL window (30s) rather than waiting 5 minutes.
-  invalidateFormConfig(ctx.shop);
+  // Pre-warm the storefront LRU cache immediately so the next shopper request
+  // hits the cache instead of the DB. Strip updatedAt — storefront responses
+  // don't include it and we don't want it leaking to the public CDN response.
+  const { updatedAt: _at, ...cacheData } = updated;
+  setCachedFormConfig(ctx.shop, cacheData as Record<string, unknown>);
+
+  void prisma.formConfigChangeLog.create({
+    data: { shop: ctx.shop, configType: "form_design" },
+  }).catch(() => {});
 
   return NextResponse.json(updated);
 });

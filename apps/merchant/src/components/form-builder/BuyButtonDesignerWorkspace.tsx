@@ -561,6 +561,7 @@ type BuyButtonConfig = {
   isBold: boolean;
   isItalic: boolean;
   isVisible: boolean;
+  updatedAt?: string;
 };
 
 const DEFAULT_BUY_BUTTON_CONFIG: BuyButtonConfig = {
@@ -622,6 +623,7 @@ export function BuyButtonDesignerWorkspace(): ReactElement {
   const [widthPercent, setWidthPercent] = useState(DEFAULT_BUY_BUTTON_CONFIG.widthPercent);
 
   const savedConfigRef = useRef<BuyButtonConfig | null>(null);
+  const updatedAtRef   = useRef<string | null>(null);
 
   const activeIcon = useMemo(() => getBuyButtonIconDefinition(buttonIconId), [buttonIconId]);
   const previewPaths = useMemo(() => {
@@ -654,7 +656,11 @@ export function BuyButtonDesignerWorkspace(): ReactElement {
 
   const populateFromConfig = useCallback((config: BuyButtonConfig): void => {
     applyConfigToState(config);
-    savedConfigRef.current = config;
+    // Store updatedAt separately so it doesn't affect dirty comparison,
+    // which compares savedConfigRef against buildPayload() (no updatedAt).
+    updatedAtRef.current = config.updatedAt ?? null;
+    const { updatedAt: _at, ...configData } = config;
+    savedConfigRef.current = configData as BuyButtonConfig;
   }, [applyConfigToState]);
 
   const buildPayload = useCallback((): BuyButtonConfig => {
@@ -742,21 +748,28 @@ export function BuyButtonDesignerWorkspace(): ReactElement {
     setError(null);
 
     try {
-      const payload = buildPayload();
       const response = await fetch("/api/buy-button-config", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${await shopify.idToken()}`,
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          ...buildPayload(),
+          ...(updatedAtRef.current ? { clientUpdatedAt: updatedAtRef.current } : {}),
+        }),
       });
 
       if (response.ok) {
         const data: BuyButtonConfig = await response.json();
-        savedConfigRef.current = data;
+        updatedAtRef.current = data.updatedAt ?? null;
+        const { updatedAt: _at, ...configData } = data;
+        savedConfigRef.current = configData as BuyButtonConfig;
         setDirty(false);
         shopify.toast.show("Changes saved successfully");
+      } else if (response.status === 409) {
+        const err = await response.json().catch(() => null);
+        setError(err?.error ?? "Your configuration was updated in another session. Refresh the page to get the latest version.");
       } else {
         const err = await response.json().catch(() => null);
         const msg = err?.details?.[0]?.message ?? err?.error ?? "Save failed. Please try again.";

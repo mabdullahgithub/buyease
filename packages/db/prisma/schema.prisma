@@ -633,6 +633,20 @@ model AppSettings {
 }
 
 // ---------------------------------------------------------------------------
+// FormConfigChangeLog — lightweight audit trail for form builder config saves
+// ---------------------------------------------------------------------------
+model FormConfigChangeLog {
+  id         String   @id @default(cuid())
+  shop       String
+  configType String
+  createdAt  DateTime @default(now())
+
+  @@index([shop])
+  @@index([configType])
+  @@index([createdAt])
+}
+
+// ---------------------------------------------------------------------------
 // MessagingSettings — per-shop SMS & WhatsApp configuration
 // ---------------------------------------------------------------------------
 model MessagingSettings {
