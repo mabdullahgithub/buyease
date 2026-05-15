@@ -115,7 +115,7 @@ export function FormBuilderPageContent(): ReactElement {
       if (!res.ok) return;
       const data = (await res.json()) as { enabled: boolean | null; reason?: string; blockKeys?: string[] };
       // eslint-disable-next-line no-console
-      console.debug("[BuyEase] theme-embed-status →", data);
+      console.warn("[BuyEase] theme-embed-status →", JSON.stringify(data));
       setEmbedEnabled(data.enabled ?? null);
     } catch {
       // leave as null — unknown state
@@ -143,11 +143,7 @@ export function FormBuilderPageContent(): ReactElement {
   const active = MODES.find((m) => m.id === mode) ?? MODES[0]!;
 
   const embedStatusBadge =
-    embedEnabled === true ? (
-      <Badge tone="success">Form enabled</Badge>
-    ) : embedEnabled === false ? (
-      <Badge tone="attention">Form not enabled</Badge>
-    ) : null;
+    embedEnabled === true ? <Badge tone="success">Form enabled</Badge> : null;
 
   return (
     <Page
