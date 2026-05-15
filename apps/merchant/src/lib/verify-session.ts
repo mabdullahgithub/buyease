@@ -57,10 +57,21 @@ export function withSessionVerification(handler: SessionHandler) {
         session = await ensureFreshToken(session);
       } catch (refreshError) {
         const message = refreshError instanceof Error ? refreshError.message : "";
-        if (message === "REFRESH_TOKEN_EXPIRED" || message === "REFRESH_TOKEN_MISSING") {
+        if (message === "REFRESH_TOKEN_EXPIRED") {
           return NextResponse.json({ error: "Session expired", reauth: true }, { status: 401 });
         }
-        throw refreshError;
+        if (message === "REFRESH_TOKEN_MISSING") {
+          // No refresh token stored (e.g. merchant installed before expiring-token flow).
+          // Re-exchange the fresh bearer token from App Bridge to recover.
+          try {
+            session = await exchangeSessionToken(shop, bearerToken);
+          } catch (exchErr) {
+            console.error("Token re-exchange failed after REFRESH_TOKEN_MISSING", { shop, error: exchErr });
+            return NextResponse.json({ error: "Session expired", reauth: true }, { status: 401 });
+          }
+        } else {
+          throw refreshError;
+        }
       }
 
       return handler(req, session);
