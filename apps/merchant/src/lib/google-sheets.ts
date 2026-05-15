@@ -88,10 +88,25 @@ function getFieldData(order: Order, fieldName: string): string {
 }
 
 function orderToRow(order: Order, selectedFields: string[]): string[] {
-  // Filter out empty fields and map them
-  return selectedFields
-    .filter(f => f !== "")
-    .map(f => getFieldData(order, f));
+  return selectedFields.filter(f => f !== "").map(f => getFieldData(order, f));
+}
+
+// Returns one row per order when singleRowPerOrder=true, or one row per line
+// item when singleRowPerOrder=false. Falls back to a single row when the order
+// has no line_items array in its metadata (BuyEase single-item COD orders).
+function getOrderRows(order: Order, selectedFields: string[], singleRowPerOrder: boolean): string[][] {
+  if (singleRowPerOrder) return [orderToRow(order, selectedFields)];
+
+  const meta = (order.metadata as Record<string, unknown>) ?? {};
+  const lineItems = Array.isArray(meta.line_items)
+    ? (meta.line_items as Record<string, unknown>[])
+    : [];
+
+  if (lineItems.length === 0) return [orderToRow(order, selectedFields)];
+
+  return lineItems.map((item) =>
+    orderToRow({ ...order, metadata: { ...meta, ...item } } as Order, selectedFields),
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -258,39 +273,47 @@ export async function appendOrderRow(
   order: Order,
   selectedFields: string[],
   insertAtTop: boolean = false,
+  singleRowPerOrder: boolean = true,
 ): Promise<void> {
-  const row = orderToRow(order, selectedFields);
-  
+  const rows = getOrderRows(order, selectedFields, singleRowPerOrder);
+
   if (insertAtTop) {
-    // To insert at top, we first insert an empty row at index 1 (under header)
-    // and then write the values to A2.
-    // This requires getting the sheetId first.
     try {
-      const spreadsheet = (await sheetsRequest(accessToken, `/${spreadsheetId}?fields=sheets(properties(sheetId,title))`)) as { sheets: Array<{ properties: { sheetId: number, title: string } }> };
-      const sheet = spreadsheet.sheets.find(s => s.properties.title === sheetName);
+      const spreadsheet = (await sheetsRequest(
+        accessToken,
+        `/${spreadsheetId}?fields=sheets(properties(sheetId,title))`,
+      )) as { sheets: Array<{ properties: { sheetId: number; title: string } }> };
+      const sheet = spreadsheet.sheets.find((s) => s.properties.title === sheetName);
       if (sheet) {
+        // Insert exactly as many rows as we need to write (≥1), then overwrite
+        // starting at A2 so the new order(s) land just below the header.
         await sheetsRequest(accessToken, `/${spreadsheetId}:batchUpdate`, {
           method: "POST",
           body: JSON.stringify({
             requests: [
               {
                 insertDimension: {
-                  range: { sheetId: sheet.properties.sheetId, dimension: "ROWS", startIndex: 1, endIndex: 2 },
-                  inheritFromBefore: false
-                }
-              }
-            ]
-          })
+                  range: {
+                    sheetId: sheet.properties.sheetId,
+                    dimension: "ROWS",
+                    startIndex: 1,
+                    endIndex: 1 + rows.length,
+                  },
+                  inheritFromBefore: false,
+                },
+              },
+            ],
+          }),
         });
         const range = encodeURIComponent(`${sheetName}!A2`);
         await sheetsRequest(accessToken, `/${spreadsheetId}/values/${range}?valueInputOption=RAW`, {
           method: "PUT",
-          body: JSON.stringify({ values: [row] })
+          body: JSON.stringify({ values: rows }),
         });
         return;
       }
-    } catch (e) {
-      // Fallback to append if batchUpdate fails
+    } catch {
+      // Fallback to append at bottom if batchUpdate fails
     }
   }
 
@@ -300,7 +323,7 @@ export async function appendOrderRow(
     `/${spreadsheetId}/values/${range}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,
     {
       method: "POST",
-      body: JSON.stringify({ values: [row] }),
+      body: JSON.stringify({ values: rows }),
     },
   );
 }
@@ -317,7 +340,7 @@ export async function syncOrderToSheet(
   });
 
   if (!integration?.isEnabled || !integration.spreadsheetId) return;
-  if (!integration.autoSync && mode === "create") return;
+  if (!integration.autoSync) return;
 
   let accessToken: string;
   try {
@@ -344,13 +367,15 @@ export async function syncOrderToSheet(
     });
   }
 
-  if (mode === "create") {
-    await appendOrderRow(accessToken, integration.spreadsheetId, sheetName, order, selectedFields, integration.insertAtTop);
-  } else {
-    // For update, we would need to find the row. 
-    // To keep it simple and functional for initial sync:
-    await appendOrderRow(accessToken, integration.spreadsheetId, sheetName, order, selectedFields, integration.insertAtTop);
-  }
+  await appendOrderRow(
+    accessToken,
+    integration.spreadsheetId,
+    sheetName,
+    order,
+    selectedFields,
+    integration.insertAtTop,
+    integration.singleRowPerOrder,
+  );
 
   await db.googleSheetsIntegration.update({
     where: { shop },
@@ -370,7 +395,9 @@ export async function exportAllOrdersToSheet(shop: string): Promise<{ count: num
   }
 
   const accessToken = await getValidAccessToken(shop);
-  const selectedFields = integration.selectedFields as string[] || [];
+  const selectedFields = (integration.selectedFields as string[]) || [];
+  const insertAtTop = integration.insertAtTop;
+  const singleRowPerOrder = integration.singleRowPerOrder;
 
   // Write headers
   await ensureHeaderRow(accessToken, integration.spreadsheetId, integration.sheetName, selectedFields, integration.layoutDesign);
@@ -378,18 +405,20 @@ export async function exportAllOrdersToSheet(shop: string): Promise<{ count: num
     await ensureHeaderRow(accessToken, integration.spreadsheetId, integration.abandonedSheetName, selectedFields, integration.layoutDesign);
   }
 
+  // When insertAtTop is enabled, write newest orders first so they appear
+  // closest to the header row (matching the behaviour of auto-sync).
   const orders = await db.order.findMany({
     where: { shopId: shop },
-    orderBy: { createdAt: "asc" },
+    orderBy: { createdAt: insertAtTop ? "desc" : "asc" },
   });
 
   if (orders.length === 0) return { count: 0 };
 
-  const normalOrders = orders.filter(o => !((o.metadata as any)?.is_abandoned));
-  const abandonedOrders = orders.filter(o => (o.metadata as any)?.is_abandoned);
+  const normalOrders = orders.filter((o) => !((o.metadata as Record<string, unknown>)?.is_abandoned));
+  const abandonedOrders = orders.filter((o) => (o.metadata as Record<string, unknown>)?.is_abandoned);
 
   if (normalOrders.length > 0) {
-    const rows = normalOrders.map(o => orderToRow(o, selectedFields));
+    const rows = normalOrders.flatMap((o) => getOrderRows(o, selectedFields, singleRowPerOrder));
     const range = encodeURIComponent(`${integration.sheetName}!A2`);
     await sheetsRequest(
       accessToken,
@@ -402,7 +431,7 @@ export async function exportAllOrdersToSheet(shop: string): Promise<{ count: num
   }
 
   if (abandonedOrders.length > 0 && integration.abandonedSheetName !== integration.sheetName) {
-    const rows = abandonedOrders.map(o => orderToRow(o, selectedFields));
+    const rows = abandonedOrders.flatMap((o) => getOrderRows(o, selectedFields, singleRowPerOrder));
     const range = encodeURIComponent(`${integration.abandonedSheetName}!A2`);
     await sheetsRequest(
       accessToken,

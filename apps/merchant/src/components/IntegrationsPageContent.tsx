@@ -911,7 +911,12 @@ function GoogleSheetsPage({ onBack }: { onBack: () => void }): ReactElement {
                         </Text>
                       </InlineStack>
                     </BlockStack>
-                    <Button icon={DataTableIcon} loading={isExporting} onClick={() => void handleExport()}>Export all orders</Button>
+                    <InlineStack gap="200">
+                      {status.spreadsheetUrl && (
+                        <Button icon={ExternalIcon} url={status.spreadsheetUrl} external target="_blank">View sheet</Button>
+                      )}
+                      <Button icon={DataTableIcon} loading={isExporting} onClick={() => void handleExport()}>Export all orders</Button>
+                    </InlineStack>
                   </InlineStack>
                 </>
               )}

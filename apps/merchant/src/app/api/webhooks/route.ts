@@ -257,9 +257,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
               console.error("orders/create: DB update failed", { shop: headerShop, orderId: shopifyOrderId, err }),
             );
 
-          // Sync confirmed orders to Google Sheets (fire-and-forget)
-          for (const order of updatedOrders) {
-            syncOrderToSheet(headerShop, { ...order, status: "CONFIRMED" }, "update").catch(
+          // Sync newly confirmed orders to Google Sheets (fire-and-forget).
+          // Only sync orders that were NOT already CONFIRMED — guards against
+          // Shopify webhook redeliveries appending duplicate rows.
+          const ordersToSync = updatedOrders.filter((o) => o.status !== "CONFIRMED");
+          for (const order of ordersToSync) {
+            syncOrderToSheet(headerShop, { ...order, status: "CONFIRMED" }, "create").catch(
               (err: unknown) =>
                 console.error("orders/create: Sheets sync failed", { shop: headerShop, orderId: order.id, err }),
             );
@@ -268,22 +271,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         break;
       }
       case "orders/updated": {
-        const updatedPayload = payload as {
-          id?: number;
-          financial_status?: string;
-          fulfillment_status?: string | null;
-        };
-        if (headerShop && updatedPayload.id) {
-          const shopifyOrderId = String(updatedPayload.id);
-          const order = await prisma.order
-            .findFirst({ where: { shopId: headerShop, orderId: shopifyOrderId } })
-            .catch(() => null);
-          if (order) {
-            syncOrderToSheet(headerShop, order, "update").catch((err: unknown) =>
-              console.error("orders/updated: Sheets sync failed", { shop: headerShop, orderId: order.id, err }),
-            );
-          }
-        }
+        // Sheet sync is intentionally not triggered here.
+        // Shopify fires orders/updated immediately after orders/create for every
+        // new order, which caused each order to be appended 2-3 times. Syncing
+        // only on orders/create (above) is sufficient.
         break;
       }
       case "customers/data_request":
