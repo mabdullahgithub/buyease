@@ -35,7 +35,7 @@ export default function Providers({ children }: { children: ReactNode }): ReactE
           Home
         </a>
         <a href="/form-builder">Form Builder</a>
-        <a href="/upsells">Upsells</a>
+        <a href="/upsells">Upsells & Downsells</a>
         <a href="/integrations">Integrations & Messaging</a>
         <a href="/settings">Settings</a>
         <a href="/billing">Billing</a>
