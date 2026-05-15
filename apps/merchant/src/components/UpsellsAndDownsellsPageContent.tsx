@@ -12,25 +12,26 @@ import {
   Text,
 } from "@shopify/polaris";
 import {
-  ChartFunnelIcon,
+  CartDownIcon,
+  CartUpIcon,
   ClipboardChecklistIcon,
-  DiscountIcon,
 } from "@shopify/polaris-icons";
 
 type UpsellFeatureItem = {
   id: string;
   icon: Parameters<typeof Icon>[0]["source"];
   title: string;
-  description: ReactNode;
   buttonLabel: string;
   imageSrc: string;
   imageAlt: string;
+  imageWidth: number;
+  imageHeight: number;
 };
 
 const UPSELL_FEATURES: UpsellFeatureItem[] = [
   {
     id: "one-click-upsells",
-    icon: ChartFunnelIcon,
+    icon: CartUpIcon,
     title: "1-Click Upsells",
     description: (
       <>
@@ -43,6 +44,8 @@ const UPSELL_FEATURES: UpsellFeatureItem[] = [
     buttonLabel: "1-Click Upsells",
     imageSrc: "/images/upsellsanddownsells/funnel.svg",
     imageAlt: "1-Click Upsells funnel illustration",
+    imageWidth: 80,
+    imageHeight: 80,
   },
   {
     id: "order-bump",
@@ -58,10 +61,12 @@ const UPSELL_FEATURES: UpsellFeatureItem[] = [
     buttonLabel: "1-Tick Upsells",
     imageSrc: "/images/upsellsanddownsells/bumps.svg",
     imageAlt: "Order bump checklist illustration",
+    imageWidth: 80,
+    imageHeight: 80,
   },
   {
     id: "downsells",
-    icon: DiscountIcon,
+    icon: CartDownIcon,
     title: "Downsells",
     description: (
       <>
@@ -73,6 +78,8 @@ const UPSELL_FEATURES: UpsellFeatureItem[] = [
     buttonLabel: "Downsells",
     imageSrc: "/images/upsellsanddownsells/downsell.svg",
     imageAlt: "Downsells discount illustration",
+    imageWidth: 80,
+    imageHeight: 80,
   },
 ];
 
@@ -118,8 +125,8 @@ export function UpsellsAndDownsellsPageContent(): ReactElement {
                 <Image
                   src={item.imageSrc}
                   alt={item.imageAlt}
-                  width={80}
-                  height={80}
+                  width={item.imageWidth}
+                  height={item.imageHeight}
                   style={{
                     display: "block",
                     objectFit: "contain",
