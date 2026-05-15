@@ -1699,7 +1699,11 @@
     unmountButton();
   });
   document.addEventListener('shopify:block:select', function () {
-    if (!document.getElementById('buyease-btn')) ensureButtonMounted();
+    if (_formCfg && _formCfg.formType === 'embedded') {
+      if (!document.getElementById(EMBEDDED_CARD_ID)) renderEmbeddedForm();
+    } else {
+      if (!document.getElementById('buyease-btn')) ensureButtonMounted();
+    }
   });
 
   // SPA-style themes (Hydrogen, Dawn with Section Rendering API, etc.) often

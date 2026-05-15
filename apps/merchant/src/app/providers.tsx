@@ -32,11 +32,11 @@ export default function Providers({ children }: { children: ReactNode }): ReactE
       {/* eslint-disable @next/next/no-html-link-for-pages -- App Bridge embedded nav requires <a> */}
       <NavMenu>
         <a href="/" rel="home">Home</a>
-        <a href="/analytics">Analytics</a>
         <a href="/form-builder">Form Builder</a>
         <a href="/upsells">Upsells & Downsells</a>
         <a href="/offers-bundles">Offers & Bundles</a>
         <a href="/integrations">Integrations & Messaging</a>
+        <a href="/analytics">Analytics</a>
         <a href="/settings">Settings</a>
         <a href="/billing">Billing</a>
       </NavMenu>
