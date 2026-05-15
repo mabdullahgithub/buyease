@@ -48,7 +48,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     const trustedDeviceToken = generateTrustedDeviceToken();
-    const trustedDeviceHash = hashTrustedDeviceToken(trustedDeviceToken);
+    const trustedDeviceHash = await hashTrustedDeviceToken(trustedDeviceToken);
     const expiresAt = new Date(Date.now() + getTrustedDeviceMaxAgeSeconds() * 1000);
 
     await db.adminTrustedDevice.create({

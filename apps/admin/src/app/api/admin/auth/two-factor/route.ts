@@ -123,15 +123,18 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     const { secret, verificationCode } = parsed.data;
-    if (!verifyTwoFactorCode(secret, verificationCode)) {
+    if (!await verifyTwoFactorCode(secret, verificationCode)) {
       return NextResponse.json(
         { ok: false, error: "The verification code is not valid." },
         { status: 400 }
       );
     }
 
-    const recoveryCodes = generateTwoFactorRecoveryCodes();
-    const encryptedSecret = encryptTwoFactorSecret(secret);
+    const recoveryCodes = await generateTwoFactorRecoveryCodes();
+    const encryptedSecret = await encryptTwoFactorSecret(secret);
+    const codeHashes = await Promise.all(
+      recoveryCodes.map((code) => hashTwoFactorRecoveryCode(code))
+    );
 
     await db.$transaction(async (tx) => {
       await tx.adminUser.update({
@@ -151,9 +154,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       });
 
       await tx.adminTwoFactorBackupCode.createMany({
-        data: recoveryCodes.map((code) => ({
+        data: codeHashes.map((codeHash) => ({
           adminUserId: admin.id,
-          codeHash: hashTwoFactorRecoveryCode(code),
+          codeHash,
         })),
       });
     });

@@ -81,7 +81,7 @@ async function createHotp(secret: string, counter: number): Promise<string> {
 
   const cryptoKey = await crypto.subtle.importKey(
     "raw",
-    keyData,
+    new Uint8Array(keyData),
     { name: "HMAC", hash: "SHA-1" },
     false,
     ["sign"]

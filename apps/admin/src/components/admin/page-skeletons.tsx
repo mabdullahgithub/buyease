@@ -255,37 +255,146 @@ export function RecentActivitiesPageSkeleton() {
   );
 }
 
+function SkeletonInfoRow() {
+  return (
+    <div className="flex items-center justify-between py-2.5 border-b last:border-0">
+      <Skeleton className="h-3 w-28" />
+      <Skeleton className="h-3 w-32" />
+    </div>
+  );
+}
+
+function SkeletonSectionTitle() {
+  return (
+    <div className="flex items-center gap-2 mb-4">
+      <Skeleton className="h-4 w-4 rounded" />
+      <Skeleton className="h-3 w-36" />
+    </div>
+  );
+}
+
 export function DashboardDetailPageSkeleton() {
   return (
-    <div className="space-y-6" aria-busy="true" aria-live="polite">
-      <div className="space-y-2">
-        <Skeleton className="h-4 w-36" />
-        <Skeleton className="h-8 w-64" />
-        <Skeleton className="h-4 w-80" />
+    <div className="space-y-8" aria-busy="true" aria-live="polite">
+      {/* Header */}
+      <div>
+        <Skeleton className="h-3 w-28 mb-4" />
+        <div className="flex items-start justify-between">
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-72" />
+            <div className="flex items-center gap-3">
+              <Skeleton className="h-3 w-40" />
+              <Skeleton className="h-3 w-52" />
+            </div>
+          </div>
+          <Skeleton className="h-6 w-16 rounded-full" />
+        </div>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-3">
-        <div className="lg:col-span-2 space-y-4">
-          <div className="rounded-md border border-border bg-card p-6">
-            <Skeleton className="h-5 w-44" />
-            <div className="mt-5 space-y-3">
-              <Skeleton className="h-4 w-full" />
-              <Skeleton className="h-4 w-11/12" />
-              <Skeleton className="h-4 w-3/4" />
-            </div>
-          </div>
-          <SkeletonTable rows={6} />
+      {/* 4 KPI cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <SkeletonCard key={i} />
+        ))}
+      </div>
+
+      {/* Merchant Info + Billing (2-column) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="rounded-md border border-border bg-card p-6">
+          <SkeletonSectionTitle />
+          {Array.from({ length: 5 }).map((_, i) => (
+            <SkeletonInfoRow key={i} />
+          ))}
         </div>
-        <div className="space-y-4">
-          <div className="rounded-md border border-border bg-card p-5">
-            <Skeleton className="h-5 w-32" />
-            <div className="mt-4 space-y-3">
-              <Skeleton className="h-3 w-24" />
-              <Skeleton className="h-6 w-32 rounded-full" />
+        <div className="rounded-md border border-border bg-card p-6">
+          <SkeletonSectionTitle />
+          {Array.from({ length: 5 }).map((_, i) => (
+            <SkeletonInfoRow key={i} />
+          ))}
+          <div className="mt-4 space-y-1.5">
+            <div className="flex justify-between">
               <Skeleton className="h-3 w-20" />
-              <Skeleton className="h-6 w-24 rounded-full" />
+              <Skeleton className="h-3 w-8" />
             </div>
+            <Skeleton className="h-2 w-full rounded-full" />
+            <Skeleton className="h-3 w-36" />
           </div>
+        </div>
+      </div>
+
+      {/* Top-up History */}
+      <div className="rounded-md border border-border bg-card">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+          <div className="space-y-1.5">
+            <SkeletonSectionTitle />
+            <Skeleton className="h-3 w-56 -mt-2" />
+          </div>
+          <Skeleton className="h-5 w-16 rounded-full" />
+        </div>
+        <div className="space-y-0">
+          <div className="grid grid-cols-4 gap-3 border-b border-border/70 px-6 py-3">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <Skeleton key={i} className="h-3 w-16" />
+            ))}
+          </div>
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="grid grid-cols-4 gap-3 border-b border-border/40 px-6 py-4">
+              <Skeleton className="h-3 w-24" />
+              <Skeleton className="h-3 w-16" />
+              <Skeleton className="h-4 w-20 rounded-full" />
+              <Skeleton className="h-3 w-40" />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Google Sheets */}
+      <div className="rounded-md border border-border bg-card p-6">
+        <div className="flex items-start justify-between mb-4">
+          <div className="space-y-1.5">
+            <SkeletonSectionTitle />
+            <Skeleton className="h-3 w-64 -mt-2" />
+          </div>
+          <Skeleton className="h-5 w-24 rounded-full" />
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-10">
+          <div>
+            {Array.from({ length: 5 }).map((_, i) => (
+              <SkeletonInfoRow key={i} />
+            ))}
+          </div>
+          <div>
+            {Array.from({ length: 5 }).map((_, i) => (
+              <SkeletonInfoRow key={i} />
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Recent Orders */}
+      <div className="rounded-md border border-border bg-card">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+          <div className="space-y-1.5">
+            <SkeletonSectionTitle />
+            <Skeleton className="h-3 w-44 -mt-2" />
+          </div>
+          <Skeleton className="h-5 w-16 rounded-full" />
+        </div>
+        <div className="space-y-0">
+          <div className="grid grid-cols-5 gap-3 border-b border-border/70 px-6 py-3">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className="h-3 w-16" />
+            ))}
+          </div>
+          {Array.from({ length: 7 }).map((_, i) => (
+            <div key={i} className="grid grid-cols-5 gap-3 border-b border-border/40 px-6 py-4">
+              <Skeleton className="h-3 w-28" />
+              <Skeleton className="h-3 w-20" />
+              <Skeleton className="h-3 w-16" />
+              <Skeleton className="h-5 w-20 rounded-full" />
+              <Skeleton className="h-3 w-20" />
+            </div>
+          ))}
         </div>
       </div>
     </div>
