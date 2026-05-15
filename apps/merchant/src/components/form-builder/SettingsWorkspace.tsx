@@ -155,7 +155,9 @@ export function SettingsWorkspace({ embedEnabled }: Props): ReactElement {
                         flexShrink: 0,
                       }}
                     >
-                      <Icon source={CheckCircleIcon} tone="base" />
+                      <div style={{ color: "white" }}>
+                        <Icon source={CheckCircleIcon} />
+                      </div>
                     </div>
                     <BlockStack gap="050">
                       <Text as="h3" variant="headingMd">
