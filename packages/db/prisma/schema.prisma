@@ -332,6 +332,9 @@ model FormDesignConfig {
 
   isVisible Boolean @default(true)
 
+  countriesEnabled Boolean @default(false)
+  countries        Json    @default("[]")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

@@ -55,6 +55,8 @@ const DEFAULTS = {
   errorInvalid:        "Please enter a valid value",
   errorSoldOut:        "This product is sold out",
   isVisible:           true,
+  countriesEnabled:    false,
+  countries:           [] as string[],
 };
 
 export async function OPTIONS(): Promise<NextResponse> {
@@ -104,6 +106,8 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       errorInvalid:      true,
       errorSoldOut:      true,
       isVisible:         true,
+      countriesEnabled:  true,
+      countries:         true,
     },
   });
 

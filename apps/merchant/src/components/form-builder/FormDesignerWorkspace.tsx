@@ -25,6 +25,7 @@ import {
   RangeSlider,
   SkeletonBodyText,
   Tabs,
+  Tag,
   Text,
   TextField,
   Tooltip,
@@ -61,12 +62,15 @@ import {
   PhoneIcon,
   PlusIcon,
   ProfileIcon,
+  SearchIcon,
   TextAlignCenterIcon,
   TextAlignLeftIcon,
   TextAlignRightIcon,
   TextIcon,
   ViewIcon,
 } from "@shopify/polaris-icons";
+
+import { SHIPPING_COUNTRIES } from "@/components/form-builder/shipping-rates-countries";
 
 // ─── Icon registry ────────────────────────────────────────────────────────────
 
@@ -274,6 +278,8 @@ type ApiConfig = {
   errorInvalid: string;
   errorSoldOut: string;
   isVisible: boolean;
+  countriesEnabled: boolean;
+  countries: string[];
 };
 
 const INITIAL_FIELDS: FieldDef[] = [
@@ -474,6 +480,11 @@ export function FormDesignerWorkspace({
   const [stickyMobile,        setStickyMobile]        = useState(DEFAULT_CONFIG.stickyMobile);
   const [isVisible,           setIsVisible]           = useState(DEFAULT_CONFIG.isVisible);
 
+  // Country restriction
+  const [countriesEnabled, setCountriesEnabled] = useState(false);
+  const [formCountries,    setFormCountries]    = useState<string[]>([]);
+  const [countrySearch,    setCountrySearch]    = useState("");
+
   // Error messages
   const [requiredMsg,  setRequiredMsg]  = useState(DEFAULT_CONFIG.errorRequired);
   const [invalidMsg,   setInvalidMsg]   = useState(DEFAULT_CONFIG.errorInvalid);
@@ -509,6 +520,23 @@ export function FormDesignerWorkspace({
   const previewTotal = useMemo(
     () => PREVIEW_SUBTOTAL + (selectedRate?.price ?? 0),
     [selectedRate],
+  );
+
+  const filteredFormCountries = useMemo(
+    () => SHIPPING_COUNTRIES.filter((c) =>
+      c.name.toLowerCase().includes(countrySearch.toLowerCase()) ||
+      c.code.toLowerCase().includes(countrySearch.toLowerCase()),
+    ),
+    [countrySearch],
+  );
+
+  const toggleFormCountry = useCallback(
+    (code: string) => {
+      setFormCountries((prev) =>
+        prev.includes(code) ? prev.filter((c) => c !== code) : [...prev, code],
+      );
+    },
+    [],
   );
 
   // ── Build / apply ──────────────────────────────────────────────────────────
@@ -558,6 +586,8 @@ export function FormDesignerWorkspace({
     errorInvalid:        invalidMsg,
     errorSoldOut:        soldOutLabel,
     isVisible,
+    countriesEnabled,
+    countries:           formCountries,
   }), [
     formType, fields,
     formBgColor, formTextColor, formBorderColor,
@@ -567,6 +597,7 @@ export function FormDesignerWorkspace({
     formTextSize, formLabelAlign,
     hideLabels, showIcons, enableRtl, disableAutocomplete, stickyMobile,
     requiredMsg, invalidMsg, soldOutLabel, isVisible,
+    countriesEnabled, formCountries,
   ]);
 
   const applyConfig = useCallback((cfg: ApiConfig): void => {
@@ -601,6 +632,8 @@ export function FormDesignerWorkspace({
     setInvalidMsg(cfg.errorInvalid);
     setSoldOutLabel(cfg.errorSoldOut);
     setIsVisible(cfg.isVisible);
+    setCountriesEnabled(cfg.countriesEnabled ?? false);
+    setFormCountries(Array.isArray(cfg.countries) ? cfg.countries : []);
   }, []);
 
   // ── Load on mount ──────────────────────────────────────────────────────────
@@ -1215,6 +1248,64 @@ export function FormDesignerWorkspace({
               <Text as="p" variant="bodyMd" tone="subdued">
                 Form will open when the customer clicks the app's Buy Button.
               </Text>
+            </BlockStack>
+          </Card>
+
+          {/* Form Countries */}
+          <Card padding="400">
+            <BlockStack gap="300">
+              <Text as="h2" variant="headingSm">Form countries</Text>
+              <Checkbox
+                label="Restrict to specific countries"
+                checked={countriesEnabled}
+                onChange={setCountriesEnabled}
+                helpText="When enabled, the COD form will only appear to customers in the selected countries."
+              />
+              {countriesEnabled && (
+                <BlockStack gap="200">
+                  <TextField
+                    label="Select countries"
+                    labelHidden
+                    value={countrySearch}
+                    onChange={setCountrySearch}
+                    autoComplete="off"
+                    placeholder="Search countries"
+                    prefix={<Icon source={SearchIcon} />}
+                    clearButton
+                    onClearButtonClick={() => setCountrySearch("")}
+                  />
+                  <Box borderWidth="025" borderColor="border" borderRadius="200" padding="200">
+                    <div style={{ overflowY: "auto", maxHeight: "180px" }}>
+                      <BlockStack gap="100">
+                        {filteredFormCountries.length === 0 ? (
+                          <Text as="p" variant="bodySm" tone="subdued">No countries match your search.</Text>
+                        ) : (
+                          filteredFormCountries.map((country) => (
+                            <Checkbox
+                              key={country.code}
+                              label={`${country.name} (${country.code})`}
+                              checked={formCountries.includes(country.code)}
+                              onChange={() => toggleFormCountry(country.code)}
+                            />
+                          ))
+                        )}
+                      </BlockStack>
+                    </div>
+                  </Box>
+                  {formCountries.length > 0 && (
+                    <InlineStack gap="100" wrap>
+                      {formCountries.map((code) => {
+                        const country = SHIPPING_COUNTRIES.find((c) => c.code === code);
+                        return (
+                          <Tag key={code} onRemove={() => toggleFormCountry(code)}>
+                            {country?.name ?? code}
+                          </Tag>
+                        );
+                      })}
+                    </InlineStack>
+                  )}
+                </BlockStack>
+              )}
             </BlockStack>
           </Card>
 

@@ -92,6 +92,8 @@ export const formDesignConfigSchema = z.object({
   errorInvalid: z.string().max(200).default("Please enter a valid value"),
   errorSoldOut: z.string().max(200).default("This product is sold out"),
   isVisible: z.boolean().default(true),
+  countriesEnabled: z.boolean().default(false),
+  countries: z.array(countryCode).max(250).default([]),
 });
 
 export type FormDesignConfigInput = z.infer<typeof formDesignConfigSchema>;

@@ -33,6 +33,8 @@ const SELECT = {
   errorInvalid:      true,
   errorSoldOut:      true,
   isVisible:         true,
+  countriesEnabled:  true,
+  countries:         true,
 } as const;
 
 export const GET = withGuards({ skipPlanGate: true }, async (_req, ctx) => {
