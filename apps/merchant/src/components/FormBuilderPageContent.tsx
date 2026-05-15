@@ -205,7 +205,7 @@ export function FormBuilderPageContent(): ReactElement {
         ) : mode === "shipping-rates" ? (
           <ShippingRatesWorkspace />
         ) : mode === "settings" ? (
-          <SettingsWorkspace />
+          <SettingsWorkspace embedEnabled={embedEnabled} />
         ) : (
           <InlineGrid
             columns={{

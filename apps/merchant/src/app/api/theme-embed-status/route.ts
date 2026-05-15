@@ -2,7 +2,11 @@ import { NextResponse } from "next/server";
 
 import { withGuards } from "@/lib/middleware-stack";
 
-const EXTENSION_HANDLE = "cod-form";
+// Extension UID from shopify.extension.toml — unique across all apps/shops.
+const EXTENSION_UID = "279c058d-e2b0-785d-0abc-9c4482a708772fe4d69a";
+
+// App client_id from shopify.app.toml — used as app identifier in block keys.
+const APP_CLIENT_ID = process.env.SHOPIFY_API_KEY ?? "";
 
 type ShopifyTheme = {
   id: number;
@@ -27,6 +31,21 @@ type SettingsData = {
     blocks?: Record<string, SettingsBlock>;
   };
 };
+
+function isBuyEaseBlock(key: string, block: SettingsBlock): boolean {
+  // Shopify stores app embed blocks with keys like:
+  //   shopify://apps/{app_handle}/blocks/{block_file}/{ext_uid}
+  // OR using the client_id directly in some formats.
+  // The extension UID is globally unique — safest primary identifier.
+  // The client_id (APP_CLIENT_ID) is the app-level secondary identifier.
+  if (key.includes(EXTENSION_UID)) return true;
+  if (APP_CLIENT_ID && key.includes(APP_CLIENT_ID)) return true;
+  if (typeof block.type === "string") {
+    if (block.type.includes(EXTENSION_UID)) return true;
+    if (APP_CLIENT_ID && block.type.includes(APP_CLIENT_ID)) return true;
+  }
+  return false;
+}
 
 export const GET = withGuards({ skipPlanGate: true }, async (_req, ctx) => {
   try {
@@ -71,11 +90,8 @@ export const GET = withGuards({ skipPlanGate: true }, async (_req, ctx) => {
     const settings = JSON.parse(content) as SettingsData;
     const blocks = settings.current?.blocks ?? {};
 
-    const enabled = Object.values(blocks).some(
-      (block) =>
-        typeof block.type === "string" &&
-        block.type.includes(`/${EXTENSION_HANDLE}`) &&
-        block.disabled !== true,
+    const enabled = Object.entries(blocks).some(
+      ([key, block]) => isBuyEaseBlock(key, block) && block.disabled !== true,
     );
 
     return NextResponse.json({ enabled });
