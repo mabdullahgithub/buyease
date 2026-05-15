@@ -360,7 +360,7 @@ export function SettingsWorkspace({ embedEnabled }: Props): ReactElement {
         type: "product",
         multiple: true,
         action: "select",
-        initialSelectionIds: restrictedProducts.map((p) => ({
+        selectionIds: restrictedProducts.map((p) => ({
           id: `gid://shopify/Product/${p.id}`,
         })),
       });
@@ -398,7 +398,7 @@ export function SettingsWorkspace({ embedEnabled }: Props): ReactElement {
         type: "collection",
         multiple: true,
         action: "select",
-        initialSelectionIds: restrictedCollections.map((c) => ({
+        selectionIds: restrictedCollections.map((c) => ({
           id: `gid://shopify/Collection/${c.id}`,
         })),
       });
