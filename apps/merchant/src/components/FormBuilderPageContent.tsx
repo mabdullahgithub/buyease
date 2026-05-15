@@ -8,7 +8,6 @@ import {
   BlockStack,
   Box,
   Button,
-  ButtonGroup,
   Card,
   Divider,
   EmptyState,
@@ -161,8 +160,7 @@ export function FormBuilderPageContent(): ReactElement {
         {
           content: "How to enable",
           icon: QuestionCircleIcon,
-          url: "https://help.shopify.com/en/manual/online-store/themes/theme-structure/extend/apps#enable-app-embed-blocks",
-          target: "_blank" as const,
+          onAction: () => setMode("settings"),
         },
         {
           content: "Enable form",
