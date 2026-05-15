@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactElement } from "react";
 import Image from "next/image";
 import {
@@ -30,7 +30,9 @@ import {
   ExternalIcon,
   ImageIcon,
   InfoIcon,
+  XIcon,
 } from "@shopify/polaris-icons";
+import { SaveBar } from "@shopify/app-bridge-react";
 
 import { useShopifyBridge } from "@/lib/use-shopify-bridge";
 
@@ -72,6 +74,25 @@ type RestrictState = {
 };
 
 type DisableInKey = keyof DisableInState;
+
+type SettingsPayload = {
+  formPlacement: FormPlacement;
+  hideCheckout: boolean;
+  hideAddToCart: boolean;
+  hideBuyNow: boolean;
+  whenOpened: WhenOpened;
+  disableInPages: DisableInState;
+  productRestrictionMode: ProductRestrictionMode;
+  restrictedProducts: RestrictedProduct[];
+  restrictedCollections: RestrictedCollection[];
+  allowCountriesOnly: boolean;
+  enableOrderEligibility: boolean;
+  hideSubmitButton: boolean;
+  disableOutOfStock: boolean;
+  disableAllDiscounts: boolean;
+  disableShopifyDiscount: boolean;
+  customCss: string;
+};
 
 // ── Resource picker response shapes ─────────────────────────────────────────
 
@@ -192,6 +213,8 @@ function ResourceThumbnail({ imageUrl, alt }: { imageUrl: string; alt: string })
       borderWidth="025"
       borderColor="border"
       borderRadius="200"
+      width="48px"
+      minHeight="48px"
       overflowX="hidden"
       overflowY="hidden"
     >
@@ -201,7 +224,7 @@ function ResourceThumbnail({ imageUrl, alt }: { imageUrl: string; alt: string })
         width={48}
         height={48}
         unoptimized
-        style={{ display: "block", objectFit: "cover" }}
+        style={{ display: "block", objectFit: "cover", width: 48, height: 48 }}
       />
     </Box>
   );
@@ -221,8 +244,17 @@ export function SettingsWorkspace({ embedEnabled }: Props): ReactElement {
   const [themeEditorUrl, setThemeEditorUrl] = useState("");
   const [showBanner, setShowBanner] = useState(true);
 
+  // Save bar
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [dirty, setDirty] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const savedConfigRef = useRef<SettingsPayload | null>(null);
+  const updatedAtRef = useRef<string | null>(null);
+
   // Form placement
   const [formPlacement, setFormPlacement] = useState<FormPlacement>("whole-store");
+  const [showPlacementInfo, setShowPlacementInfo] = useState(true);
   const [hideCheckout, setHideCheckout] = useState(false);
   const [hideAddToCart, setHideAddToCart] = useState(false);
   const [hideBuyNow, setHideBuyNow] = useState(false);
@@ -263,92 +295,161 @@ export function SettingsWorkspace({ embedEnabled }: Props): ReactElement {
     if (domain) setThemeEditorUrl(buildThemeEditorUrl(domain));
   }, []);
 
-  // ── Fetch existing restrictions on mount ────────────────────────────────────
+  // ── Build payload from current state ────────────────────────────────────────
+
+  const buildPayload = useCallback((): SettingsPayload => ({
+    formPlacement,
+    hideCheckout,
+    hideAddToCart,
+    hideBuyNow,
+    whenOpened,
+    disableInPages: disableIn,
+    productRestrictionMode,
+    restrictedProducts,
+    restrictedCollections,
+    allowCountriesOnly: restrict.allowCountriesOnly,
+    enableOrderEligibility: restrict.enableOrderEligibility,
+    hideSubmitButton,
+    disableOutOfStock,
+    disableAllDiscounts,
+    disableShopifyDiscount,
+    customCss,
+  }), [
+    formPlacement, hideCheckout, hideAddToCart, hideBuyNow, whenOpened,
+    disableIn, productRestrictionMode, restrictedProducts, restrictedCollections,
+    restrict, hideSubmitButton, disableOutOfStock, disableAllDiscounts,
+    disableShopifyDiscount, customCss,
+  ]);
+
+  // ── Apply fetched config to state ────────────────────────────────────────────
+
+  const applyConfigToState = useCallback((cfg: SettingsPayload): void => {
+    setFormPlacement(cfg.formPlacement);
+    setHideCheckout(cfg.hideCheckout);
+    setHideAddToCart(cfg.hideAddToCart);
+    setHideBuyNow(cfg.hideBuyNow);
+    setWhenOpened(cfg.whenOpened);
+    setDisableIn(cfg.disableInPages);
+    setProductRestrictionMode(cfg.productRestrictionMode);
+    setRestrictedProducts(Array.isArray(cfg.restrictedProducts) ? cfg.restrictedProducts : []);
+    setRestrictedCollections(Array.isArray(cfg.restrictedCollections) ? cfg.restrictedCollections : []);
+    setRestrict({
+      allowCountriesOnly: cfg.allowCountriesOnly,
+      enableOrderEligibility: cfg.enableOrderEligibility,
+    });
+    setHideSubmitButton(cfg.hideSubmitButton);
+    setDisableOutOfStock(cfg.disableOutOfStock);
+    setDisableAllDiscounts(cfg.disableAllDiscounts);
+    setDisableShopifyDiscount(cfg.disableShopifyDiscount);
+    setCustomCss(cfg.customCss);
+  }, []);
+
+  // ── Fetch settings on mount ──────────────────────────────────────────────────
 
   useEffect(() => {
     let cancelled = false;
 
-    async function fetchRestrictions(): Promise<void> {
+    async function fetchSettings(): Promise<void> {
       try {
         const token = await shopify.idToken();
         if (!token || cancelled) return;
-        const res = await fetch("/api/form-restrictions", {
+        const res = await fetch("/api/form-settings", {
           headers: { Authorization: `Bearer ${token}` },
         });
-        if (!res.ok || cancelled) return;
-        const data = (await res.json()) as {
-          productRestrictionMode: ProductRestrictionMode;
-          restrictedProducts: RestrictedProduct[];
-          restrictedCollections: RestrictedCollection[];
-        };
         if (cancelled) return;
-        setProductRestrictionMode(data.productRestrictionMode ?? "none");
-        setRestrictedProducts(
-          Array.isArray(data.restrictedProducts) ? data.restrictedProducts : [],
-        );
-        setRestrictedCollections(
-          Array.isArray(data.restrictedCollections) ? data.restrictedCollections : [],
-        );
+        if (res.ok) {
+          const data = (await res.json()) as SettingsPayload & { updatedAt?: string };
+          if (cancelled) return;
+          updatedAtRef.current = data.updatedAt ?? null;
+          const { updatedAt: _at, ...cfg } = data as SettingsPayload & { updatedAt?: string };
+          applyConfigToState(cfg);
+          savedConfigRef.current = cfg;
+        }
       } catch {
-        // leave defaults — user can re-configure
       } finally {
-        if (!cancelled) setRestrictionsLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+          setRestrictionsLoading(false);
+        }
       }
     }
 
-    void fetchRestrictions();
+    void fetchSettings();
     return () => { cancelled = true; };
-  }, [shopify]);
+  }, [shopify, applyConfigToState]);
 
-  // ── Save restrictions to API ──────────────────────────────────────────────
+  // ── Dirty tracking ────────────────────────────────────────────────────────
 
-  const saveRestrictions = useCallback(
-    async (
-      mode: ProductRestrictionMode,
-      products: RestrictedProduct[],
-      collections: RestrictedCollection[],
-    ): Promise<void> => {
-      try {
-        const token = await shopify.idToken();
-        if (!token) return;
-        await fetch("/api/form-restrictions", {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            productRestrictionMode: mode,
-            restrictedProducts: products,
-            restrictedCollections: collections,
-          }),
-        });
-        shopify.toast.show("Restrictions saved");
-      } catch {
-        shopify.toast.show("Failed to save restrictions");
+  useEffect(() => {
+    if (loading) return;
+    const current = buildPayload();
+    const saved = savedConfigRef.current;
+    if (!saved) { setDirty(true); return; }
+    setDirty(JSON.stringify(current) !== JSON.stringify(saved));
+  }, [loading, buildPayload]);
+
+  // ── Save / Discard ────────────────────────────────────────────────────────
+
+  const handleSave = useCallback(async (): Promise<void> => {
+    setSaving(true);
+    setSaveError(null);
+    try {
+      const token = await shopify.idToken();
+      if (!token) return;
+      const res = await fetch("/api/form-settings", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          ...buildPayload(),
+          ...(updatedAtRef.current ? { clientUpdatedAt: updatedAtRef.current } : {}),
+        }),
+      });
+      if (res.ok) {
+        const data = (await res.json()) as SettingsPayload & { updatedAt?: string };
+        updatedAtRef.current = data.updatedAt ?? null;
+        const { updatedAt: _at, ...cfg } = data as SettingsPayload & { updatedAt?: string };
+        savedConfigRef.current = cfg;
+        setDirty(false);
+        shopify.toast.show("Settings saved");
+      } else if (res.status === 409) {
+        const err = await res.json().catch(() => null);
+        setSaveError(err?.error ?? "Configuration updated elsewhere. Refresh the page.");
+      } else {
+        const err = await res.json().catch(() => null);
+        setSaveError(err?.error ?? "Save failed. Please try again.");
       }
-    },
-    [shopify],
-  );
+    } catch {
+      setSaveError("Unable to save. Check your connection and try again.");
+    } finally {
+      setSaving(false);
+    }
+  }, [shopify, buildPayload]);
+
+  const handleDiscard = useCallback((): void => {
+    if (savedConfigRef.current) {
+      applyConfigToState(savedConfigRef.current);
+    }
+    setDirty(false);
+    setSaveError(null);
+  }, [applyConfigToState]);
 
   // ── Toggle restriction mode (mutually exclusive) ──────────────────────────
 
   const handleToggleEnableForProducts = useCallback(
     (checked: boolean): void => {
-      const newMode: ProductRestrictionMode = checked ? "enable-only" : "none";
-      setProductRestrictionMode(newMode);
-      void saveRestrictions(newMode, restrictedProducts, restrictedCollections);
+      setProductRestrictionMode(checked ? "enable-only" : "none");
     },
-    [restrictedProducts, restrictedCollections, saveRestrictions],
+    [],
   );
 
   const handleToggleDisableForProducts = useCallback(
     (checked: boolean): void => {
-      const newMode: ProductRestrictionMode = checked ? "disable-for" : "none";
-      setProductRestrictionMode(newMode);
-      void saveRestrictions(newMode, restrictedProducts, restrictedCollections);
+      setProductRestrictionMode(checked ? "disable-for" : "none");
     },
-    [restrictedProducts, restrictedCollections, saveRestrictions],
+    [],
   );
 
   // ── Resource picker: add products ─────────────────────────────────────────
@@ -383,11 +484,10 @@ export function SettingsWorkspace({ embedEnabled }: Props): ReactElement {
       }
 
       setRestrictedProducts(merged);
-      void saveRestrictions(productRestrictionMode, merged, restrictedCollections);
     } finally {
       setAddingProducts(false);
     }
-  }, [restrictedProducts, restrictedCollections, productRestrictionMode, saveRestrictions]);
+  }, [restrictedProducts]);
 
   // ── Resource picker: add collections ──────────────────────────────────────
 
@@ -420,30 +520,25 @@ export function SettingsWorkspace({ embedEnabled }: Props): ReactElement {
       }
 
       setRestrictedCollections(merged);
-      void saveRestrictions(productRestrictionMode, restrictedProducts, merged);
     } finally {
       setAddingCollections(false);
     }
-  }, [restrictedCollections, restrictedProducts, productRestrictionMode, saveRestrictions]);
+  }, [restrictedCollections]);
 
   // ── Remove handlers ───────────────────────────────────────────────────────
 
   const handleRemoveProduct = useCallback(
     (id: string): void => {
-      const next = restrictedProducts.filter((p) => p.id !== id);
-      setRestrictedProducts(next);
-      void saveRestrictions(productRestrictionMode, next, restrictedCollections);
+      setRestrictedProducts((prev) => prev.filter((p) => p.id !== id));
     },
-    [restrictedProducts, restrictedCollections, productRestrictionMode, saveRestrictions],
+    [],
   );
 
   const handleRemoveCollection = useCallback(
     (id: string): void => {
-      const next = restrictedCollections.filter((c) => c.id !== id);
-      setRestrictedCollections(next);
-      void saveRestrictions(productRestrictionMode, restrictedProducts, next);
+      setRestrictedCollections((prev) => prev.filter((c) => c.id !== id));
     },
-    [restrictedCollections, restrictedProducts, productRestrictionMode, saveRestrictions],
+    [],
   );
 
   // ── Misc toggle ───────────────────────────────────────────────────────────
@@ -457,8 +552,27 @@ export function SettingsWorkspace({ embedEnabled }: Props): ReactElement {
   const isRestrictionActive =
     productRestrictionMode === "enable-only" || productRestrictionMode === "disable-for";
 
+  const isLoading = loading || restrictionsLoading;
+
   return (
     <BlockStack gap="800">
+      <SaveBar id="form-settings-save-bar" open={dirty}>
+        <button variant="primary" onClick={() => { void handleSave(); }} disabled={saving} loading={saving} />
+        <button onClick={handleDiscard} disabled={saving} />
+      </SaveBar>
+
+      {saveError ? (
+        <Banner tone="critical" onDismiss={() => setSaveError(null)}>
+          <Text as="p" variant="bodyMd">{saveError}</Text>
+        </Banner>
+      ) : null}
+
+      {isLoading ? (
+        <InlineStack gap="200" blockAlign="center">
+          <Spinner size="small" />
+          <Text as="p" variant="bodyMd" tone="subdued">Loading settings…</Text>
+        </InlineStack>
+      ) : null}
       {/* ── BuyEase Activation ───────────────────────────────────────────── */}
       <InlineGrid columns={["oneThird", "twoThirds"]} gap="400">
         <BlockStack gap="200">
@@ -678,19 +792,29 @@ export function SettingsWorkspace({ embedEnabled }: Props): ReactElement {
             </InlineGrid>
           </Box>
 
-          <Box background="bg-surface-info" paddingBlock="300" paddingInline="400">
-            <InlineStack gap="200" blockAlign="start" wrap={false}>
-              <Icon source={InfoIcon} tone="info" />
-              <BlockStack gap="050">
-                <Text as="p" variant="bodyMd" fontWeight="semibold">
-                  {PLACEMENT_INFO[formPlacement].title}
-                </Text>
-                <Text as="p" variant="bodyMd">
-                  {PLACEMENT_INFO[formPlacement].description}
-                </Text>
-              </BlockStack>
-            </InlineStack>
-          </Box>
+          {showPlacementInfo && (
+            <Box background="bg-surface-info" paddingBlock="300" paddingInline="400">
+              <InlineStack gap="200" blockAlign="start" wrap={false} align="space-between">
+                <InlineStack gap="200" blockAlign="start" wrap={false}>
+                  <Icon source={InfoIcon} tone="info" />
+                  <BlockStack gap="050">
+                    <Text as="p" variant="bodyMd" fontWeight="semibold">
+                      {PLACEMENT_INFO[formPlacement].title}
+                    </Text>
+                    <Text as="p" variant="bodyMd">
+                      {PLACEMENT_INFO[formPlacement].description}
+                    </Text>
+                  </BlockStack>
+                </InlineStack>
+                <Button
+                  variant="plain"
+                  icon={XIcon}
+                  accessibilityLabel="Dismiss placement info"
+                  onClick={() => setShowPlacementInfo(false)}
+                />
+              </InlineStack>
+            </Box>
+          )}
 
           <Divider />
 

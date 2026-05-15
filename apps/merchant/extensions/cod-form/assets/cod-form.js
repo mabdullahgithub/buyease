@@ -595,6 +595,31 @@
   }
 
   // ─── Init ─────────────────────────────────────────────────────────────────────
+  // ─── Product / collection restriction ───────────────────────────────────────
+  // Returns true if the COD button should be displayed on the current page.
+  // formCfg.productRestrictionMode:
+  //   "none"       → no restriction, always show
+  //   "enable-only" → show ONLY if productId or collectionId is in the lists
+  //   "disable-for" → hide if productId or collectionId is in the lists
+  function isAllowedByRestriction(formCfg, productId, collectionId) {
+    var mode = formCfg && formCfg.productRestrictionMode;
+    if (!mode || mode === 'none') return true;
+
+    var products = Array.isArray(formCfg.restrictedProducts) ? formCfg.restrictedProducts : [];
+    var collections = Array.isArray(formCfg.restrictedCollections) ? formCfg.restrictedCollections : [];
+
+    var pid = String(productId || '');
+    var cid = String(collectionId || '');
+
+    var inProducts = pid && products.some(function (p) { return String(p.id) === pid; });
+    var inCollections = cid && collections.some(function (c) { return String(c.id) === cid; });
+    var matched = inProducts || inCollections;
+
+    if (mode === 'enable-only') return matched;
+    if (mode === 'disable-for') return !matched;
+    return true;
+  }
+
   function init() {
     var root = document.getElementById(ROOT_ID);
     if (!root) return;
@@ -603,6 +628,7 @@
       shop: root.dataset.shop || '',
       apiBase: (root.dataset.apiBase || '').replace(/\/$/, ''),
       productId: root.dataset.productId || '',
+      collectionId: root.dataset.collectionId || '',
       variantId: root.dataset.variantId || '',
       priceInCents: parseInt(root.dataset.price || '0', 10),
       currency: root.dataset.currency || 'USD',
@@ -639,6 +665,11 @@
         _rates = (results[2] && results[2].rates) ? results[2].rates : [];
 
         if (_btnCfg.isVisible === false) {
+          unmountButton();
+          return;
+        }
+
+        if (!isAllowedByRestriction(_formCfg, _ctx.productId, _ctx.collectionId)) {
           unmountButton();
           return;
         }

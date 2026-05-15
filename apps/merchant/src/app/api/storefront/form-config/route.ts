@@ -54,9 +54,12 @@ const DEFAULTS = {
   errorRequired:       "This field is required",
   errorInvalid:        "Please enter a valid value",
   errorSoldOut:        "This product is sold out",
-  isVisible:           true,
-  countriesEnabled:    false,
-  countries:           [] as string[],
+  isVisible:               true,
+  countriesEnabled:        false,
+  countries:               [] as string[],
+  productRestrictionMode:  "none",
+  restrictedProducts:      [] as unknown[],
+  restrictedCollections:   [] as unknown[],
 };
 
 export async function OPTIONS(): Promise<NextResponse> {
@@ -105,9 +108,12 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       errorRequired:     true,
       errorInvalid:      true,
       errorSoldOut:      true,
-      isVisible:         true,
-      countriesEnabled:  true,
-      countries:         true,
+      isVisible:              true,
+      countriesEnabled:       true,
+      countries:              true,
+      productRestrictionMode: true,
+      restrictedProducts:     true,
+      restrictedCollections:  true,
     },
   });
 

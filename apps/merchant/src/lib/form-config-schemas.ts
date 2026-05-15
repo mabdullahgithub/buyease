@@ -98,6 +98,57 @@ export const formDesignConfigSchema = z.object({
 
 export type FormDesignConfigInput = z.infer<typeof formDesignConfigSchema>;
 
+// ── Form Settings (SettingsWorkspace) ─────────────────────────────────────
+
+const restrictedProductSchema = z.object({
+  id: z.string().min(1).max(50),
+  title: z.string().max(500),
+  imageUrl: z.string().max(2000),
+  isSoldOut: z.boolean(),
+});
+
+const restrictedCollectionSchema = z.object({
+  id: z.string().min(1).max(50),
+  title: z.string().max(500),
+  imageUrl: z.string().max(2000),
+});
+
+const disableInPagesSchema = z.object({
+  homePage: z.boolean().default(false),
+  collectionPage: z.boolean().default(false),
+  regularPage: z.boolean().default(false),
+  searchResultPage: z.boolean().default(false),
+  cartDrawer: z.boolean().default(false),
+}).default({
+  homePage: false,
+  collectionPage: false,
+  regularPage: false,
+  searchResultPage: false,
+  cartDrawer: false,
+});
+
+export const formSettingsConfigSchema = z.object({
+  formPlacement: z.enum(["whole-store", "product-pages", "cart-page"]).default("whole-store"),
+  hideCheckout: z.boolean().default(false),
+  hideAddToCart: z.boolean().default(false),
+  hideBuyNow: z.boolean().default(false),
+  whenOpened: z.enum(["product-only", "product-and-cart"]).default("product-and-cart"),
+  disableInPages: disableInPagesSchema,
+  productRestrictionMode: z.enum(["none", "enable-only", "disable-for"]).default("none"),
+  restrictedProducts: z.array(restrictedProductSchema).max(500).default([]),
+  restrictedCollections: z.array(restrictedCollectionSchema).max(500).default([]),
+  allowCountriesOnly: z.boolean().default(false),
+  enableOrderEligibility: z.boolean().default(false),
+  hideSubmitButton: z.boolean().default(false),
+  disableOutOfStock: z.boolean().default(true),
+  disableAllDiscounts: z.boolean().default(false),
+  disableShopifyDiscount: z.boolean().default(false),
+  customCss: z.string().max(10000).default(""),
+});
+
+export type FormSettingsConfigInput = z.infer<typeof formSettingsConfigSchema>;
+
+
 const conditionTypeEnum = z.enum([
   "order_total_gte",
   "order_total_lte",

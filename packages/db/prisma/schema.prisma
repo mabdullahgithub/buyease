@@ -342,6 +342,25 @@ model FormDesignConfig {
   /// Array of {id, title, imageUrl} — collections the restriction applies to
   restrictedCollections  Json   @default("[]")
 
+  // ── Settings workspace fields ─────────────────────────────────────────
+  /// "whole-store" | "product-pages" | "cart-page"
+  formPlacement   String  @default("whole-store")
+  hideCheckout    Boolean @default(false)
+  hideAddToCart   Boolean @default(false)
+  hideBuyNow      Boolean @default(false)
+  /// "product-only" | "product-and-cart"
+  whenOpened      String  @default("product-and-cart")
+  /// JSON object: { homePage, collectionPage, regularPage, searchResultPage, cartDrawer }
+  disableInPages  Json    @default("{}")
+  /// Allow form for selected countries only (separate from storefront countries gate)
+  allowCountriesOnly      Boolean @default(false)
+  enableOrderEligibility  Boolean @default(false)
+  hideSubmitButton        Boolean @default(false)
+  disableOutOfStock       Boolean @default(true)
+  disableAllDiscounts     Boolean @default(false)
+  disableShopifyDiscount  Boolean @default(false)
+  customCss               String  @default("")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

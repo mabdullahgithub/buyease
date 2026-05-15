@@ -220,6 +220,231 @@ const PREMIUM_TEMPLATES: FullTemplate[] = [
   },
 ];
 
+const PASTEL_TEMPLATES: FullTemplate[] = [
+  {
+    id: "lavender-dream", name: "Lavender Dream", description: "Soft lavender calm",
+    formBgColor: "#f5f0ff", formTextColor: "#3b2d6e", formBorderColor: "#d8c8ff",
+    formBorderRadiusPx: 16, formBorderWidthPx: 1, formShadowPx: 8, formPaddingPx: 20,
+    fieldBgColor: "#ffffff", fieldTextColor: "#3b2d6e", fieldBorderColor: "#cbb8f5",
+    fieldBorderRadiusPx: 10, accentColor: "#7c3aed",
+  },
+  {
+    id: "mint-fresh", name: "Mint Fresh", description: "Cool mint, clean feel",
+    formBgColor: "#f0fff8", formTextColor: "#1a4a38", formBorderColor: "#b8ecd4",
+    formBorderRadiusPx: 14, formBorderWidthPx: 1, formShadowPx: 6, formPaddingPx: 20,
+    fieldBgColor: "#ffffff", fieldTextColor: "#1a4a38", fieldBorderColor: "#a8e4c8",
+    fieldBorderRadiusPx: 8, accentColor: "#10b981",
+  },
+  {
+    id: "peach-bloom", name: "Peach Bloom", description: "Warm peach, inviting tone",
+    formBgColor: "#fff8f0", formTextColor: "#5a2d0c", formBorderColor: "#ffd4b0",
+    formBorderRadiusPx: 18, formBorderWidthPx: 1, formShadowPx: 8, formPaddingPx: 20,
+    fieldBgColor: "#fffaf5", fieldTextColor: "#5a2d0c", fieldBorderColor: "#ffc898",
+    fieldBorderRadiusPx: 12, accentColor: "#f97316",
+  },
+  {
+    id: "baby-blue", name: "Baby Blue", description: "Gentle sky blue softness",
+    formBgColor: "#f0f8ff", formTextColor: "#1e3a5f", formBorderColor: "#c0daf5",
+    formBorderRadiusPx: 14, formBorderWidthPx: 1, formShadowPx: 6, formPaddingPx: 20,
+    fieldBgColor: "#ffffff", fieldTextColor: "#1e3a5f", fieldBorderColor: "#b0ceec",
+    fieldBorderRadiusPx: 8, accentColor: "#3b82f6",
+  },
+  {
+    id: "lilac-mist", name: "Lilac Mist", description: "Dreamy lilac, feminine",
+    formBgColor: "#fdf5ff", formTextColor: "#5b2a7a", formBorderColor: "#e8c8f8",
+    formBorderRadiusPx: 20, formBorderWidthPx: 1, formShadowPx: 8, formPaddingPx: 20,
+    fieldBgColor: "#fefaff", fieldTextColor: "#5b2a7a", fieldBorderColor: "#e0b8f0",
+    fieldBorderRadiusPx: 12, accentColor: "#a855f7",
+  },
+  {
+    id: "cream-vanilla", name: "Cream Vanilla", description: "Soft warm cream palette",
+    formBgColor: "#fffdf5", formTextColor: "#4a3728", formBorderColor: "#ede0c4",
+    formBorderRadiusPx: 12, formBorderWidthPx: 1, formShadowPx: 4, formPaddingPx: 20,
+    fieldBgColor: "#ffffff", fieldTextColor: "#4a3728", fieldBorderColor: "#e4d4b4",
+    fieldBorderRadiusPx: 8, accentColor: "#d97706",
+  },
+];
+
+const NEON_TEMPLATES: FullTemplate[] = [
+  {
+    id: "neon-green", name: "Neon Green", description: "Dark base, electric green",
+    formBgColor: "#080f08", formTextColor: "#d0ffd0", formBorderColor: "#00c032",
+    formBorderRadiusPx: 4, formBorderWidthPx: 1, formShadowPx: 20, formPaddingPx: 24,
+    fieldBgColor: "#0d1a0d", fieldTextColor: "#d0ffd0", fieldBorderColor: "#009828",
+    fieldBorderRadiusPx: 4, accentColor: "#00e836",
+  },
+  {
+    id: "hot-pink-neon", name: "Hot Pink", description: "Dark canvas, hot pink glow",
+    formBgColor: "#0f0010", formTextColor: "#ffd6ff", formBorderColor: "#cc0088",
+    formBorderRadiusPx: 8, formBorderWidthPx: 1, formShadowPx: 24, formPaddingPx: 24,
+    fieldBgColor: "#18001a", fieldTextColor: "#ffd6ff", fieldBorderColor: "#aa0070",
+    fieldBorderRadiusPx: 6, accentColor: "#ff00aa",
+  },
+  {
+    id: "cyber-yellow", name: "Cyber Yellow", description: "Black base, cyber yellow",
+    formBgColor: "#0a0900", formTextColor: "#fffacc", formBorderColor: "#c8a800",
+    formBorderRadiusPx: 4, formBorderWidthPx: 1, formShadowPx: 20, formPaddingPx: 24,
+    fieldBgColor: "#120f00", fieldTextColor: "#fffacc", fieldBorderColor: "#a08800",
+    fieldBorderRadiusPx: 4, accentColor: "#ffd700",
+  },
+  {
+    id: "electric-blue-neon", name: "Electric Blue", description: "Deep black, electric pulse",
+    formBgColor: "#00080f", formTextColor: "#c8f0ff", formBorderColor: "#0080cc",
+    formBorderRadiusPx: 6, formBorderWidthPx: 1, formShadowPx: 24, formPaddingPx: 24,
+    fieldBgColor: "#000d1a", fieldTextColor: "#c8f0ff", fieldBorderColor: "#0060a8",
+    fieldBorderRadiusPx: 6, accentColor: "#00aaff",
+  },
+  {
+    id: "laser-red", name: "Laser Red", description: "Charcoal dark, laser red",
+    formBgColor: "#0f0000", formTextColor: "#ffd0d0", formBorderColor: "#cc0000",
+    formBorderRadiusPx: 4, formBorderWidthPx: 1, formShadowPx: 20, formPaddingPx: 24,
+    fieldBgColor: "#1a0000", fieldTextColor: "#ffd0d0", fieldBorderColor: "#aa0000",
+    fieldBorderRadiusPx: 4, accentColor: "#ff2020",
+  },
+  {
+    id: "uv-purple", name: "UV Purple", description: "Ultra violet on void black",
+    formBgColor: "#07000f", formTextColor: "#e8d0ff", formBorderColor: "#7700cc",
+    formBorderRadiusPx: 8, formBorderWidthPx: 1, formShadowPx: 28, formPaddingPx: 24,
+    fieldBgColor: "#0e0018", fieldTextColor: "#e8d0ff", fieldBorderColor: "#5800aa",
+    fieldBorderRadiusPx: 6, accentColor: "#9900ff",
+  },
+];
+
+const CORPORATE_TEMPLATES: FullTemplate[] = [
+  {
+    id: "executive", name: "Executive", description: "Navy authority, gold precision",
+    formBgColor: "#0a1628", formTextColor: "#e8dcc8", formBorderColor: "#2a4a78",
+    formBorderRadiusPx: 4, formBorderWidthPx: 1, formShadowPx: 24, formPaddingPx: 28,
+    fieldBgColor: "#0f2039", fieldTextColor: "#e8dcc8", fieldBorderColor: "#2a4a78",
+    fieldBorderRadiusPx: 4, accentColor: "#c8a840",
+  },
+  {
+    id: "trust-blue", name: "Trust Blue", description: "Classic corporate confidence",
+    formBgColor: "#f8fbff", formTextColor: "#0d2e5c", formBorderColor: "#b0c8e8",
+    formBorderRadiusPx: 6, formBorderWidthPx: 1, formShadowPx: 12, formPaddingPx: 24,
+    fieldBgColor: "#ffffff", fieldTextColor: "#0d2e5c", fieldBorderColor: "#98b8e0",
+    fieldBorderRadiusPx: 4, accentColor: "#1d4ed8",
+  },
+  {
+    id: "charcoal-authority", name: "Authority", description: "Bold charcoal, clear hierarchy",
+    formBgColor: "#1c1c1e", formTextColor: "#f5f5f7", formBorderColor: "#48484a",
+    formBorderRadiusPx: 8, formBorderWidthPx: 1, formShadowPx: 24, formPaddingPx: 24,
+    fieldBgColor: "#2c2c2e", fieldTextColor: "#f5f5f7", fieldBorderColor: "#5a5a5c",
+    fieldBorderRadiusPx: 6, accentColor: "#0a84ff",
+  },
+  {
+    id: "enterprise-gray", name: "Enterprise", description: "Structured gray, enterprise grade",
+    formBgColor: "#f4f6f8", formTextColor: "#1a2332", formBorderColor: "#c4cfd8",
+    formBorderRadiusPx: 6, formBorderWidthPx: 1, formShadowPx: 8, formPaddingPx: 24,
+    fieldBgColor: "#ffffff", fieldTextColor: "#1a2332", fieldBorderColor: "#b4bfc8",
+    fieldBorderRadiusPx: 4, accentColor: "#2563eb",
+  },
+  {
+    id: "finance-dark", name: "Finance", description: "Bloomberg-style dark precision",
+    formBgColor: "#111318", formTextColor: "#c8d8e8", formBorderColor: "#303848",
+    formBorderRadiusPx: 4, formBorderWidthPx: 1, formShadowPx: 20, formPaddingPx: 24,
+    fieldBgColor: "#1a2030", fieldTextColor: "#c8d8e8", fieldBorderColor: "#404858",
+    fieldBorderRadiusPx: 4, accentColor: "#22c55e",
+  },
+  {
+    id: "legal-ivory", name: "Legal Ivory", description: "Formal ivory, timeless trust",
+    formBgColor: "#fdfbf7", formTextColor: "#1a1a2e", formBorderColor: "#d4cabb",
+    formBorderRadiusPx: 2, formBorderWidthPx: 1, formShadowPx: 6, formPaddingPx: 28,
+    fieldBgColor: "#ffffff", fieldTextColor: "#1a1a2e", fieldBorderColor: "#c8bead",
+    fieldBorderRadiusPx: 2, accentColor: "#1a1a2e",
+  },
+];
+
+const NATURE_TEMPLATES: FullTemplate[] = [
+  {
+    id: "lavender-fields", name: "Lavender Fields", description: "Floral purple serenity",
+    formBgColor: "#f8f4ff", formTextColor: "#3d2060", formBorderColor: "#ccb0e8",
+    formBorderRadiusPx: 16, formBorderWidthPx: 1, formShadowPx: 8, formPaddingPx: 20,
+    fieldBgColor: "#ffffff", fieldTextColor: "#3d2060", fieldBorderColor: "#bea0d8",
+    fieldBorderRadiusPx: 10, accentColor: "#7c3aed",
+  },
+  {
+    id: "terracotta", name: "Terracotta", description: "Clay-red, artisan craft feel",
+    formBgColor: "#fdf4ee", formTextColor: "#4a1505", formBorderColor: "#d4a880",
+    formBorderRadiusPx: 12, formBorderWidthPx: 1, formShadowPx: 8, formPaddingPx: 20,
+    fieldBgColor: "#fff8f4", fieldTextColor: "#4a1505", fieldBorderColor: "#c49070",
+    fieldBorderRadiusPx: 8, accentColor: "#c2410c",
+  },
+  {
+    id: "sage-garden", name: "Sage Garden", description: "Herbal sage green, fresh",
+    formBgColor: "#f4f7f2", formTextColor: "#1e3020", formBorderColor: "#b0c8a8",
+    formBorderRadiusPx: 14, formBorderWidthPx: 1, formShadowPx: 6, formPaddingPx: 20,
+    fieldBgColor: "#ffffff", fieldTextColor: "#1e3020", fieldBorderColor: "#a0b898",
+    fieldBorderRadiusPx: 8, accentColor: "#4d7c0f",
+  },
+  {
+    id: "bamboo", name: "Bamboo", description: "East-Asian inspired, serene",
+    formBgColor: "#f9f7ec", formTextColor: "#2d3018", formBorderColor: "#ccc898",
+    formBorderRadiusPx: 10, formBorderWidthPx: 1, formShadowPx: 4, formPaddingPx: 20,
+    fieldBgColor: "#ffffff", fieldTextColor: "#2d3018", fieldBorderColor: "#bcb888",
+    fieldBorderRadiusPx: 6, accentColor: "#65a30d",
+  },
+  {
+    id: "desert-sand", name: "Desert Sand", description: "Arid warmth, minimal dust",
+    formBgColor: "#faf5eb", formTextColor: "#3d2e1a", formBorderColor: "#d4bc94",
+    formBorderRadiusPx: 12, formBorderWidthPx: 1, formShadowPx: 6, formPaddingPx: 20,
+    fieldBgColor: "#fffcf5", fieldTextColor: "#3d2e1a", fieldBorderColor: "#c4ac84",
+    fieldBorderRadiusPx: 8, accentColor: "#b45309",
+  },
+  {
+    id: "arctic-pine", name: "Arctic Pine", description: "Cold forest, crisp evergreen",
+    formBgColor: "#f0f5f2", formTextColor: "#0f2818", formBorderColor: "#a8c4b0",
+    formBorderRadiusPx: 10, formBorderWidthPx: 1, formShadowPx: 8, formPaddingPx: 20,
+    fieldBgColor: "#ffffff", fieldTextColor: "#0f2818", fieldBorderColor: "#98b4a0",
+    fieldBorderRadiusPx: 6, accentColor: "#166534",
+  },
+];
+
+const VIBRANT_TEMPLATES: FullTemplate[] = [
+  {
+    id: "sunset-glow", name: "Sunset Glow", description: "Warm sunset ombre palette",
+    formBgColor: "#fff5f0", formTextColor: "#5a1a0a", formBorderColor: "#ffb090",
+    formBorderRadiusPx: 16, formBorderWidthPx: 1, formShadowPx: 12, formPaddingPx: 20,
+    fieldBgColor: "#fff9f5", fieldTextColor: "#5a1a0a", fieldBorderColor: "#ffa080",
+    fieldBorderRadiusPx: 10, accentColor: "#ea580c",
+  },
+  {
+    id: "berry-bold", name: "Berry Bold", description: "Rich berry, bold confidence",
+    formBgColor: "#fdf0f8", formTextColor: "#5a0a3a", formBorderColor: "#e8b0d0",
+    formBorderRadiusPx: 14, formBorderWidthPx: 1, formShadowPx: 10, formPaddingPx: 20,
+    fieldBgColor: "#fff5fb", fieldTextColor: "#5a0a3a", fieldBorderColor: "#d8a0c0",
+    fieldBorderRadiusPx: 8, accentColor: "#be185d",
+  },
+  {
+    id: "coral-reef", name: "Coral Reef", description: "Vivid coral, tropical energy",
+    formBgColor: "#fff5f3", formTextColor: "#5a1210", formBorderColor: "#ffaaa0",
+    formBorderRadiusPx: 16, formBorderWidthPx: 1, formShadowPx: 8, formPaddingPx: 20,
+    fieldBgColor: "#fffafa", fieldTextColor: "#5a1210", fieldBorderColor: "#ff9890",
+    fieldBorderRadiusPx: 10, accentColor: "#f43f5e",
+  },
+  {
+    id: "teal-pop", name: "Teal Pop", description: "Vibrant teal, modern pop",
+    formBgColor: "#f0fffe", formTextColor: "#0a3a38", formBorderColor: "#90dcd8",
+    formBorderRadiusPx: 14, formBorderWidthPx: 1, formShadowPx: 8, formPaddingPx: 20,
+    fieldBgColor: "#ffffff", fieldTextColor: "#0a3a38", fieldBorderColor: "#80ccc8",
+    fieldBorderRadiusPx: 8, accentColor: "#0d9488",
+  },
+  {
+    id: "lemon-zest", name: "Lemon Zest", description: "Bright lemon, cheerful energy",
+    formBgColor: "#fffef0", formTextColor: "#3d3a00", formBorderColor: "#e8de78",
+    formBorderRadiusPx: 14, formBorderWidthPx: 1, formShadowPx: 6, formPaddingPx: 20,
+    fieldBgColor: "#ffffff", fieldTextColor: "#3d3a00", fieldBorderColor: "#d8ce68",
+    fieldBorderRadiusPx: 8, accentColor: "#ca8a04",
+  },
+  {
+    id: "fuchsia-pulse", name: "Fuchsia Pulse", description: "Electric fuchsia, striking",
+    formBgColor: "#fff0ff", formTextColor: "#5a0060", formBorderColor: "#e898f0",
+    formBorderRadiusPx: 18, formBorderWidthPx: 1, formShadowPx: 12, formPaddingPx: 20,
+    fieldBgColor: "#fff8ff", fieldTextColor: "#5a0060", fieldBorderColor: "#d888e0",
+    fieldBorderRadiusPx: 12, accentColor: "#c026d3",
+  },
+];
+
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -2187,7 +2412,7 @@ export function FormDesignerWorkspace({
               <Text as="h3" variant="headingSm">Advanced</Text>
               <Text as="p" variant="bodySm" tone="subdued">Complete color &amp; style presets</Text>
             </BlockStack>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "10px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: "8px" }}>
               {ADVANCED_TEMPLATES.map((tmpl) => {
                 const isActive =
                   hsbToHex(formBgColor) === tmpl.formBgColor &&
@@ -2259,7 +2484,7 @@ export function FormDesignerWorkspace({
               </InlineStack>
               <Text as="p" variant="bodySm" tone="subdued">High-impact exclusive styles</Text>
             </BlockStack>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "10px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: "8px" }}>
               {PREMIUM_TEMPLATES.map((tmpl) => {
                 const isActive =
                   hsbToHex(formBgColor) === tmpl.formBgColor &&
@@ -2312,6 +2537,327 @@ export function FormDesignerWorkspace({
                       <InlineStack align="space-between" blockAlign="center">
                         <Text as="p" variant="bodySm" fontWeight="semibold">{tmpl.name}</Text>
                         {isActive ? <Badge tone="success">Applied</Badge> : <Badge tone="warning">Pro</Badge>}
+                      </InlineStack>
+                    </Box>
+                  </div>
+                );
+              })}
+            </div>
+          </BlockStack>
+        </Modal.Section>
+
+        {/* ── Pastel Templates ── */}
+        <Modal.Section>
+          <BlockStack gap="300">
+            <BlockStack gap="050">
+              <Text as="h3" variant="headingSm">Pastel</Text>
+              <Text as="p" variant="bodySm" tone="subdued">Soft, gentle color palettes</Text>
+            </BlockStack>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: "8px" }}>
+              {PASTEL_TEMPLATES.map((tmpl) => {
+                const isActive =
+                  hsbToHex(formBgColor) === tmpl.formBgColor &&
+                  hsbToHex(fieldBgColor) === tmpl.fieldBgColor &&
+                  formBorderRadius === tmpl.formBorderRadiusPx;
+                return (
+                  <div
+                    key={tmpl.id}
+                    onClick={() => applyFullTemplate(tmpl)}
+                    style={{
+                      cursor: "pointer",
+                      borderRadius: "8px",
+                      border: `1.5px solid ${isActive ? "#202223" : "#e1e3e5"}`,
+                      overflow: "hidden",
+                      transition: "border-color 0.12s",
+                      background: "#fff",
+                    }}
+                  >
+                    <div style={{
+                      background: tmpl.formBgColor,
+                      padding: "10px",
+                      minHeight: "72px",
+                      display: "flex",
+                      flexDirection: "column",
+                      justifyContent: "center",
+                      gap: "4px",
+                    }}>
+                      <div style={{ height: "4px", width: "45%", background: tmpl.formTextColor, opacity: 0.6, borderRadius: "3px" }} />
+                      {[1, 2].map((i) => (
+                        <div key={i} style={{
+                          height: "11px",
+                          background: tmpl.fieldBgColor,
+                          border: `1px solid ${tmpl.fieldBorderColor}`,
+                          borderRadius: `${Math.min(tmpl.fieldBorderRadiusPx, 8)}px`,
+                        }} />
+                      ))}
+                      <div style={{
+                        height: "13px",
+                        background: tmpl.accentColor,
+                        borderRadius: `${Math.min(tmpl.fieldBorderRadiusPx, 8)}px`,
+                        marginTop: "2px",
+                      }} />
+                    </div>
+                    <Box padding="150" background="bg-surface-secondary" borderBlockStartWidth="025" borderColor="border-secondary">
+                      <InlineStack align="space-between" blockAlign="center">
+                        <Text as="p" variant="bodySm" fontWeight="semibold">{tmpl.name}</Text>
+                        {isActive && <Badge tone="success">Applied</Badge>}
+                      </InlineStack>
+                    </Box>
+                  </div>
+                );
+              })}
+            </div>
+          </BlockStack>
+        </Modal.Section>
+
+        {/* ── Neon / Glow Templates ── */}
+        <Modal.Section>
+          <BlockStack gap="300">
+            <BlockStack gap="050">
+              <Text as="h3" variant="headingSm">Neon / Glow</Text>
+              <Text as="p" variant="bodySm" tone="subdued">Dark backgrounds with vibrant neon accents</Text>
+            </BlockStack>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: "8px" }}>
+              {NEON_TEMPLATES.map((tmpl) => {
+                const isActive =
+                  hsbToHex(formBgColor) === tmpl.formBgColor &&
+                  hsbToHex(fieldBgColor) === tmpl.fieldBgColor &&
+                  formBorderRadius === tmpl.formBorderRadiusPx;
+                return (
+                  <div
+                    key={tmpl.id}
+                    onClick={() => applyFullTemplate(tmpl)}
+                    style={{
+                      cursor: "pointer",
+                      borderRadius: "8px",
+                      border: `1.5px solid ${isActive ? "#6c63ff" : "#e1e3e5"}`,
+                      overflow: "hidden",
+                      transition: "border-color 0.12s",
+                      background: "#fff",
+                    }}
+                  >
+                    <div style={{
+                      background: tmpl.formBgColor,
+                      padding: "10px",
+                      minHeight: "72px",
+                      display: "flex",
+                      flexDirection: "column",
+                      justifyContent: "center",
+                      gap: "4px",
+                    }}>
+                      <div style={{ height: "4px", width: "45%", background: tmpl.formTextColor, opacity: 0.6, borderRadius: "3px" }} />
+                      {[1, 2].map((i) => (
+                        <div key={i} style={{
+                          height: "11px",
+                          background: tmpl.fieldBgColor,
+                          border: `1px solid ${tmpl.fieldBorderColor}`,
+                          borderRadius: `${Math.min(tmpl.fieldBorderRadiusPx, 8)}px`,
+                        }} />
+                      ))}
+                      <div style={{
+                        height: "13px",
+                        background: tmpl.accentColor,
+                        borderRadius: `${Math.min(tmpl.fieldBorderRadiusPx, 8)}px`,
+                        marginTop: "2px",
+                        boxShadow: `0 0 6px ${tmpl.accentColor}88`,
+                      }} />
+                    </div>
+                    <Box padding="150" background="bg-surface-secondary" borderBlockStartWidth="025" borderColor="border-secondary">
+                      <InlineStack align="space-between" blockAlign="center">
+                        <Text as="p" variant="bodySm" fontWeight="semibold">{tmpl.name}</Text>
+                        {isActive && <Badge tone="success">Applied</Badge>}
+                      </InlineStack>
+                    </Box>
+                  </div>
+                );
+              })}
+            </div>
+          </BlockStack>
+        </Modal.Section>
+
+        {/* ── Corporate Templates ── */}
+        <Modal.Section>
+          <BlockStack gap="300">
+            <BlockStack gap="050">
+              <Text as="h3" variant="headingSm">Corporate</Text>
+              <Text as="p" variant="bodySm" tone="subdued">Professional business styles that build trust</Text>
+            </BlockStack>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: "8px" }}>
+              {CORPORATE_TEMPLATES.map((tmpl) => {
+                const isActive =
+                  hsbToHex(formBgColor) === tmpl.formBgColor &&
+                  hsbToHex(fieldBgColor) === tmpl.fieldBgColor &&
+                  formBorderRadius === tmpl.formBorderRadiusPx;
+                return (
+                  <div
+                    key={tmpl.id}
+                    onClick={() => applyFullTemplate(tmpl)}
+                    style={{
+                      cursor: "pointer",
+                      borderRadius: "8px",
+                      border: `1.5px solid ${isActive ? "#202223" : "#e1e3e5"}`,
+                      overflow: "hidden",
+                      transition: "border-color 0.12s",
+                      background: "#fff",
+                    }}
+                  >
+                    <div style={{
+                      background: tmpl.formBgColor,
+                      padding: "10px",
+                      minHeight: "72px",
+                      display: "flex",
+                      flexDirection: "column",
+                      justifyContent: "center",
+                      gap: "4px",
+                    }}>
+                      <div style={{ height: "4px", width: "45%", background: tmpl.formTextColor, opacity: 0.6, borderRadius: "3px" }} />
+                      {[1, 2].map((i) => (
+                        <div key={i} style={{
+                          height: "11px",
+                          background: tmpl.fieldBgColor,
+                          border: `1px solid ${tmpl.fieldBorderColor}`,
+                          borderRadius: `${Math.min(tmpl.fieldBorderRadiusPx, 8)}px`,
+                        }} />
+                      ))}
+                      <div style={{
+                        height: "13px",
+                        background: tmpl.accentColor,
+                        borderRadius: `${Math.min(tmpl.fieldBorderRadiusPx, 8)}px`,
+                        marginTop: "2px",
+                      }} />
+                    </div>
+                    <Box padding="150" background="bg-surface-secondary" borderBlockStartWidth="025" borderColor="border-secondary">
+                      <InlineStack align="space-between" blockAlign="center">
+                        <Text as="p" variant="bodySm" fontWeight="semibold">{tmpl.name}</Text>
+                        {isActive && <Badge tone="success">Applied</Badge>}
+                      </InlineStack>
+                    </Box>
+                  </div>
+                );
+              })}
+            </div>
+          </BlockStack>
+        </Modal.Section>
+
+        {/* ── Nature Templates ── */}
+        <Modal.Section>
+          <BlockStack gap="300">
+            <BlockStack gap="050">
+              <Text as="h3" variant="headingSm">Nature</Text>
+              <Text as="p" variant="bodySm" tone="subdued">Earthy organic tones inspired by the natural world</Text>
+            </BlockStack>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: "8px" }}>
+              {NATURE_TEMPLATES.map((tmpl) => {
+                const isActive =
+                  hsbToHex(formBgColor) === tmpl.formBgColor &&
+                  hsbToHex(fieldBgColor) === tmpl.fieldBgColor &&
+                  formBorderRadius === tmpl.formBorderRadiusPx;
+                return (
+                  <div
+                    key={tmpl.id}
+                    onClick={() => applyFullTemplate(tmpl)}
+                    style={{
+                      cursor: "pointer",
+                      borderRadius: "8px",
+                      border: `1.5px solid ${isActive ? "#202223" : "#e1e3e5"}`,
+                      overflow: "hidden",
+                      transition: "border-color 0.12s",
+                      background: "#fff",
+                    }}
+                  >
+                    <div style={{
+                      background: tmpl.formBgColor,
+                      padding: "10px",
+                      minHeight: "72px",
+                      display: "flex",
+                      flexDirection: "column",
+                      justifyContent: "center",
+                      gap: "4px",
+                    }}>
+                      <div style={{ height: "4px", width: "45%", background: tmpl.formTextColor, opacity: 0.6, borderRadius: "3px" }} />
+                      {[1, 2].map((i) => (
+                        <div key={i} style={{
+                          height: "11px",
+                          background: tmpl.fieldBgColor,
+                          border: `1px solid ${tmpl.fieldBorderColor}`,
+                          borderRadius: `${Math.min(tmpl.fieldBorderRadiusPx, 8)}px`,
+                        }} />
+                      ))}
+                      <div style={{
+                        height: "13px",
+                        background: tmpl.accentColor,
+                        borderRadius: `${Math.min(tmpl.fieldBorderRadiusPx, 8)}px`,
+                        marginTop: "2px",
+                      }} />
+                    </div>
+                    <Box padding="150" background="bg-surface-secondary" borderBlockStartWidth="025" borderColor="border-secondary">
+                      <InlineStack align="space-between" blockAlign="center">
+                        <Text as="p" variant="bodySm" fontWeight="semibold">{tmpl.name}</Text>
+                        {isActive && <Badge tone="success">Applied</Badge>}
+                      </InlineStack>
+                    </Box>
+                  </div>
+                );
+              })}
+            </div>
+          </BlockStack>
+        </Modal.Section>
+
+        {/* ── Vibrant Templates ── */}
+        <Modal.Section>
+          <BlockStack gap="300">
+            <BlockStack gap="050">
+              <Text as="h3" variant="headingSm">Vibrant</Text>
+              <Text as="p" variant="bodySm" tone="subdued">Bold, energetic colors that demand attention</Text>
+            </BlockStack>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: "8px" }}>
+              {VIBRANT_TEMPLATES.map((tmpl) => {
+                const isActive =
+                  hsbToHex(formBgColor) === tmpl.formBgColor &&
+                  hsbToHex(fieldBgColor) === tmpl.fieldBgColor &&
+                  formBorderRadius === tmpl.formBorderRadiusPx;
+                return (
+                  <div
+                    key={tmpl.id}
+                    onClick={() => applyFullTemplate(tmpl)}
+                    style={{
+                      cursor: "pointer",
+                      borderRadius: "8px",
+                      border: `1.5px solid ${isActive ? "#202223" : "#e1e3e5"}`,
+                      overflow: "hidden",
+                      transition: "border-color 0.12s",
+                      background: "#fff",
+                    }}
+                  >
+                    <div style={{
+                      background: tmpl.formBgColor,
+                      padding: "10px",
+                      minHeight: "72px",
+                      display: "flex",
+                      flexDirection: "column",
+                      justifyContent: "center",
+                      gap: "4px",
+                    }}>
+                      <div style={{ height: "4px", width: "45%", background: tmpl.formTextColor, opacity: 0.6, borderRadius: "3px" }} />
+                      {[1, 2].map((i) => (
+                        <div key={i} style={{
+                          height: "11px",
+                          background: tmpl.fieldBgColor,
+                          border: `1px solid ${tmpl.fieldBorderColor}`,
+                          borderRadius: `${Math.min(tmpl.fieldBorderRadiusPx, 8)}px`,
+                        }} />
+                      ))}
+                      <div style={{
+                        height: "13px",
+                        background: tmpl.accentColor,
+                        borderRadius: `${Math.min(tmpl.fieldBorderRadiusPx, 8)}px`,
+                        marginTop: "2px",
+                      }} />
+                    </div>
+                    <Box padding="150" background="bg-surface-secondary" borderBlockStartWidth="025" borderColor="border-secondary">
+                      <InlineStack align="space-between" blockAlign="center">
+                        <Text as="p" variant="bodySm" fontWeight="semibold">{tmpl.name}</Text>
+                        {isActive && <Badge tone="success">Applied</Badge>}
                       </InlineStack>
                     </Box>
                   </div>

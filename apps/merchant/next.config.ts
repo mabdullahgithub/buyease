@@ -58,6 +58,7 @@ const nextConfig: NextConfig = {
               `script-src 'self' 'unsafe-inline'${process.env.NODE_ENV === "development" ? " 'unsafe-eval'" : ""} https://cdn.shopify.com https://maps.googleapis.com`,
               "style-src 'self' 'unsafe-inline' https://cdn.shopify.com",
               "font-src 'self' https://cdn.shopify.com data:",
+              "img-src 'self' data: blob: https://cdn.shopify.com https://*.shopifycdn.com https://*.shopify.com",
               "frame-ancestors https://*.myshopify.com https://admin.shopify.com",
             ].join("; "),
           },
