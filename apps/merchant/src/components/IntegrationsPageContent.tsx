@@ -590,13 +590,31 @@ function GoogleSheetsPage({ onBack }: { onBack: () => void }): ReactElement {
           isEnabled 
         }) 
       });
-      const data = (await res.json()) as { ok?: boolean; error?: string; spreadsheetTitle?: string };
+      const data = (await res.json()) as { ok?: boolean; error?: string; spreadsheetTitle?: string; spreadsheetUrl?: string };
       if (!res.ok || data.error) { setSaveError(data.error ?? "Failed to save settings."); }
       else {
         const name = data.spreadsheetTitle ?? availableSheets.find((s) => s.id === spreadsheetId)?.name ?? spreadsheetId;
         setConnectedSheetTitle(name);
+        // Update status directly — avoids a second round-trip to /api/google/status
+        if (status && status.connected) {
+          setStatus({
+            ...status,
+            spreadsheetId,
+            spreadsheetUrl: data.spreadsheetUrl ?? `https://docs.google.com/spreadsheets/d/${spreadsheetId}`,
+            sheetName,
+            abandonedSheetName,
+            selectedFields: paddedFields,
+            singleRowPerOrder,
+            insertAtTop,
+            autoSync,
+            layoutDesign,
+            importPreset,
+            isEnabled,
+            headerRowWritten: true,
+            lastSyncError: null,
+          });
+        }
         shopify.toast.show(`Settings saved successfully!`);
-        await fetchStatus();
       }
     } catch { setSaveError("Network error. Please try again."); }
     finally { setIsSaving(false); }
@@ -1474,8 +1492,11 @@ function SmsWhatsAppPage({ onBack }: { onBack: () => void }): ReactElement {
       });
 
       if (!res.ok) throw new Error("Failed to save settings");
+      const data = await res.json();
+      // Update initialSettings directly — avoids a second round-trip to /api/messaging/settings
+      setInitialSettings(data);
+      setBalance(data.balance);
       shopify.toast.show("Settings saved");
-      await fetchSettings();
     } catch (error) {
       shopify.toast.show("Failed to save settings");
     } finally {

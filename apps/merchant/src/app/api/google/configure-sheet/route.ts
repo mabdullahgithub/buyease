@@ -64,12 +64,17 @@ export const POST = withGuards({ skipPlanGate: true }, async (req: NextRequest, 
   }
 
   // Write header row now so first-time setup is visible immediately
-  // We write it to both sheets if they are different
+  // Run both sheet writes in parallel when two distinct tabs are configured
   try {
-    await ensureHeaderRow(accessToken, spreadsheetId, sheetName, selectedFields, layoutDesign);
+    const headerPromises: Promise<void>[] = [
+      ensureHeaderRow(accessToken, spreadsheetId, sheetName, selectedFields, layoutDesign),
+    ];
     if (abandonedSheetName && abandonedSheetName !== sheetName) {
-      await ensureHeaderRow(accessToken, spreadsheetId, abandonedSheetName, selectedFields, layoutDesign);
+      headerPromises.push(
+        ensureHeaderRow(accessToken, spreadsheetId, abandonedSheetName, selectedFields, layoutDesign),
+      );
     }
+    await Promise.all(headerPromises);
   } catch (err) {
     const msg = err instanceof Error ? err.message : "";
     return NextResponse.json(
