@@ -53,7 +53,7 @@ export const GET = withGuards({ skipPlanGate: true }, async (_req, ctx) => {
     const accessToken = session.accessToken ?? "";
 
     if (!accessToken) {
-      return NextResponse.json({ enabled: false });
+      return NextResponse.json({ enabled: null, reason: "no_token" });
     }
 
     const themesRes = await fetch(`https://${shop}/admin/api/2026-04/themes.json`, {
@@ -61,14 +61,15 @@ export const GET = withGuards({ skipPlanGate: true }, async (_req, ctx) => {
     });
 
     if (!themesRes.ok) {
-      return NextResponse.json({ enabled: false });
+      // 403 = missing read_themes scope; treat as unknown, not false
+      return NextResponse.json({ enabled: null, reason: `themes_api_${themesRes.status}` });
     }
 
     const themesData = (await themesRes.json()) as ThemesResponse;
     const mainTheme = themesData.themes.find((t) => t.role === "main");
 
     if (!mainTheme) {
-      return NextResponse.json({ enabled: false });
+      return NextResponse.json({ enabled: null, reason: "no_main_theme" });
     }
 
     const assetRes = await fetch(
@@ -77,14 +78,14 @@ export const GET = withGuards({ skipPlanGate: true }, async (_req, ctx) => {
     );
 
     if (!assetRes.ok) {
-      return NextResponse.json({ enabled: false });
+      return NextResponse.json({ enabled: null, reason: `asset_api_${assetRes.status}` });
     }
 
     const assetData = (await assetRes.json()) as ThemeAssetsResponse;
     const content = assetData.asset?.value;
 
     if (!content) {
-      return NextResponse.json({ enabled: false });
+      return NextResponse.json({ enabled: null, reason: "no_content" });
     }
 
     const settings = JSON.parse(content) as SettingsData;
@@ -96,6 +97,6 @@ export const GET = withGuards({ skipPlanGate: true }, async (_req, ctx) => {
 
     return NextResponse.json({ enabled });
   } catch {
-    return NextResponse.json({ enabled: false });
+    return NextResponse.json({ enabled: null, reason: "exception" });
   }
 });

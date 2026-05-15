@@ -113,8 +113,8 @@ export function FormBuilderPageContent(): ReactElement {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) return;
-      const data = (await res.json()) as { enabled: boolean };
-      setEmbedEnabled(data.enabled);
+      const data = (await res.json()) as { enabled: boolean | null; reason?: string };
+      setEmbedEnabled(data.enabled ?? null);
     } catch {
       // leave as null — unknown state
     }
