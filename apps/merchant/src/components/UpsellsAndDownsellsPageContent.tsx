@@ -1,8 +1,10 @@
 "use client";
 
-import type { ReactElement, ReactNode } from "react";
+import type { ReactElement } from "react";
 import Image from "next/image";
+import { useState } from "react";
 import {
+  Banner,
   BlockStack,
   Button,
   Card,
@@ -14,6 +16,7 @@ import {
 import {
   CartDownIcon,
   CartUpIcon,
+  ChatIcon,
   ClipboardChecklistIcon,
 } from "@shopify/polaris-icons";
 
@@ -90,6 +93,8 @@ const UPSELL_FEATURES: UpsellFeatureItem[] = [
  * Mirrors the Integrations & Messaging page layout exactly.
  */
 export function UpsellsAndDownsellsPageContent(): ReactElement {
+  const [helpDismissed, setHelpDismissed] = useState(false);
+
   return (
     <Page title="Upsells & Downsells">
       <div style={{ width: "65.5rem", maxWidth: "100%" }}>
@@ -137,6 +142,20 @@ export function UpsellsAndDownsellsPageContent(): ReactElement {
               </InlineStack>
             </Card>
           ))}
+          {!helpDismissed && (
+            <Banner
+              title="Do you need help with the new Upsells?"
+              tone="info"
+              onDismiss={() => setHelpDismissed(true)}
+              action={{
+                content: "Contact us",
+                icon: ChatIcon,
+                onAction: () => {},
+              }}
+            >
+              <p>Contact us, our support agents will be happy to help you!</p>
+            </Banner>
+          )}
         </BlockStack>
       </div>
     </Page>
