@@ -60,6 +60,20 @@ const DEFAULTS = {
   productRestrictionMode:  "none",
   restrictedProducts:      [] as unknown[],
   restrictedCollections:   [] as unknown[],
+  // ── Settings ──
+  formPlacement:           "whole-store",
+  hideCheckout:            false,
+  hideAddToCart:           false,
+  hideBuyNow:              false,
+  whenOpened:              "product-and-cart",
+  disableInPages:          {},
+  allowCountriesOnly:      false,
+  enableOrderEligibility:  false,
+  hideSubmitButton:        false,
+  disableOutOfStock:       true,
+  disableAllDiscounts:     false,
+  disableShopifyDiscount:  false,
+  customCss:               "",
 };
 
 export async function OPTIONS(): Promise<NextResponse> {
@@ -114,6 +128,20 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       productRestrictionMode: true,
       restrictedProducts:     true,
       restrictedCollections:  true,
+      // ── Settings ──
+      formPlacement:          true,
+      hideCheckout:           true,
+      hideAddToCart:          true,
+      hideBuyNow:             true,
+      whenOpened:             true,
+      disableInPages:         true,
+      allowCountriesOnly:     true,
+      enableOrderEligibility: true,
+      hideSubmitButton:       true,
+      disableOutOfStock:      true,
+      disableAllDiscounts:    true,
+      disableShopifyDiscount: true,
+      customCss:              true,
     },
   });
 
