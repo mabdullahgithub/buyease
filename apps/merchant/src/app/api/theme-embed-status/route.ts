@@ -96,9 +96,12 @@ export const GET = withGuards({ skipPlanGate: true }, async (_req, ctx) => {
     );
 
     if (!enabled) {
-      // Return raw block keys so the client can log them for debugging.
-      const blockKeys = Object.keys(blocks);
-      return NextResponse.json({ enabled: false, reason: "block_not_matched", blockKeys });
+      const blockDebug = Object.entries(blocks).map(([key, block]) => ({
+        key,
+        type: block.type ?? null,
+        disabled: block.disabled ?? null,
+      }));
+      return NextResponse.json({ enabled: false, reason: "block_not_matched", blockDebug });
     }
 
     return NextResponse.json({ enabled: true });
