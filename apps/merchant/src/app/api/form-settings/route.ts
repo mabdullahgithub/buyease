@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { formSettingsConfigSchema } from "@/lib/form-config-schemas";
 import { withGuards } from "@/lib/middleware-stack";
+import { invalidateFormConfig } from "@/lib/storefront-config-cache";
 import { parseBody } from "@/lib/validation";
 
 const SELECT = {
@@ -73,6 +74,8 @@ export const PUT = withGuards({ skipPlanGate: true }, async (req: NextRequest, c
     update: parsed.data,
     select: SELECT,
   });
+
+  invalidateFormConfig(ctx.shop);
 
   void prisma.formConfigChangeLog
     .create({ data: { shop: ctx.shop, configType: "form_settings" } })

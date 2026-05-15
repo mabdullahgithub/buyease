@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { formDesignConfigSchema } from "@/lib/form-config-schemas";
 import { withGuards } from "@/lib/middleware-stack";
-import { setCachedFormConfig } from "@/lib/storefront-config-cache";
+import { invalidateFormConfig } from "@/lib/storefront-config-cache";
 import { parseBody } from "@/lib/validation";
 
 const SELECT = {
@@ -85,11 +85,10 @@ export const PUT = withGuards({ skipPlanGate: true }, async (req: NextRequest, c
     select: SELECT,
   });
 
-  // Pre-warm the storefront LRU cache immediately so the next shopper request
-  // hits the cache instead of the DB. Strip updatedAt — storefront responses
-  // don't include it and we don't want it leaking to the public CDN response.
-  const { updatedAt: _at, ...cacheData } = updated;
-  setCachedFormConfig(ctx.shop, cacheData as Record<string, unknown>);
+  // Invalidate the storefront LRU cache so the next request fetches a full,
+  // merged config from DB (pre-warming with a partial SELECT would strip the
+  // restriction/settings fields saved by the form-settings route).
+  invalidateFormConfig(ctx.shop);
 
   void prisma.formConfigChangeLog.create({
     data: { shop: ctx.shop, configType: "form_design" },

@@ -1126,7 +1126,7 @@ export function SettingsWorkspace({ embedEnabled }: Props): ReactElement {
               value={customCss}
               onChange={setCustomCss}
               multiline={5}
-              maxLength={5000}
+              maxLength={10000}
               showCharacterCount
               autoComplete="off"
               helpText="Add your custom CSS styles for the form"
