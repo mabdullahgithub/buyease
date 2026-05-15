@@ -22,6 +22,7 @@ import {
   ButtonIcon,
   DeliveryIcon,
   FormsIcon,
+  QuestionCircleIcon,
   SettingsIcon,
   TabletIcon,
   ThemeEditIcon,
@@ -143,7 +144,34 @@ export function FormBuilderPageContent(): ReactElement {
   const active = MODES.find((m) => m.id === mode) ?? MODES[0]!;
 
   const embedStatusBadge =
-    embedEnabled === true ? <Badge tone="success">Form enabled</Badge> : null;
+    embedEnabled === true ? <Badge tone="warning">Form enabled</Badge> : null;
+
+  const secondaryActions = embedEnabled === true
+    ? [
+        {
+          content: "Disable form",
+          icon: ThemeEditIcon,
+          url: themeEditorUrl || undefined,
+          target: "_blank" as const,
+          destructive: true,
+          disabled: !themeEditorUrl,
+        },
+      ]
+    : [
+        {
+          content: "How to enable",
+          icon: QuestionCircleIcon,
+          url: "https://help.shopify.com/en/manual/online-store/themes/theme-structure/extend/apps#enable-app-embed-blocks",
+          target: "_blank" as const,
+        },
+        {
+          content: "Enable form",
+          icon: ThemeEditIcon,
+          url: themeEditorUrl || undefined,
+          target: "_blank" as const,
+          disabled: !themeEditorUrl,
+        },
+      ];
 
   return (
     <Page
@@ -153,21 +181,8 @@ export function FormBuilderPageContent(): ReactElement {
           ? "Design your COD buy button and preview it before publishing to your storefront."
           : undefined
       }
-      titleMetadata={
-        <>
-          <Badge tone="success">New</Badge>
-          {embedStatusBadge}
-        </>
-      }
-      secondaryActions={[
-        {
-          content: "Enable form",
-          icon: ThemeEditIcon,
-          url: themeEditorUrl || undefined,
-          target: "_blank",
-          disabled: !themeEditorUrl,
-        },
-      ]}
+      titleMetadata={embedStatusBadge}
+      secondaryActions={secondaryActions}
     >
       <BlockStack gap="400">
         <Box
