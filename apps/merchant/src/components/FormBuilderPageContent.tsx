@@ -113,7 +113,9 @@ export function FormBuilderPageContent(): ReactElement {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) return;
-      const data = (await res.json()) as { enabled: boolean | null; reason?: string };
+      const data = (await res.json()) as { enabled: boolean | null; reason?: string; blockKeys?: string[] };
+      // eslint-disable-next-line no-console
+      console.debug("[BuyEase] theme-embed-status →", data);
       setEmbedEnabled(data.enabled ?? null);
     } catch {
       // leave as null — unknown state

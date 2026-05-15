@@ -95,7 +95,13 @@ export const GET = withGuards({ skipPlanGate: true }, async (_req, ctx) => {
       ([key, block]) => isBuyEaseBlock(key, block) && block.disabled !== true,
     );
 
-    return NextResponse.json({ enabled });
+    if (!enabled) {
+      // Return raw block keys so the client can log them for debugging.
+      const blockKeys = Object.keys(blocks);
+      return NextResponse.json({ enabled: false, reason: "block_not_matched", blockKeys });
+    }
+
+    return NextResponse.json({ enabled: true });
   } catch {
     return NextResponse.json({ enabled: null, reason: "exception" });
   }
