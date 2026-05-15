@@ -8,6 +8,7 @@
   var ROOT_ID = 'buyease-cod-root';
   var OVERLAY_ID = 'buyease-overlay';
   var STYLE_ID = 'buyease-styles';
+  var EMBEDDED_CARD_ID = 'buyease-embedded-card';
 
   var _ctx = {};
   var _btnCfg = null;
@@ -535,6 +536,27 @@
       '#buyease-done-btn { padding: 11px 26px; background: ' + esc(formCfg.formTextColor) + '; color: ' + esc(formCfg.formBgColor) + '; border: none; border-radius: ' + formCfg.fieldBorderRadiusPx + 'px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; transition: opacity 0.15s; }',
       '#buyease-done-btn:hover { opacity: 0.9; }',
 
+      /* ─── Embedded form card ────────────────────────────────────────────── */
+      '#buyease-embedded-card {',
+      '  background: ' + esc(formCfg.formBgColor) + ';',
+      '  color: ' + esc(formCfg.formTextColor) + ';',
+      '  border: ' + formCfg.formBorderWidthPx + 'px solid ' + esc(formCfg.formBorderColor) + ';',
+      '  border-radius: ' + formCfg.formBorderRadiusPx + 'px;',
+      '  box-shadow: 0 2px ' + Math.max(formCfg.formShadowPx, 4) + 'px rgba(0,0,0,0.1);',
+      '  padding: ' + formCfg.formPaddingPx + 'px;',
+      '  width: 100%;',
+      '  box-sizing: border-box;',
+      '  font-family: inherit;',
+      '  font-weight: ' + (formCfg.formTextBold ? '600' : '400') + ';',
+      '  font-style: ' + (formCfg.formTextItalic ? 'italic' : 'normal') + ';',
+      '  direction: ' + (formCfg.rtl ? 'rtl' : 'ltr') + ';',
+      '  position: relative;',
+      '  margin-top: 12px;',
+      '  scrollbar-width: thin;',
+      '}',
+      '#buyease-embedded-card::-webkit-scrollbar { width: 6px; }',
+      '#buyease-embedded-card::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.18); border-radius: 3px; }',
+
       /* Animations */
       '@keyframes buye-fadein { from { opacity: 0; } to { opacity: 1; } }',
       '@keyframes buye-slidein { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }',
@@ -787,13 +809,19 @@
     if (btn) btn.remove();
     var wrap = document.getElementById('buyease-sticky-wrap');
     if (wrap) wrap.remove();
+    var embedded = document.getElementById(EMBEDDED_CARD_ID);
+    if (embedded) embedded.remove();
     document.documentElement.classList.remove('buyease-active');
     if (_mountObserver) { _mountObserver.disconnect(); _mountObserver = null; }
     if (_mountRetryTimer) { clearTimeout(_mountRetryTimer); _mountRetryTimer = null; }
   }
 
   function renderButton() {
-    ensureButtonMounted();
+    if (_formCfg && _formCfg.formType === 'embedded') {
+      renderEmbeddedForm();
+    } else {
+      ensureButtonMounted();
+    }
   }
 
   // ─── Form ─────────────────────────────────────────────────────────────────────
@@ -1495,6 +1523,159 @@
       country: 'country',
     };
     return map[fieldId] || 'on';
+  }
+
+  // ─── Embedded form ───────────────────────────────────────────────────────────
+  function buildEmbeddedFormHTML() {
+    var fields = Array.isArray(_formCfg.fields) ? _formCfg.fields : [];
+    var visibleFields = fields.filter(function (f) { return !f.hidden; });
+    var parts = [
+      '<form id="buyease-form" novalidate autocomplete="' + (_formCfg.autocomplete !== false ? 'on' : 'off') + '">',
+    ];
+    visibleFields.forEach(function (field) {
+      parts.push(renderField(field));
+    });
+    parts.push('</form>');
+    return parts.join('');
+  }
+
+  function mountEmbeddedCard(card) {
+    if (document.getElementById(EMBEDDED_CARD_ID)) return true;
+
+    var form = findCartForm();
+    if (!form) return false;
+
+    document.documentElement.classList.add('buyease-active');
+
+    var atcBtn = findAddToCartButton(form);
+    if (atcBtn && atcBtn.parentNode) {
+      atcBtn.parentNode.insertBefore(card, atcBtn.nextSibling);
+      return true;
+    }
+
+    var paymentBlock = findDynamicCheckoutBlock(form);
+    if (paymentBlock && paymentBlock.parentNode) {
+      paymentBlock.parentNode.insertBefore(card, paymentBlock.nextSibling);
+      return true;
+    }
+
+    form.appendChild(card);
+    return true;
+  }
+
+  function renderEmbeddedForm() {
+    if (document.getElementById(EMBEDDED_CARD_ID)) return;
+
+    var card = document.createElement('div');
+    card.id = EMBEDDED_CARD_ID;
+    card.innerHTML = buildEmbeddedFormHTML();
+
+    if (!mountEmbeddedCard(card)) {
+      if (_mountObserver) return;
+      _mountObserver = new MutationObserver(function () {
+        if (mountEmbeddedCard(card)) {
+          bindEmbeddedFormEvents(card);
+          if (_mountObserver) { _mountObserver.disconnect(); _mountObserver = null; }
+          if (_mountRetryTimer) { clearTimeout(_mountRetryTimer); _mountRetryTimer = null; }
+        }
+      });
+      _mountObserver.observe(document.body, { childList: true, subtree: true });
+      _mountRetryTimer = setTimeout(function () {
+        if (_mountObserver) { _mountObserver.disconnect(); _mountObserver = null; }
+        _mountRetryTimer = null;
+      }, 10000);
+      return;
+    }
+
+    bindEmbeddedFormEvents(card);
+  }
+
+  function bindEmbeddedFormEvents(card) {
+    bindQuantityEvents(card);
+    bindShippingHandlers(card);
+
+    var fieldInputs = card.querySelectorAll('input[data-field-id], textarea[data-field-id], select[data-field-id]');
+    fieldInputs.forEach(function (input) {
+      input.addEventListener('input', function () {
+        var wrap = input.closest('.buye-field');
+        if (wrap && wrap.classList.contains('has-error')) validateField(input);
+      });
+      input.addEventListener('blur', function () {
+        if ((input.value || '').trim() || input.dataset.required === 'true') validateField(input);
+        var fieldId = input.dataset.fieldId || '';
+        if (fieldId === 'province' || fieldId === 'state' || fieldId === 'country') {
+          refreshShippingRates();
+        }
+      });
+    });
+
+    var firstSelected = card.querySelector('input[name="buye-shipping"]:checked');
+    if (firstSelected) updateSummary(firstSelected);
+
+    var form = card.querySelector('#buyease-form');
+    if (form) form.addEventListener('submit', handleEmbeddedSubmit);
+  }
+
+  function handleEmbeddedSubmit(e) {
+    e.preventDefault();
+    clearFormBanner();
+    if (!validateForm()) return;
+
+    var submitBtn = document.getElementById('buyease-submit');
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<span class="buye-spinner" aria-hidden="true"></span><span>Placing order…</span>';
+    }
+
+    var formData = collectFormData();
+
+    fetch(_ctx.apiBase + '/api/storefront/orders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(formData),
+    })
+      .then(function (res) {
+        return res.json().then(function (data) { return { ok: res.ok, data: data }; });
+      })
+      .then(function (result) {
+        if (!result.ok) {
+          showFormBanner(result.data && result.data.error ? result.data.error : 'Could not place order. Please try again.');
+          if (submitBtn) { submitBtn.disabled = false; submitBtn.innerHTML = computeSubmitLabel(); }
+          return;
+        }
+        showEmbeddedSuccess(result.data);
+      })
+      .catch(function () {
+        showFormBanner('Network error. Please check your connection and try again.');
+        if (submitBtn) { submitBtn.disabled = false; submitBtn.innerHTML = computeSubmitLabel(); }
+      });
+  }
+
+  function showEmbeddedSuccess(order) {
+    var card = document.getElementById(EMBEDDED_CARD_ID);
+    if (!card) return;
+
+    var displayRef = (order && order.orderRef) ? order.orderRef : (order && order.orderName ? order.orderName : '');
+
+    card.innerHTML = [
+      '<div id="buyease-success">',
+      '  <div class="buye-success-circle">',
+      '    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>',
+      '  </div>',
+      '  <h2>Order placed</h2>',
+      '  <p>Thanks! ' + (displayRef ? 'Your order reference is <span class="buye-order-name">' + esc(displayRef) + '</span>. ' : '') + 'We\'ll be in touch to confirm delivery.</p>',
+      '  <button type="button" id="buyease-done-btn">Place another order</button>',
+      '</div>',
+    ].join('');
+
+    var doneBtn = card.querySelector('#buyease-done-btn');
+    if (doneBtn) {
+      doneBtn.addEventListener('click', function () {
+        _ctx.quantity = 1;
+        card.innerHTML = buildEmbeddedFormHTML();
+        bindEmbeddedFormEvents(card);
+      });
+    }
   }
 
   // ─── Boot ─────────────────────────────────────────────────────────────────────

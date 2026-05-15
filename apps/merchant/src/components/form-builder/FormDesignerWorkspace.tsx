@@ -1246,7 +1246,9 @@ export function FormDesignerWorkspace({
                 ))}
               </InlineGrid>
               <Text as="p" variant="bodyMd" tone="subdued">
-                Form will open when the customer clicks the app's Buy Button.
+                {formType === 'embedded'
+                  ? "The form displays directly on the page; no button click required."
+                  : "Form will open when the customer clicks the app's Buy Button."}
               </Text>
             </BlockStack>
           </Card>
