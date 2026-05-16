@@ -16,6 +16,8 @@
   var _rates = [];
   var _overlay = null;
   var _submitLabelTemplate = 'Place Order';
+  var _cartItems = [];
+  var _isCartMode = false;
 
   // ─── Fallback defaults (used when API is unreachable or shop has no saved config) ─
   var DEFAULT_BTN_CFG = {
@@ -152,7 +154,9 @@
      embed reads it once at page render); province is read from the form when
      available so user-typed regions also filter live. */
   function buildShippingRatesURL() {
-    var subtotalMajor = (_ctx.priceInCents * (_ctx.quantity || 1)) / 100;
+    var subtotalMajor = _isCartMode
+      ? _ctx.priceInCents / 100
+      : (_ctx.priceInCents * (_ctx.quantity || 1)) / 100;
 
     var province = '';
     var form = document.getElementById('buyease-form');
@@ -649,6 +653,269 @@
     return { allowed: true, message: '' };
   }
 
+  // ─── Placement & settings enforcement ────────────────────────────────────────
+
+  function isPlacementAllowed(formCfg, pageType) {
+    var placement = (formCfg && formCfg.formPlacement) || 'whole-store';
+    var disableIn = (formCfg && formCfg.disableInPages) || {};
+
+    if (placement === 'cart-page') return pageType === 'cart';
+    if (placement === 'product-pages') return pageType === 'product';
+
+    // whole-store — allowed everywhere except explicitly disabled page types
+    if (pageType === 'home' && disableIn.homePage) return false;
+    if (pageType === 'collection' && disableIn.collectionPage) return false;
+    if (pageType === 'page' && disableIn.regularPage) return false;
+    if (pageType === 'search' && disableIn.searchResultPage) return false;
+    return true;
+  }
+
+  function applyHideButtonsCSS(formCfg) {
+    if (document.getElementById('buyease-hide-btns')) return;
+    var rules = [];
+
+    if (formCfg && formCfg.hideCheckout) {
+      rules.push(
+        'form[action="/cart"] [name="checkout"],' +
+        'form[action="/cart"] button[name="checkout"],' +
+        'form[action="/cart"] input[name="checkout"],' +
+        'a[href="/checkout"],' +
+        '.cart__checkout-button,' +
+        '.cart-checkout-button,' +
+        '[data-cart-checkout-btn]' +
+        ' { display: none !important; }'
+      );
+    }
+
+    if (formCfg && formCfg.hideAddToCart) {
+      rules.push(
+        'form[action*="/cart/add"] [name="add"],' +
+        'form[action*="/cart/add"] [data-add-to-cart],' +
+        'form[action*="/cart/add"] button[type="submit"]:not(#buyease-btn)' +
+        ' { display: none !important; }'
+      );
+    }
+
+    if (formCfg && formCfg.hideBuyNow) {
+      rules.push(
+        '.shopify-payment-button,' +
+        '[data-shopify="payment-button"],' +
+        '.shopify-payment-button__button,' +
+        '.shopify-payment-button__more-options' +
+        ' { display: none !important; }'
+      );
+    }
+
+    if (!rules.length) return;
+    var style = document.createElement('style');
+    style.id = 'buyease-hide-btns';
+    style.textContent = rules.join('\n');
+    document.head.appendChild(style);
+  }
+
+  function injectCustomCss(formCfg) {
+    if (!formCfg || !formCfg.customCss) return;
+    if (document.getElementById('buyease-custom-css')) return;
+    var style = document.createElement('style');
+    style.id = 'buyease-custom-css';
+    style.textContent = formCfg.customCss;
+    document.head.appendChild(style);
+  }
+
+  function fetchCart(callback) {
+    fetch('/cart.js')
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (cart) {
+        callback((cart && Array.isArray(cart.items)) ? cart.items : []);
+      })
+      .catch(function () { callback([]); });
+  }
+
+  function initCartContext(items) {
+    _cartItems = items;
+    _isCartMode = true;
+    _ctx.priceInCents = items.reduce(function (s, i) { return s + i.price * i.quantity; }, 0);
+    _ctx.quantity = items.reduce(function (s, i) { return s + i.quantity; }, 0);
+    _ctx.productTitle = 'Your Cart';
+    _ctx.productImage = '';
+    _ctx.variantTitle = '';
+  }
+
+  function mountCartButton() {
+    var existing = document.getElementById('buyease-btn');
+    if (existing) return true;
+
+    var btn = buildButtonElement(openCartForm);
+
+    document.documentElement.classList.add('buyease-active');
+
+    if (_btnCfg.stickyPosition && _btnCfg.stickyPosition !== 'off') {
+      var existingWrap = document.getElementById('buyease-sticky-wrap');
+      if (existingWrap) existingWrap.remove();
+      var wrap = document.createElement('div');
+      wrap.id = 'buyease-sticky-wrap';
+      wrap.className = 'sticky-' + _btnCfg.stickyPosition;
+      if (_btnCfg.mobileFullWidth) wrap.style.padding = '10px 0';
+      wrap.appendChild(btn);
+      document.body.appendChild(wrap);
+      return true;
+    }
+
+    var checkoutBtn = document.querySelector(
+      'form[action="/cart"] [name="checkout"],' +
+      'form[action="/cart"] button[name="checkout"],' +
+      'form[action="/cart"] input[name="checkout"],' +
+      '.cart__checkout-button,' +
+      '[data-cart-checkout-btn]'
+    );
+    if (checkoutBtn && checkoutBtn.parentNode) {
+      checkoutBtn.parentNode.insertBefore(btn, checkoutBtn);
+      return true;
+    }
+
+    var cartForm = document.querySelector('form[action="/cart"]');
+    if (cartForm) {
+      cartForm.appendChild(btn);
+      return true;
+    }
+
+    return false;
+  }
+
+  function ensureCartButtonMounted() {
+    if (mountCartButton()) return;
+    if (_mountObserver) return;
+    _mountObserver = new MutationObserver(function () {
+      if (mountCartButton()) {
+        if (_mountObserver) { _mountObserver.disconnect(); _mountObserver = null; }
+        if (_mountRetryTimer) { clearTimeout(_mountRetryTimer); _mountRetryTimer = null; }
+      }
+    });
+    _mountObserver.observe(document.body, { childList: true, subtree: true });
+    _mountRetryTimer = setTimeout(function () {
+      if (_mountObserver) { _mountObserver.disconnect(); _mountObserver = null; }
+      _mountRetryTimer = null;
+    }, 10000);
+  }
+
+  function openCartForm() {
+    if (_overlay) return;
+    if (!_cartItems.length) return;
+
+    _overlay = document.createElement('div');
+    _overlay.id = OVERLAY_ID;
+
+    var card = document.createElement('div');
+    card.id = 'buyease-form-card';
+    card.setAttribute('role', 'dialog');
+    card.setAttribute('aria-modal', 'true');
+    card.setAttribute('aria-label', 'COD Order Form');
+
+    card.innerHTML = buildCartFormHTML();
+    _overlay.appendChild(card);
+    document.body.appendChild(_overlay);
+    document.body.style.overflow = 'hidden';
+
+    bindFormEvents(card);
+
+    var firstInput = card.querySelector('input[type="text"], input[type="tel"], input[type="email"], textarea');
+    if (firstInput) firstInput.focus({ preventScroll: true });
+  }
+
+  function buildCartFormHTML() {
+    var fields = Array.isArray(_formCfg.fields) ? _formCfg.fields : [];
+    var visibleFields = fields.filter(function (f) { return !f.hidden; });
+
+    var parts = [
+      '<button type="button" id="buyease-close" aria-label="Close">&#215;</button>',
+      '<form id="buyease-form" novalidate autocomplete="' + (_formCfg.autocomplete !== false ? 'on' : 'off') + '">',
+    ];
+
+    visibleFields.forEach(function (field) {
+      if (field.type === 'cart') {
+        parts.push(renderCartItemsField());
+      } else {
+        parts.push(renderField(field));
+      }
+    });
+
+    parts.push('</form>');
+    return parts.join('');
+  }
+
+  function renderCartItemsField() {
+    if (!_cartItems || !_cartItems.length) return '';
+
+    var itemsHtml = _cartItems.map(function (item) {
+      var imgUrl = item.featured_image && item.featured_image.url ? item.featured_image.url : '';
+      var thumb = imgUrl
+        ? '<img src="' + esc(imgUrl) + '" alt="' + esc(item.product_title || '') + '" loading="lazy" />'
+        : '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" style="opacity:0.35"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5" fill="currentColor"/><path d="M21 15L16 10L5 21" stroke-linecap="round"/></svg>';
+      var variantLine = (item.variant_title && item.variant_title !== 'Default Title')
+        ? '<p class="buye-cart-variant">' + esc(item.variant_title) + '</p>'
+        : '';
+      return [
+        '<div class="buye-cart-card">',
+        '  <div class="buye-cart-thumb">' + thumb + '</div>',
+        '  <div class="buye-cart-meta">',
+        '    <p class="buye-cart-title">' + esc(item.product_title || item.title || '') + '</p>',
+        variantLine,
+        '    <p class="buye-cart-variant">Qty: ' + item.quantity + '</p>',
+        '  </div>',
+        '  <div class="buye-cart-right">',
+        '    <span class="buye-cart-price">' + fmtPrice(item.price * item.quantity, item.currency || _ctx.currency) + '</span>',
+        '  </div>',
+        '</div>',
+      ].join('');
+    }).join('');
+
+    return [
+      itemsHtml,
+      '<div class="buye-section-divider"></div>',
+    ].join('');
+  }
+
+  function collectCartFormData() {
+    var form = document.getElementById('buyease-form');
+    if (!form) return null;
+
+    var data = {};
+    var inputs = form.querySelectorAll('input[data-field-id], textarea[data-field-id], select[data-field-id]');
+    inputs.forEach(function (input) {
+      var id = input.dataset.fieldId;
+      if (input.type === 'checkbox') data[id] = input.checked;
+      else data[id] = (input.value || '').trim();
+    });
+
+    var selectedRate = form.querySelector('input[name="buye-shipping"]:checked');
+    var shippingRateId = (selectedRate && selectedRate.value) ? selectedRate.value : undefined;
+
+    var firstName = data.first_name || data.firstName || data.customerName || data.name || '';
+    var lastName = data.last_name || data.lastName || '';
+    var fullName = (firstName + ' ' + lastName).trim();
+
+    var lineItems = _cartItems.map(function (item) {
+      return { variantId: item.variant_id, quantity: item.quantity };
+    });
+
+    return {
+      shop: _ctx.shop,
+      lineItems: lineItems,
+      shippingRateId: shippingRateId,
+      customerName: fullName || firstName,
+      customerPhone: data.phone || data.customerPhone || '',
+      customerEmail: (data.email || data.customerEmail || '') || undefined,
+      address1: data.address || data.address1 || data.street || '',
+      address2: data.address2 || undefined,
+      city: data.city || '',
+      province: data.province || data.state || undefined,
+      postalCode: data.postal_code || data.postalCode || data.zip || data.postal || undefined,
+      country: (data.country || _ctx.country || 'US').toString().trim().slice(0, 2).toUpperCase(),
+      note: data.note || data.message || data.order_notes || undefined,
+      marketingConsent: !!(data.marketing_checkbox || data.marketingConsent || data.marketing),
+    };
+  }
+
   function init() {
     var root = document.getElementById(ROOT_ID);
     if (!root) return;
@@ -670,13 +937,15 @@
       productImage: root.dataset.productImage || '',
       variantTitle: root.dataset.variantTitle || '',
       quantity: 1,
+      pageType: root.dataset.pageType || 'product',
     };
 
-    // On non-product pages variantId is empty — nothing to do
-    if (!_ctx.variantId) return;
+    // Product pages need a variantId; other page types fetch their data dynamically
+    if (_ctx.pageType === 'product' && !_ctx.variantId) return;
 
     // If apiBase is missing, render with defaults immediately (theme editor preview / offline)
     if (!_ctx.apiBase || !_ctx.shop) {
+      if (_ctx.pageType !== 'product') return;
       _btnCfg = DEFAULT_BTN_CFG;
       _formCfg = DEFAULT_FORM_CFG;
       injectStyles(_btnCfg, _formCfg);
@@ -697,11 +966,47 @@
         _formCfg = results[1] || DEFAULT_FORM_CFG;
         _rates = (results[2] && results[2].rates) ? results[2].rates : [];
 
+        // Always apply dynamic button hiding and custom CSS regardless of visibility
+        applyHideButtonsCSS(_formCfg);
+        injectCustomCss(_formCfg);
+
         if (_btnCfg.isVisible === false) {
           unmountButton();
           return;
         }
 
+        // Check placement rules
+        if (!isPlacementAllowed(_formCfg, _ctx.pageType)) {
+          unmountButton();
+          return;
+        }
+
+        // Non-product pages: fetch cart items and use cart mode
+        if (_ctx.pageType !== 'product') {
+          fetchCart(function (items) {
+            if (!items.length) { unmountButton(); return; }
+            initCartContext(items);
+
+            if (!isAllowedByCountry(_formCfg, _ctx.country)) { unmountButton(); return; }
+
+            var eligibility = isAllowedByOrderTotal(_formCfg, _ctx.priceInCents, 1);
+            if (!eligibility.allowed) {
+              if (eligibility.message) {
+                injectStyles(_btnCfg, _formCfg);
+                renderIneligibleMessage(eligibility.message);
+              } else {
+                unmountButton();
+              }
+              return;
+            }
+
+            injectStyles(_btnCfg, _formCfg);
+            ensureCartButtonMounted();
+          });
+          return;
+        }
+
+        // Product page — existing restriction/eligibility checks
         if (!isAllowedByRestriction(_formCfg, _ctx.productId, _ctx.collectionId)) {
           unmountButton();
           return;
@@ -727,6 +1032,7 @@
         renderButton();
       })
       .catch(function () {
+        if (_ctx.pageType !== 'product') return;
         _btnCfg = DEFAULT_BTN_CFG;
         _formCfg = DEFAULT_FORM_CFG;
         injectStyles(_btnCfg, _formCfg);
@@ -738,7 +1044,7 @@
   var _mountObserver = null;
   var _mountRetryTimer = null;
 
-  function buildButtonElement() {
+  function buildButtonElement(clickHandler) {
     var btn = document.createElement('button');
     btn.type = 'button';
     btn.id = 'buyease-btn';
@@ -763,7 +1069,7 @@
       ? textHtml + iconHtml
       : iconHtml + textHtml;
 
-    btn.addEventListener('click', openForm);
+    btn.addEventListener('click', clickHandler || openForm);
     return btn;
   }
 
@@ -923,7 +1229,22 @@
 
     // Reset quantity each time the form opens — UX matches admin preview default of 1.
     _ctx.quantity = 1;
+    _isCartMode = false;
+    _cartItems = [];
 
+    // If merchant configured "product-and-cart", fetch cart items before opening
+    if (_formCfg && _formCfg.whenOpened === 'product-and-cart') {
+      fetchCart(function (items) {
+        _cartItems = items;
+        _openFormModal();
+      });
+      return;
+    }
+
+    _openFormModal();
+  }
+
+  function _openFormModal() {
     _overlay = document.createElement('div');
     _overlay.id = OVERLAY_ID;
 
@@ -1064,7 +1385,9 @@
   }
 
   function refreshTotal(shippingPrice) {
-    var subtotalAmount = (_ctx.priceInCents * _ctx.quantity) / 100;
+    var subtotalAmount = _isCartMode
+      ? _ctx.priceInCents / 100
+      : (_ctx.priceInCents * _ctx.quantity) / 100;
     var totalAmount = subtotalAmount + (shippingPrice || 0);
     var totalEl = document.getElementById('buye-total-price');
     if (totalEl) {
@@ -1084,11 +1407,12 @@
 
   /* ─── Order summary ────────────────────────────────────────────────────── */
   function renderSummaryField() {
-    var subtotal = fmtPrice(_ctx.priceInCents * _ctx.quantity, _ctx.currency);
+    var subtotalCents = _isCartMode ? _ctx.priceInCents : _ctx.priceInCents * _ctx.quantity;
+    var subtotal = fmtPrice(subtotalCents, _ctx.currency);
     var hasRates = _rates.length > 0;
     var initialShipping = hasRates ? fmtRatePrice(_rates[0].price, _rates[0].currency || _ctx.currency) : 'Free';
     var initialShippingFree = hasRates ? _rates[0].price === 0 : true;
-    var totalCents = _ctx.priceInCents * _ctx.quantity + (hasRates ? Math.round(_rates[0].price * 100) : 0);
+    var totalCents = subtotalCents + (hasRates ? Math.round(_rates[0].price * 100) : 0);
     var total = fmtPrice(totalCents, _ctx.currency);
 
     return [
@@ -1285,6 +1609,7 @@
 
   function renderSubmitField(field) {
     _submitLabelTemplate = field.title || field.placeholder || 'Place Order';
+    if (_formCfg && _formCfg.hideSubmitButton) return '';
     return '<button type="submit" id="buyease-submit">' + computeSubmitLabel() + '</button>';
   }
 
@@ -1303,7 +1628,9 @@
   /* Replaces {total} in submit label with the live order total. */
   function computeSubmitLabel() {
     var template = _submitLabelTemplate || 'Place Order';
-    var subtotal = (_ctx.priceInCents * _ctx.quantity) / 100;
+    var subtotal = _isCartMode
+      ? _ctx.priceInCents / 100
+      : (_ctx.priceInCents * _ctx.quantity) / 100;
     var selectedRate = document.querySelector('input[name="buye-shipping"]:checked');
     var shippingPrice = selectedRate ? parseFloat(selectedRate.dataset.price || '0') : 0;
     var total = subtotal + shippingPrice;
@@ -1453,7 +1780,7 @@
       submitBtn.innerHTML = '<span class="buye-spinner" aria-hidden="true"></span><span>Placing order…</span>';
     }
 
-    var formData = collectFormData();
+    var formData = _isCartMode ? collectCartFormData() : collectFormData();
 
     fetch(_ctx.apiBase + '/api/storefront/orders', {
       method: 'POST',
@@ -1498,10 +1825,21 @@
     var lastName = data.last_name || data.lastName || '';
     var fullName = (firstName + ' ' + lastName).trim();
 
+    // When "product-and-cart" is enabled, include cart items as additional line items
+    var lineItems = null;
+    if (_formCfg && _formCfg.whenOpened === 'product-and-cart' && _cartItems.length > 0) {
+      lineItems = [{ variantId: _ctx.variantId, quantity: _ctx.quantity || 1 }].concat(
+        _cartItems.map(function (item) {
+          return { variantId: item.variant_id, quantity: item.quantity };
+        })
+      );
+    }
+
     return {
       shop: _ctx.shop,
-      variantId: _ctx.variantId,
-      quantity: _ctx.quantity || 1,
+      variantId: lineItems ? undefined : _ctx.variantId,
+      quantity: lineItems ? undefined : (_ctx.quantity || 1),
+      lineItems: lineItems || undefined,
       shippingRateId: shippingRateId,
       customerName: fullName || firstName,
       customerPhone: data.phone || data.customerPhone || '',
@@ -1720,7 +2058,7 @@
       submitBtn.innerHTML = '<span class="buye-spinner" aria-hidden="true"></span><span>Placing order…</span>';
     }
 
-    var formData = collectFormData();
+    var formData = _isCartMode ? collectCartFormData() : collectFormData();
 
     fetch(_ctx.apiBase + '/api/storefront/orders', {
       method: 'POST',

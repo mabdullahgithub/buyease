@@ -16,26 +16,14 @@
 {%- assign buyease_variant_title = buyease_variant.title | default: '' -%}
 {%- if buyease_variant_title == 'Default Title' -%}{%- assign buyease_variant_title = '' -%}{%- endif -%}
 
-{%- comment -%}
-  Hide Shopify's dynamic checkout block (Buy it now / Shop Pay / GPay / etc.)
-  the instant the page renders — before any JavaScript executes — so visitors
-  never see the default button flash and disappear (FOUC). Inlined here, not
-  loaded from the JS asset, because the asset has a network round-trip.
-{%- endcomment -%}
-<style>
-  form[action*="/cart/add"] .shopify-payment-button,
-  form[action*="/cart/add"] [data-shopify="payment-button"],
-  form[action*="/cart/add"] .shopify-payment-button__button,
-  form[action*="/cart/add"] .shopify-payment-button__more-options,
-  form[action*="/cart/add"] [data-testid="Checkout-button"] {
-    display: none !important;
-    visibility: hidden !important;
-    height: 0 !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    overflow: hidden !important;
-  }
-</style>
+{%- comment -%} Page type detection — passed to JS for placement enforcement {%- endcomment -%}
+{%- assign buyease_page_type = 'page' -%}
+{%- if template.name == 'index' -%}{%- assign buyease_page_type = 'home' -%}
+{%- elsif template.name == 'product' -%}{%- assign buyease_page_type = 'product' -%}
+{%- elsif template.name == 'collection' -%}{%- assign buyease_page_type = 'collection' -%}
+{%- elsif template.name == 'cart' -%}{%- assign buyease_page_type = 'cart' -%}
+{%- elsif template.name == 'search' -%}{%- assign buyease_page_type = 'search' -%}
+{%- endif -%}
 
 {%- assign buyease_collection_ids = '' -%}
 {%- if collection.id -%}
@@ -63,6 +51,7 @@
   data-country="{{ localization.country.iso_code | default: shop.country_code | default: 'US' }}"
   data-shop="{{ shop.permanent_domain }}"
   data-api-base="{{ buyease_api_base }}"
+  data-page-type="{{ buyease_page_type }}"
 ></div>
 <script src="{{ 'cod-form.js' | asset_url }}" defer></script>
 

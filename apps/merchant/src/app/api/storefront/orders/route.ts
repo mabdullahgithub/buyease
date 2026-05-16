@@ -14,14 +14,20 @@ const CORS = {
   "Access-Control-Allow-Headers": "Content-Type",
 };
 
+const lineItemSchema = z.object({
+  variantId: z.union([z.string().min(1), z.number().int().positive()]),
+  quantity: z.number().int().min(1).max(100),
+});
+
 const storefrontOrderSchema = z.object({
   shop: z
     .string()
     .trim()
     .toLowerCase()
     .regex(/^[a-z0-9][a-z0-9-]*\.myshopify\.com$/),
-  variantId: z.union([z.string().min(1), z.number().int().positive()]),
+  variantId: z.union([z.string().min(1), z.number().int().positive()]).optional(),
   quantity: z.number().int().min(1).max(10).default(1),
+  lineItems: z.array(lineItemSchema).min(1).max(100).optional(),
   shippingRateId: z.string().max(255).optional(),
   customerName: z.string().trim().min(1).max(200),
   customerPhone: z.string().trim().min(1).max(50),
@@ -203,19 +209,31 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   const firstName = nameParts[0] ?? data.customerName;
   const lastName = nameParts.slice(1).join(" ") || "";
 
-  const numericVariantId =
-    typeof data.variantId === "number"
-      ? data.variantId
-      : parseInt(
-          data.variantId.startsWith("gid://")
-            ? data.variantId.split("/").pop() ?? data.variantId
-            : data.variantId,
-          10,
-        );
+  function toNumericVariantId(raw: string | number): number {
+    if (typeof raw === "number") return raw;
+    const s = raw.startsWith("gid://") ? (raw.split("/").pop() ?? raw) : raw;
+    return parseInt(s, 10);
+  }
+
+  let draftLineItems: Array<{ variant_id: number; quantity: number }>;
+
+  if (data.lineItems && data.lineItems.length > 0) {
+    draftLineItems = data.lineItems.map((item) => ({
+      variant_id: toNumericVariantId(item.variantId),
+      quantity: item.quantity,
+    }));
+  } else if (data.variantId !== undefined) {
+    draftLineItems = [{ variant_id: toNumericVariantId(data.variantId), quantity: data.quantity }];
+  } else {
+    return NextResponse.json(
+      { error: "Either variantId or lineItems must be provided." },
+      { status: 400, headers: CORS },
+    );
+  }
 
   const draftPayload: ShopifyDraftOrderBody = {
     draft_order: {
-      line_items: [{ variant_id: numericVariantId, quantity: data.quantity }],
+      line_items: draftLineItems,
       shipping_address: {
         first_name: firstName,
         last_name: lastName,

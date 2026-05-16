@@ -57,57 +57,62 @@ function LoginForm() {
     e.preventDefault();
     setState((s) => ({ ...s, loading: true, error: null }));
 
-    const payload: Record<string, string> = {
-      email: state.email.trim().toLowerCase(),
-      password: state.password,
-      rememberDevice: state.stage === "twoFactor" && state.rememberDevice ? "true" : "false",
-    };
+    try {
+      const payload: Record<string, string> = {
+        email: state.email.trim().toLowerCase(),
+        password: state.password,
+        rememberDevice: state.stage === "twoFactor" && state.rememberDevice ? "true" : "false",
+      };
 
-    if (state.stage === "twoFactor") {
-      payload.twoFactorCode = state.twoFactorCode.trim();
-    }
+      if (state.stage === "twoFactor") {
+        payload.twoFactorCode = state.twoFactorCode.trim();
+      }
 
-    const result = (await signIn("credentials", {
-      ...payload,
-      redirect: false,
-    })) as LoginResponse | undefined;
+      const result = (await signIn("credentials", {
+        ...payload,
+        redirect: false,
+      })) as LoginResponse | undefined;
 
-    const authCode = result?.code ?? result?.error ?? "";
+      const authCode = result?.code ?? result?.error ?? "";
 
-    if (authCode.includes("TWO_FACTOR_REQUIRED")) {
-      setState((current) => ({
-        ...current,
-        loading: false,
-        error: null,
-        stage: "twoFactor",
-        twoFactorCode: "",
-      }));
-      return;
-    }
+      if (authCode.includes("TWO_FACTOR_REQUIRED")) {
+        setState((current) => ({
+          ...current,
+          loading: false,
+          error: null,
+          stage: "twoFactor",
+          twoFactorCode: "",
+        }));
+        return;
+      }
 
-    if (authCode.includes("INVALID_TWO_FACTOR_CODE")) {
-      setState((current) => ({
-        ...current,
-        loading: false,
-        error: "Invalid two-factor code.",
-        stage: "twoFactor",
-        twoFactorCode: "",
-      }));
-      return;
-    }
+      if (authCode.includes("INVALID_TWO_FACTOR_CODE")) {
+        setState((current) => ({
+          ...current,
+          loading: false,
+          error: "Invalid two-factor code.",
+          stage: "twoFactor",
+          twoFactorCode: "",
+        }));
+        return;
+      }
 
-    if (!result?.ok) {
-      setState((s) => ({
-        ...s,
-        loading: false,
-        error:
-          state.stage === "twoFactor"
-            ? "Invalid two-factor code."
-            : "Invalid email or password.",
-        stage: state.stage === "twoFactor" ? "twoFactor" : "password",
-        twoFactorCode: state.stage === "twoFactor" ? "" : s.twoFactorCode,
-      }));
-    } else {
+      // In next-auth v5, result.ok is true even when auth fails (HTTP 200 with error in URL).
+      // Check result.error to correctly detect credential failures.
+      if (!result?.ok || result?.error) {
+        setState((s) => ({
+          ...s,
+          loading: false,
+          error:
+            state.stage === "twoFactor"
+              ? "Invalid two-factor code."
+              : "Invalid email or password.",
+          stage: state.stage === "twoFactor" ? "twoFactor" : "password",
+          twoFactorCode: state.stage === "twoFactor" ? "" : s.twoFactorCode,
+        }));
+        return;
+      }
+
       if (state.stage === "twoFactor" && state.rememberDevice) {
         await fetch("/api/admin/auth/remember-device", {
           method: "POST",
@@ -116,6 +121,12 @@ function LoginForm() {
         });
       }
       router.push(callbackUrl);
+    } catch {
+      setState((s) => ({
+        ...s,
+        loading: false,
+        error: "Something went wrong. Please try again.",
+      }));
     }
   };
 
