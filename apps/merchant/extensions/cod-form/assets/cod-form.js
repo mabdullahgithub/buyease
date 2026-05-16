@@ -661,7 +661,11 @@
       variantId: root.dataset.variantId || '',
       priceInCents: parseInt(root.dataset.price || '0', 10),
       currency: root.dataset.currency || 'USD',
-      country: (root.dataset.country || 'US').toUpperCase(),
+      country: (
+        (typeof window !== 'undefined' && window.Shopify && window.Shopify.country)
+          ? window.Shopify.country
+          : (root.dataset.country || 'US')
+      ).toUpperCase(),
       productTitle: root.dataset.productTitle || 'Product',
       productImage: root.dataset.productImage || '',
       variantTitle: root.dataset.variantTitle || '',

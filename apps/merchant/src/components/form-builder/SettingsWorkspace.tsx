@@ -18,6 +18,7 @@ import {
   InlineStack,
   Link,
   List,
+  SkeletonBodyText,
   Spinner,
   Text,
   TextField,
@@ -656,6 +657,37 @@ export function SettingsWorkspace({ embedEnabled }: Props): ReactElement {
 
   const isLoading = loading || restrictionsLoading;
 
+  if (isLoading) {
+    return (
+      <BlockStack gap="800">
+        <InlineGrid columns={["oneThird", "twoThirds"]} gap="400">
+          <BlockStack gap="200">
+            <SkeletonBodyText lines={2} />
+          </BlockStack>
+          <Card padding="400">
+            <SkeletonBodyText lines={3} />
+          </Card>
+        </InlineGrid>
+        <InlineGrid columns={["oneThird", "twoThirds"]} gap="400">
+          <BlockStack gap="200">
+            <SkeletonBodyText lines={2} />
+          </BlockStack>
+          <Card padding="400">
+            <SkeletonBodyText lines={4} />
+          </Card>
+        </InlineGrid>
+        <InlineGrid columns={["oneThird", "twoThirds"]} gap="400">
+          <BlockStack gap="200">
+            <SkeletonBodyText lines={2} />
+          </BlockStack>
+          <Card padding="400">
+            <SkeletonBodyText lines={5} />
+          </Card>
+        </InlineGrid>
+      </BlockStack>
+    );
+  }
+
   return (
     <BlockStack gap="800">
       <SaveBar id="form-settings-save-bar" open={dirty}>
@@ -667,13 +699,6 @@ export function SettingsWorkspace({ embedEnabled }: Props): ReactElement {
         <Banner tone="critical" onDismiss={() => setSaveError(null)}>
           <Text as="p" variant="bodyMd">{saveError}</Text>
         </Banner>
-      ) : null}
-
-      {isLoading ? (
-        <InlineStack gap="200" blockAlign="center">
-          <Spinner size="small" />
-          <Text as="p" variant="bodyMd" tone="subdued">Loading settings…</Text>
-        </InlineStack>
       ) : null}
       {/* ── BuyEase Activation ───────────────────────────────────────────── */}
       <InlineGrid columns={["oneThird", "twoThirds"]} gap="400">

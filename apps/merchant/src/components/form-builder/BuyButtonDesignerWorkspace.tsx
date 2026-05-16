@@ -20,6 +20,7 @@ import {
   Popover,
   RangeSlider,
   Select,
+  SkeletonBodyText,
   Text,
   TextField,
 } from "@shopify/polaris";
@@ -819,6 +820,36 @@ export function BuyButtonDesignerWorkspace(): ReactElement {
 
   const iconActivatorSource = activeIcon?.source;
 
+  if (loading) {
+    return (
+      <BlockStack gap="400">
+        <InlineGrid columns={{ xs: 1, md: ["twoThirds", "oneThird"] }} gap="400" alignItems="start">
+          <BlockStack gap="400">
+            <Card padding="400">
+              <BlockStack gap="300">
+                <SkeletonBodyText lines={3} />
+              </BlockStack>
+            </Card>
+            <Card padding="400">
+              <BlockStack gap="300">
+                <SkeletonBodyText lines={5} />
+              </BlockStack>
+            </Card>
+          </BlockStack>
+          <Card padding="400">
+            <BlockStack gap="300">
+              <SkeletonBodyText lines={1} />
+              <Box background="bg-surface-secondary" borderRadius="300" padding="400" minHeight="300px">
+                <BlockStack gap="300">
+                  <SkeletonBodyText lines={4} />
+                </BlockStack>
+              </Box>
+            </BlockStack>
+          </Card>
+        </InlineGrid>
+      </BlockStack>
+    );
+  }
 
   return (
     <BlockStack gap="400">
