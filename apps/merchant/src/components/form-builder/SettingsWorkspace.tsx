@@ -30,9 +30,7 @@ import {
   DeleteIcon,
   ExternalIcon,
   ImageIcon,
-  InfoIcon,
   SearchIcon,
-  XIcon,
 } from "@shopify/polaris-icons";
 import { SaveBar } from "@shopify/app-bridge-react";
 
@@ -920,26 +918,16 @@ export function SettingsWorkspace({ embedEnabled }: Props): ReactElement {
           </Box>
 
           {showPlacementInfo && (
-            <Box background="bg-surface-info" paddingBlock="300" paddingInline="400">
-              <InlineStack gap="200" blockAlign="start" wrap={false} align="space-between">
-                <InlineStack gap="200" blockAlign="start" wrap={false}>
-                  <Icon source={InfoIcon} tone="info" />
-                  <BlockStack gap="050">
-                    <Text as="p" variant="bodyMd" fontWeight="semibold">
-                      {PLACEMENT_INFO[formPlacement].title}
-                    </Text>
-                    <Text as="p" variant="bodyMd">
-                      {PLACEMENT_INFO[formPlacement].description}
-                    </Text>
-                  </BlockStack>
-                </InlineStack>
-                <Button
-                  variant="plain"
-                  icon={XIcon}
-                  accessibilityLabel="Dismiss placement info"
-                  onClick={() => setShowPlacementInfo(false)}
-                />
-              </InlineStack>
+            <Box paddingInline="300" paddingBlock="200">
+              <Banner
+                title={PLACEMENT_INFO[formPlacement].title}
+                tone="info"
+                onDismiss={() => setShowPlacementInfo(false)}
+              >
+                <Text as="p" variant="bodyMd">
+                  {PLACEMENT_INFO[formPlacement].description}
+                </Text>
+              </Banner>
             </Box>
           )}
 
