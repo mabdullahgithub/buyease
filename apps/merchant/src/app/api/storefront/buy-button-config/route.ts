@@ -12,7 +12,7 @@ const CORS = {
   "Access-Control-Allow-Headers": "Content-Type",
 };
 
-const CACHE_CONTROL = "public, max-age=0, must-revalidate";
+const CACHE_CONTROL = "public, max-age=5, stale-while-revalidate=30";
 
 const DEFAULTS = {
   buttonText:     "Order via COD",
