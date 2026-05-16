@@ -1506,64 +1506,6 @@ export function FormDesignerWorkspace({
             </BlockStack>
           </Card>
 
-          {/* Form Countries */}
-          <Card padding="400">
-            <BlockStack gap="300">
-              <Text as="h2" variant="headingSm">Form countries</Text>
-              <Checkbox
-                label="Restrict to specific countries"
-                checked={countriesEnabled}
-                onChange={setCountriesEnabled}
-                helpText="When enabled, the COD form will only appear to customers in the selected countries."
-              />
-              {countriesEnabled && (
-                <BlockStack gap="200">
-                  <TextField
-                    label="Select countries"
-                    labelHidden
-                    value={countrySearch}
-                    onChange={setCountrySearch}
-                    autoComplete="off"
-                    placeholder="Search countries"
-                    prefix={<Icon source={SearchIcon} />}
-                    clearButton
-                    onClearButtonClick={() => setCountrySearch("")}
-                  />
-                  <Box borderWidth="025" borderColor="border" borderRadius="200" padding="200">
-                    <div style={{ overflowY: "auto", maxHeight: "180px" }}>
-                      <BlockStack gap="100">
-                        {filteredFormCountries.length === 0 ? (
-                          <Text as="p" variant="bodySm" tone="subdued">No countries match your search.</Text>
-                        ) : (
-                          filteredFormCountries.map((country) => (
-                            <Checkbox
-                              key={country.code}
-                              label={`${country.name} (${country.code})`}
-                              checked={formCountries.includes(country.code)}
-                              onChange={() => toggleFormCountry(country.code)}
-                            />
-                          ))
-                        )}
-                      </BlockStack>
-                    </div>
-                  </Box>
-                  {formCountries.length > 0 && (
-                    <InlineStack gap="100" wrap>
-                      {formCountries.map((code) => {
-                        const country = SHIPPING_COUNTRIES.find((c) => c.code === code);
-                        return (
-                          <Tag key={code} onRemove={() => toggleFormCountry(code)}>
-                            {country?.name ?? code}
-                          </Tag>
-                        );
-                      })}
-                    </InlineStack>
-                  )}
-                </BlockStack>
-              )}
-            </BlockStack>
-          </Card>
-
           {/* Form Fields */}
           <Card padding="0">
             <Box padding="400">
