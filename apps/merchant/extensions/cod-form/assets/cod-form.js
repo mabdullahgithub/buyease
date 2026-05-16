@@ -609,15 +609,44 @@
     var collections = Array.isArray(formCfg.restrictedCollections) ? formCfg.restrictedCollections : [];
 
     var pid = String(productId || '');
-    var cid = String(collectionId || '');
+    var cids = String(collectionId || '').split(',').filter(function (s) { return s; });
 
     var inProducts = pid && products.some(function (p) { return String(p.id) === pid; });
-    var inCollections = cid && collections.some(function (c) { return String(c.id) === cid; });
+    var inCollections = cids.length > 0 && collections.some(function (c) {
+      return cids.indexOf(String(c.id)) !== -1;
+    });
     var matched = inProducts || inCollections;
 
     if (mode === 'enable-only') return matched;
     if (mode === 'disable-for') return !matched;
     return true;
+  }
+
+  function isAllowedByCountry(formCfg, country) {
+    if (!formCfg || !formCfg.allowCountriesOnly) return true;
+    var allowed = Array.isArray(formCfg.allowedCountries) ? formCfg.allowedCountries : [];
+    if (allowed.length === 0) return true;
+    return allowed.indexOf((country || '').toUpperCase()) !== -1;
+  }
+
+  function isAllowedByOrderTotal(formCfg, priceInCents, quantity) {
+    if (!formCfg || !formCfg.enableOrderEligibility) return { allowed: true, message: '' };
+    var total = (priceInCents * (quantity || 1)) / 100;
+    var min = formCfg.orderEligibilityMin;
+    var max = formCfg.orderEligibilityMax;
+    if (min !== null && min !== undefined && total < Number(min)) {
+      return {
+        allowed: false,
+        message: formCfg.showIneligibleMessage && formCfg.ineligibleMessage ? formCfg.ineligibleMessage : '',
+      };
+    }
+    if (max !== null && max !== undefined && Number(max) > 0 && total > Number(max)) {
+      return {
+        allowed: false,
+        message: formCfg.showIneligibleMessage && formCfg.ineligibleMessage ? formCfg.ineligibleMessage : '',
+      };
+    }
+    return { allowed: true, message: '' };
   }
 
   function init() {
@@ -671,6 +700,22 @@
 
         if (!isAllowedByRestriction(_formCfg, _ctx.productId, _ctx.collectionId)) {
           unmountButton();
+          return;
+        }
+
+        if (!isAllowedByCountry(_formCfg, _ctx.country)) {
+          unmountButton();
+          return;
+        }
+
+        var eligibility = isAllowedByOrderTotal(_formCfg, _ctx.priceInCents, _ctx.quantity);
+        if (!eligibility.allowed) {
+          if (eligibility.message) {
+            injectStyles(_btnCfg, _formCfg);
+            renderIneligibleMessage(eligibility.message);
+          } else {
+            unmountButton();
+          }
           return;
         }
 
@@ -842,9 +887,22 @@
     if (wrap) wrap.remove();
     var embedded = document.getElementById(EMBEDDED_CARD_ID);
     if (embedded) embedded.remove();
+    var ineligible = document.getElementById('buyease-ineligible-msg');
+    if (ineligible) ineligible.remove();
     document.documentElement.classList.remove('buyease-active');
     if (_mountObserver) { _mountObserver.disconnect(); _mountObserver = null; }
     if (_mountRetryTimer) { clearTimeout(_mountRetryTimer); _mountRetryTimer = null; }
+  }
+
+  function renderIneligibleMessage(message) {
+    unmountButton();
+    var root = document.getElementById(ROOT_ID);
+    if (!root) return;
+    var el = document.createElement('div');
+    el.id = 'buyease-ineligible-msg';
+    el.style.cssText = 'padding:12px 16px;margin:8px 0;border-radius:8px;background:#FFF4E5;border:1px solid #FFD699;color:#6B4400;font-size:14px;line-height:1.4;';
+    el.textContent = message;
+    root.appendChild(el);
   }
 
   function renderButton() {

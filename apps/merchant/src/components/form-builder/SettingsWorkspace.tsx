@@ -30,11 +30,13 @@ import {
   ExternalIcon,
   ImageIcon,
   InfoIcon,
+  SearchIcon,
   XIcon,
 } from "@shopify/polaris-icons";
 import { SaveBar } from "@shopify/app-bridge-react";
 
 import { useShopifyBridge } from "@/lib/use-shopify-bridge";
+import { SHIPPING_COUNTRIES } from "@/components/form-builder/shipping-rates-countries";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -70,7 +72,12 @@ type DisableInState = {
 
 type RestrictState = {
   allowCountriesOnly: boolean;
+  allowedCountries: string[];
   enableOrderEligibility: boolean;
+  orderEligibilityMin: number | null;
+  orderEligibilityMax: number | null;
+  showIneligibleMessage: boolean;
+  ineligibleMessage: string;
 };
 
 type DisableInKey = keyof DisableInState;
@@ -86,7 +93,12 @@ type SettingsPayload = {
   restrictedProducts: RestrictedProduct[];
   restrictedCollections: RestrictedCollection[];
   allowCountriesOnly: boolean;
+  allowedCountries: string[];
   enableOrderEligibility: boolean;
+  orderEligibilityMin: number | null;
+  orderEligibilityMax: number | null;
+  showIneligibleMessage: boolean;
+  ineligibleMessage: string;
   hideSubmitButton: boolean;
   disableOutOfStock: boolean;
   disableAllDiscounts: boolean;
@@ -230,6 +242,81 @@ function ResourceThumbnail({ imageUrl, alt }: { imageUrl: string; alt: string })
   );
 }
 
+// ── Country picker (inline) ─────────────────────────────────────────────────
+
+function CountryPickerInline({
+  selected,
+  onChange,
+}: {
+  selected: string[];
+  onChange: (codes: string[]) => void;
+}): ReactElement {
+  const [search, setSearch] = useState("");
+  const filtered = useMemo(
+    () => SHIPPING_COUNTRIES.filter((c) => c.name.toLowerCase().includes(search.toLowerCase())),
+    [search],
+  );
+  const toggle = useCallback(
+    (code: string) => {
+      onChange(selected.includes(code) ? selected.filter((c) => c !== code) : [...selected, code]);
+    },
+    [selected, onChange],
+  );
+
+  return (
+    <BlockStack gap="200">
+      <TextField
+        label="Select countries"
+        labelHidden
+        value={search}
+        onChange={setSearch}
+        autoComplete="off"
+        placeholder="Select countries"
+        prefix={<Icon source={SearchIcon} />}
+        clearButton
+        onClearButtonClick={() => setSearch("")}
+      />
+      <Box borderWidth="025" borderColor="border" borderRadius="200" padding="200">
+        <div style={{ overflowY: "auto", maxHeight: "180px" }}>
+          <BlockStack gap="100">
+            {filtered.length === 0 ? (
+              <Text as="p" variant="bodySm" tone="subdued">No countries match your search.</Text>
+            ) : (
+              filtered.map((country) => (
+                <Checkbox
+                  key={country.code}
+                  label={`${country.name} (${country.code})`}
+                  checked={selected.includes(country.code)}
+                  onChange={() => toggle(country.code)}
+                />
+              ))
+            )}
+          </BlockStack>
+        </div>
+      </Box>
+      {selected.length > 0 && (
+        <BlockStack gap="100">
+          <Banner tone="warning">
+            <Text as="p" variant="bodySm">
+              If you are NOT currently located in one of the selected countries, you will not be able to see the Form on your store.
+            </Text>
+          </Banner>
+          <InlineStack gap="100" wrap>
+            {selected.map((code) => {
+              const country = SHIPPING_COUNTRIES.find((c) => c.code === code);
+              return (
+                <Badge key={code} tone="info">
+                  {country?.name ?? code}
+                </Badge>
+              );
+            })}
+          </InlineStack>
+        </BlockStack>
+      )}
+    </BlockStack>
+  );
+}
+
 // ── Component props ──────────────────────────────────────────────────────────
 
 type Props = {
@@ -270,7 +357,12 @@ export function SettingsWorkspace({ embedEnabled }: Props): ReactElement {
   // Restriction (countries + order eligibility)
   const [restrict, setRestrict] = useState<RestrictState>({
     allowCountriesOnly: false,
+    allowedCountries: [],
     enableOrderEligibility: false,
+    orderEligibilityMin: null,
+    orderEligibilityMax: null,
+    showIneligibleMessage: false,
+    ineligibleMessage: "",
   });
 
   // Product / collection restriction
@@ -308,7 +400,12 @@ export function SettingsWorkspace({ embedEnabled }: Props): ReactElement {
     restrictedProducts,
     restrictedCollections,
     allowCountriesOnly: restrict.allowCountriesOnly,
+    allowedCountries: restrict.allowedCountries,
     enableOrderEligibility: restrict.enableOrderEligibility,
+    orderEligibilityMin: restrict.orderEligibilityMin,
+    orderEligibilityMax: restrict.orderEligibilityMax,
+    showIneligibleMessage: restrict.showIneligibleMessage,
+    ineligibleMessage: restrict.ineligibleMessage,
     hideSubmitButton,
     disableOutOfStock,
     disableAllDiscounts,
@@ -335,7 +432,12 @@ export function SettingsWorkspace({ embedEnabled }: Props): ReactElement {
     setRestrictedCollections(Array.isArray(cfg.restrictedCollections) ? cfg.restrictedCollections : []);
     setRestrict({
       allowCountriesOnly: cfg.allowCountriesOnly,
+      allowedCountries: Array.isArray(cfg.allowedCountries) ? cfg.allowedCountries : [],
       enableOrderEligibility: cfg.enableOrderEligibility,
+      orderEligibilityMin: cfg.orderEligibilityMin ?? null,
+      orderEligibilityMax: cfg.orderEligibilityMax ?? null,
+      showIneligibleMessage: cfg.showIneligibleMessage ?? false,
+      ineligibleMessage: cfg.ineligibleMessage ?? "",
     });
     setHideSubmitButton(cfg.hideSubmitButton);
     setDisableOutOfStock(cfg.disableOutOfStock);
@@ -543,7 +645,7 @@ export function SettingsWorkspace({ embedEnabled }: Props): ReactElement {
 
   // ── Misc toggle ───────────────────────────────────────────────────────────
 
-  const toggleRestrict = useCallback((key: keyof RestrictState, value: boolean): void => {
+  const toggleRestrict = useCallback((key: "allowCountriesOnly" | "enableOrderEligibility" | "showIneligibleMessage", value: boolean): void => {
     setRestrict((prev) => ({ ...prev, [key]: value }));
   }, []);
 
@@ -1054,23 +1156,90 @@ export function SettingsWorkspace({ embedEnabled }: Props): ReactElement {
           <Divider />
 
           <Box padding="400">
-            <Checkbox
-              label="Allow BuyEase form for the selected countries only"
-              helpText="Enable the form for some countries only and use regular Shopify checkout for other countries."
-              checked={restrict.allowCountriesOnly}
-              onChange={(v) => toggleRestrict("allowCountriesOnly", v)}
-            />
+            <BlockStack gap="300">
+              <Checkbox
+                label="Allow BuyEase form for the selected countries only"
+                helpText="Enable the form for some countries only and use regular Shopify checkout for other countries."
+                checked={restrict.allowCountriesOnly}
+                onChange={(v) => toggleRestrict("allowCountriesOnly", v)}
+              />
+              {restrict.allowCountriesOnly && (
+                <CountryPickerInline
+                  selected={restrict.allowedCountries}
+                  onChange={(codes) => setRestrict((prev) => ({ ...prev, allowedCountries: codes }))}
+                />
+              )}
+            </BlockStack>
           </Box>
 
           <Divider />
 
           <Box padding="400">
-            <Checkbox
-              label="Enable order eligibility"
-              helpText="Orders with a total within these ranges will be eligible to pay with Cash on Delivery. Form will be disabled if order total is out of range."
-              checked={restrict.enableOrderEligibility}
-              onChange={(v) => toggleRestrict("enableOrderEligibility", v)}
-            />
+            <BlockStack gap="300">
+              <Checkbox
+                label="Enable order eligibility"
+                helpText="Orders with a total within these ranges will be eligible to pay with Cash on Delivery. Form will be disabled if order total is out of range."
+                checked={restrict.enableOrderEligibility}
+                onChange={(v) => toggleRestrict("enableOrderEligibility", v)}
+              />
+              {restrict.enableOrderEligibility && (
+                <BlockStack gap="300">
+                  <InlineStack gap="300" wrap={false}>
+                    <Box width="50%">
+                      <TextField
+                        label="Minimum price"
+                        type="number"
+                        value={restrict.orderEligibilityMin?.toString() ?? "0.00"}
+                        onChange={(v) => {
+                          const num = v === "" ? null : parseFloat(v);
+                          setRestrict((prev) => ({
+                            ...prev,
+                            orderEligibilityMin: num !== null && !isNaN(num) ? num : null,
+                          }));
+                        }}
+                        autoComplete="off"
+                        min={0}
+                        step={0.01}
+                      />
+                    </Box>
+                    <Box width="50%">
+                      <TextField
+                        label="Maximum price"
+                        type="number"
+                        value={restrict.orderEligibilityMax?.toString() ?? ""}
+                        placeholder="No limit"
+                        onChange={(v) => {
+                          const num = v === "" ? null : parseFloat(v);
+                          setRestrict((prev) => ({
+                            ...prev,
+                            orderEligibilityMax: num !== null && !isNaN(num) ? num : null,
+                          }));
+                        }}
+                        autoComplete="off"
+                        min={0}
+                        step={0.01}
+                      />
+                    </Box>
+                  </InlineStack>
+                  <Checkbox
+                    label="Display message if order is not eligible for Cash on Delivery"
+                    checked={restrict.showIneligibleMessage}
+                    onChange={(v) => setRestrict((prev) => ({ ...prev, showIneligibleMessage: v }))}
+                  />
+                  {restrict.showIneligibleMessage && (
+                    <TextField
+                      label="Ineligible message"
+                      value={restrict.ineligibleMessage}
+                      onChange={(v) => setRestrict((prev) => ({ ...prev, ineligibleMessage: v }))}
+                      autoComplete="off"
+                      placeholder="Order total must be between {min} and {max} to use Cash on Delivery."
+                      maxLength={500}
+                      showCharacterCount
+                    />
+                  )}
+                </BlockStack>
+              )}
+            </BlockStack>
           </Box>
         </Card>
       </InlineGrid>

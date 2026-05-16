@@ -354,7 +354,17 @@ model FormDesignConfig {
   disableInPages  Json    @default("{}")
   /// Allow form for selected countries only (separate from storefront countries gate)
   allowCountriesOnly      Boolean @default(false)
+  /// JSON array of country codes selected for the allowCountriesOnly restriction
+  allowedCountries        Json    @default("[]")
   enableOrderEligibility  Boolean @default(false)
+  /// Minimum order total for COD eligibility (null = no minimum)
+  orderEligibilityMin     Decimal? @db.Decimal(10, 2)
+  /// Maximum order total for COD eligibility (null = no limit)
+  orderEligibilityMax     Decimal? @db.Decimal(10, 2)
+  /// Whether to display a message when order is not eligible
+  showIneligibleMessage   Boolean @default(false)
+  /// Custom message shown when order total is outside eligible range
+  ineligibleMessage       String  @default("")
   hideSubmitButton        Boolean @default(false)
   disableOutOfStock       Boolean @default(true)
   disableAllDiscounts     Boolean @default(false)

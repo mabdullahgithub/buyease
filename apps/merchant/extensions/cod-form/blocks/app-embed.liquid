@@ -37,10 +37,23 @@
   }
 </style>
 
+{%- assign buyease_collection_ids = '' -%}
+{%- if collection.id -%}
+  {%- assign buyease_collection_ids = collection.id -%}
+{%- elsif product.collections.size > 0 -%}
+  {%- for col in product.collections -%}
+    {%- if forloop.first -%}
+      {%- assign buyease_collection_ids = col.id -%}
+    {%- else -%}
+      {%- assign buyease_collection_ids = buyease_collection_ids | append: ',' | append: col.id -%}
+    {%- endif -%}
+  {%- endfor -%}
+{%- endif -%}
+
 <div
   id="buyease-cod-root"
   data-product-id="{{ product.id }}"
-  data-collection-id="{{ collection.id }}"
+  data-collection-id="{{ buyease_collection_ids }}"
   data-product-title="{{ product.title | escape }}"
   data-product-image="{{ buyease_image_url }}"
   data-variant-id="{{ buyease_variant.id }}"
