@@ -12,9 +12,7 @@ const CORS = {
   "Access-Control-Allow-Headers": "Content-Type",
 };
 
-// 30s CDN cache, serve stale for up to 5 min while revalidating — safe for config
-// that rarely changes. In-memory LRU handles repeated requests within the same instance.
-const CACHE_CONTROL = "public, max-age=30, stale-while-revalidate=300";
+const CACHE_CONTROL = "public, max-age=0, must-revalidate";
 
 const DEFAULTS = {
   formType: "popup",
