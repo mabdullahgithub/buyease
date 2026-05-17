@@ -618,38 +618,6 @@ function ColorPickerControl({
   );
 }
 
-// ─── ToggleSwitch ─────────────────────────────────────────────────────────────
-
-function ToggleSwitch({
-  checked, onChange,
-}: { checked: boolean; onChange: (v: boolean) => void }): ReactElement {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      onClick={() => onChange(!checked)}
-      style={{
-        width: "44px", height: "24px", borderRadius: "12px",
-        background: checked ? "#008060" : "#babfc3",
-        border: "none", padding: 0,
-        position: "relative", cursor: "pointer",
-        flexShrink: 0, transition: "background 0.22s ease",
-        outline: "none",
-      }}
-    >
-      <span style={{
-        position: "absolute", top: "2px",
-        left: checked ? "22px" : "2px",
-        width: "20px", height: "20px",
-        borderRadius: "50%", background: "#fff",
-        boxShadow: "0 1px 4px rgba(0,0,0,0.28)",
-        transition: "left 0.22s ease", display: "block",
-      }} />
-    </button>
-  );
-}
-
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function FormDesignerWorkspace({
@@ -1579,7 +1547,7 @@ export function FormDesignerWorkspace({
                               <div style={{ cursor: "grab", display: "flex" }}>
                                 <Icon source={DragHandleIcon} tone="subdued" />
                               </div>
-                              {field.iconId && getFormIcon(field.iconId) && (
+                              {showIcons && field.showIcon && field.iconId && getFormIcon(field.iconId) && (
                                 <div style={{ background: "rgba(0,0,0,0.05)", padding: "4px", borderRadius: "4px", display: "flex" }}>
                                   <Icon source={getFormIcon(field.iconId)!.source} tone="subdued" />
                                 </div>
@@ -1745,6 +1713,7 @@ export function FormDesignerWorkspace({
                                   </div>
                                 </BlockStack>
                               )}
+                              {showIcons && (
                               <InlineStack gap="300" blockAlign="center">
                                 <Checkbox
                                   label="Show icon"
@@ -1802,6 +1771,7 @@ export function FormDesignerWorkspace({
                                   </div>
                                 )}
                               </InlineStack>
+                              )}
                             </BlockStack>
                           </div>
                         )}
@@ -2024,159 +1994,81 @@ export function FormDesignerWorkspace({
 
           {/* Preferences */}
           <div ref={preferencesRef} id="buyease-visibility">
-          <Card padding="0">
-            {/* Header */}
-            <Box padding="400">
+          <Card>
+            <BlockStack gap="400">
               <BlockStack gap="100">
                 <Text as="h2" variant="headingSm">Preferences</Text>
                 <Text as="p" variant="bodySm" tone="subdued">Configure visibility and behavior for your form</Text>
               </BlockStack>
-            </Box>
-            <Divider />
 
-            {/* — Visibility — */}
-            <Box background="bg-surface-secondary" padding="300">
-              <p style={{ margin: 0, fontSize: "11px", fontWeight: 600, color: "var(--p-color-text-subdued)", textTransform: "uppercase", letterSpacing: "0.07em" }}>Visibility</p>
-            </Box>
-            <Box padding="400">
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "16px" }}>
-                <div style={{ display: "flex", alignItems: "flex-start", gap: "12px", flex: 1, minWidth: 0 }}>
-                  <div style={{
-                    width: "36px", height: "36px", borderRadius: "8px", flexShrink: 0,
-                    background: isVisible ? "rgba(0,128,96,0.1)" : "rgba(0,0,0,0.04)",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                  }}>
-                    <Icon source={ViewIcon} tone={isVisible ? "success" : "subdued"} />
-                  </div>
-                  <div style={{ minWidth: 0 }}>
-                    <Text as="p" variant="bodyMd" fontWeight="semibold">Show form on storefront</Text>
-                    <Text as="p" variant="bodySm" tone="subdued">Customers can see and interact with your COD form</Text>
-                  </div>
-                </div>
-                <ToggleSwitch checked={isVisible} onChange={setIsVisible} />
-              </div>
-            </Box>
-            <Divider />
+              <Divider />
 
-            {/* — Display — */}
-            <Box background="bg-surface-secondary" padding="300">
-              <p style={{ margin: 0, fontSize: "11px", fontWeight: 600, color: "var(--p-color-text-subdued)", textTransform: "uppercase", letterSpacing: "0.07em" }}>Display</p>
-            </Box>
-            <Box padding="400">
-              <BlockStack gap="400">
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "16px" }}>
-                  <div style={{ display: "flex", alignItems: "flex-start", gap: "12px", flex: 1, minWidth: 0 }}>
-                    <div style={{
-                      width: "36px", height: "36px", borderRadius: "8px", flexShrink: 0,
-                      background: hideLabels ? "rgba(0,128,96,0.1)" : "rgba(0,0,0,0.04)",
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                    }}>
-                      <Icon source={HideIcon} tone={hideLabels ? "success" : "subdued"} />
-                    </div>
-                    <div style={{ minWidth: 0 }}>
-                      <Text as="p" variant="bodyMd" fontWeight="semibold">Hide field labels</Text>
-                      <Text as="p" variant="bodySm" tone="subdued">Remove label text above inputs — rely on placeholders</Text>
-                    </div>
-                  </div>
-                  <ToggleSwitch checked={hideLabels} onChange={setHideLabels} />
-                </div>
+              {/* — Visibility — */}
+              <Text as="h3" variant="headingXs" tone="subdued">Visibility</Text>
+              <Checkbox
+                label="Show form on storefront"
+                helpText="Customers can see and interact with your COD form"
+                checked={isVisible}
+                onChange={setIsVisible}
+              />
 
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "16px" }}>
-                  <div style={{ display: "flex", alignItems: "flex-start", gap: "12px", flex: 1, minWidth: 0 }}>
-                    <div style={{
-                      width: "36px", height: "36px", borderRadius: "8px", flexShrink: 0,
-                      background: showIcons ? "rgba(0,128,96,0.1)" : "rgba(0,0,0,0.04)",
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                    }}>
-                      <Icon source={ImageIcon} tone={showIcons ? "success" : "subdued"} />
-                    </div>
-                    <div style={{ minWidth: 0 }}>
-                      <Text as="p" variant="bodyMd" fontWeight="semibold">Show field icons</Text>
-                      <Text as="p" variant="bodySm" tone="subdued">Display icons inside input fields for visual clarity</Text>
-                    </div>
-                  </div>
-                  <ToggleSwitch checked={showIcons} onChange={setShowIcons} />
-                </div>
+              <Divider />
 
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "16px" }}>
-                  <div style={{ display: "flex", alignItems: "flex-start", gap: "12px", flex: 1, minWidth: 0 }}>
-                    <div style={{
-                      width: "36px", height: "36px", borderRadius: "8px", flexShrink: 0,
-                      background: enableRtl ? "rgba(0,128,96,0.1)" : "rgba(0,0,0,0.04)",
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                    }}>
-                      <Icon source={TextAlignRightIcon} tone={enableRtl ? "success" : "subdued"} />
-                    </div>
-                    <div style={{ minWidth: 0 }}>
-                      <Text as="p" variant="bodyMd" fontWeight="semibold">Enable RTL layout</Text>
-                      <Text as="p" variant="bodySm" tone="subdued">Right-to-left direction for Arabic, Hebrew, and Farsi</Text>
-                    </div>
-                  </div>
-                  <ToggleSwitch checked={enableRtl} onChange={setEnableRtl} />
-                </div>
+              {/* — Display — */}
+              <Text as="h3" variant="headingXs" tone="subdued">Display</Text>
+              <BlockStack gap="300">
+                <Checkbox
+                  label="Hide field labels"
+                  helpText="Remove label text above inputs — rely on placeholders"
+                  checked={hideLabels}
+                  onChange={setHideLabels}
+                />
+                <Checkbox
+                  label="Show field icons"
+                  helpText="Display icons inside input fields for visual clarity"
+                  checked={showIcons}
+                  onChange={setShowIcons}
+                />
+                <Checkbox
+                  label="Enable RTL layout"
+                  helpText="Right-to-left direction for Arabic, Hebrew, and Farsi"
+                  checked={enableRtl}
+                  onChange={setEnableRtl}
+                />
               </BlockStack>
-            </Box>
-            <Divider />
 
-            {/* — Behavior — */}
-            <Box background="bg-surface-secondary" padding="300">
-              <p style={{ margin: 0, fontSize: "11px", fontWeight: 600, color: "var(--p-color-text-subdued)", textTransform: "uppercase", letterSpacing: "0.07em" }}>Behavior</p>
-            </Box>
-            <Box padding="400">
-              <BlockStack gap="400">
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "16px" }}>
-                  <div style={{ display: "flex", alignItems: "flex-start", gap: "12px", flex: 1, minWidth: 0 }}>
-                    <div style={{
-                      width: "36px", height: "36px", borderRadius: "8px", flexShrink: 0,
-                      background: disableAutocomplete ? "rgba(0,128,96,0.1)" : "rgba(0,0,0,0.04)",
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                    }}>
-                      <Icon source={LockIcon} tone={disableAutocomplete ? "success" : "subdued"} />
-                    </div>
-                    <div style={{ minWidth: 0 }}>
-                      <Text as="p" variant="bodyMd" fontWeight="semibold">Disable autocomplete</Text>
-                      <Text as="p" variant="bodySm" tone="subdued">Prevent browsers from auto-filling form fields</Text>
-                    </div>
-                  </div>
-                  <ToggleSwitch checked={disableAutocomplete} onChange={setDisableAutocomplete} />
-                </div>
+              <Divider />
 
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "16px" }}>
-                  <div style={{ display: "flex", alignItems: "flex-start", gap: "12px", flex: 1, minWidth: 0 }}>
-                    <div style={{
-                      width: "36px", height: "36px", borderRadius: "8px", flexShrink: 0,
-                      background: stickyMobile ? "rgba(0,128,96,0.1)" : "rgba(0,0,0,0.04)",
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                    }}>
-                      <Icon source={MobileIcon} tone={stickyMobile ? "success" : "subdued"} />
-                    </div>
-                    <div style={{ minWidth: 0 }}>
-                      <Text as="p" variant="bodyMd" fontWeight="semibold">Sticky submit button</Text>
-                      <Text as="p" variant="bodySm" tone="subdued">Pin the submit button to the bottom on mobile screens</Text>
-                    </div>
-                  </div>
-                  <ToggleSwitch checked={stickyMobile} onChange={setStickyMobile} />
-                </div>
+              {/* — Behavior — */}
+              <Text as="h3" variant="headingXs" tone="subdued">Behavior</Text>
+              <BlockStack gap="300">
+                <Checkbox
+                  label="Disable autocomplete"
+                  helpText="Prevent browsers from auto-filling form fields"
+                  checked={disableAutocomplete}
+                  onChange={setDisableAutocomplete}
+                />
+                <Checkbox
+                  label="Sticky submit button"
+                  helpText="Pin the submit button to the bottom on mobile screens"
+                  checked={stickyMobile}
+                  onChange={setStickyMobile}
+                />
               </BlockStack>
-            </Box>
-            <Divider />
 
-            {/* — Error Messages — */}
-            <Box background="bg-surface-secondary" padding="300">
-              <p style={{ margin: 0, fontSize: "11px", fontWeight: 600, color: "var(--p-color-text-subdued)", textTransform: "uppercase", letterSpacing: "0.07em" }}>Error Messages</p>
-            </Box>
-            <Box padding="400">
-              <BlockStack gap="400">
-                <Text as="p" variant="bodySm" tone="subdued">Customize the text shown when form validation fails</Text>
-                <FormLayout>
-                  <FormLayout.Group>
-                    <TextField label="Required field message" value={requiredMsg}   onChange={setRequiredMsg}   autoComplete="off" />
-                    <TextField label="Invalid field message"  value={invalidMsg}    onChange={setInvalidMsg}    autoComplete="off" />
-                  </FormLayout.Group>
-                  <TextField label="Sold out label" value={soldOutLabel} onChange={setSoldOutLabel} autoComplete="off" />
-                </FormLayout>
-              </BlockStack>
-            </Box>
+              <Divider />
+
+              {/* — Error Messages — */}
+              <Text as="h3" variant="headingXs" tone="subdued">Error Messages</Text>
+              <Text as="p" variant="bodySm" tone="subdued">Customize the text shown when form validation fails</Text>
+              <FormLayout>
+                <FormLayout.Group>
+                  <TextField label="Required field message" value={requiredMsg}   onChange={setRequiredMsg}   autoComplete="off" />
+                  <TextField label="Invalid field message"  value={invalidMsg}    onChange={setInvalidMsg}    autoComplete="off" />
+                </FormLayout.Group>
+                <TextField label="Sold out label" value={soldOutLabel} onChange={setSoldOutLabel} autoComplete="off" />
+              </FormLayout>
+            </BlockStack>
           </Card>
           </div>
 
