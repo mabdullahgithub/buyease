@@ -3,14 +3,6 @@ import { createCipheriv, createDecipheriv, createHmac, randomBytes } from "crypt
 const ENCRYPTION_KEY = (process.env.GOOGLE_TOKEN_ENCRYPTION_KEY ?? "").trim();
 const OAUTH_STATE_SECRET = (process.env.GOOGLE_OAUTH_STATE_SECRET ?? ENCRYPTION_KEY).trim();
 
-// Fail fast at startup rather than silently using a weak derived key.
-if (ENCRYPTION_KEY.length < 32) {
-  throw new Error(
-    "GOOGLE_TOKEN_ENCRYPTION_KEY must be at least 32 characters. " +
-    "Generate one with: openssl rand -hex 32",
-  );
-}
-
 export const GOOGLE_CLIENT_ID = (process.env.GOOGLE_CLIENT_ID ?? "").trim();
 export const GOOGLE_CLIENT_SECRET = (process.env.GOOGLE_CLIENT_SECRET ?? "").trim();
 export const GOOGLE_REDIRECT_URI = (process.env.GOOGLE_REDIRECT_URI ?? "").trim();
@@ -27,7 +19,13 @@ const SCOPES = [
 // ---------------------------------------------------------------------------
 
 function derivedKey(): Buffer {
-  return Buffer.from(ENCRYPTION_KEY.padEnd(32, "0").slice(0, 32));
+  if (ENCRYPTION_KEY.length < 32) {
+    throw new Error(
+      "GOOGLE_TOKEN_ENCRYPTION_KEY must be at least 32 characters. " +
+      "Generate one with: openssl rand -hex 32",
+    );
+  }
+  return Buffer.from(ENCRYPTION_KEY.slice(0, 32));
 }
 
 export function encryptToken(plaintext: string): string {
