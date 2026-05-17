@@ -658,46 +658,32 @@ export function SettingsWorkspace({ embedEnabled }: Props): ReactElement {
 
   if (isLoading) {
     return (
-      <div style={{ width: "100%", display: "block" }}>
-        <BlockStack gap="800">
-          <InlineGrid columns={["oneThird", "twoThirds"]} gap="400">
-            <div style={{ width: "100%" }}>
-              <BlockStack gap="200">
-                <SkeletonBodyText lines={2} />
-              </BlockStack>
-            </div>
-            <div style={{ width: "100%" }}>
-              <Card padding="400">
-                <SkeletonBodyText lines={3} />
-              </Card>
-            </div>
-          </InlineGrid>
-          <InlineGrid columns={["oneThird", "twoThirds"]} gap="400">
-            <div style={{ width: "100%" }}>
-              <BlockStack gap="200">
-                <SkeletonBodyText lines={2} />
-              </BlockStack>
-            </div>
-            <div style={{ width: "100%" }}>
-              <Card padding="400">
-                <SkeletonBodyText lines={4} />
-              </Card>
-            </div>
-          </InlineGrid>
-          <InlineGrid columns={["oneThird", "twoThirds"]} gap="400">
-            <div style={{ width: "100%" }}>
-              <BlockStack gap="200">
-                <SkeletonBodyText lines={2} />
-              </BlockStack>
-            </div>
-            <div style={{ width: "100%" }}>
-              <Card padding="400">
-                <SkeletonBodyText lines={5} />
-              </Card>
-            </div>
-          </InlineGrid>
-        </BlockStack>
-      </div>
+      <BlockStack gap="800">
+        <InlineGrid columns={["oneThird", "twoThirds"]} gap="400">
+          <BlockStack gap="200">
+            <SkeletonBodyText lines={2} />
+          </BlockStack>
+          <Card padding="400">
+            <SkeletonBodyText lines={3} />
+          </Card>
+        </InlineGrid>
+        <InlineGrid columns={["oneThird", "twoThirds"]} gap="400">
+          <BlockStack gap="200">
+            <SkeletonBodyText lines={2} />
+          </BlockStack>
+          <Card padding="400">
+            <SkeletonBodyText lines={4} />
+          </Card>
+        </InlineGrid>
+        <InlineGrid columns={["oneThird", "twoThirds"]} gap="400">
+          <BlockStack gap="200">
+            <SkeletonBodyText lines={2} />
+          </BlockStack>
+          <Card padding="400">
+            <SkeletonBodyText lines={5} />
+          </Card>
+        </InlineGrid>
+      </BlockStack>
     );
   }
 

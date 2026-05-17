@@ -1383,43 +1383,39 @@ export function FormDesignerWorkspace({
 
   if (loading) {
     return (
-      <div style={{ width: "100%", display: "block" }}>
-        <BlockStack gap="400">
-          <InlineGrid columns={{ xs: 1, md: ["twoThirds", "oneThird"] }} gap="400" alignItems="start">
-            <div style={{ width: "100%" }}>
-              <BlockStack gap="400">
-                <Card padding="400">
-                  <BlockStack gap="300">
-                    <SkeletonBodyText lines={2} />
-                  </BlockStack>
-                </Card>
-                <Card padding="400">
-                  <BlockStack gap="300">
-                    <SkeletonBodyText lines={6} />
-                  </BlockStack>
-                </Card>
-                <Card padding="400">
-                  <BlockStack gap="300">
-                    <SkeletonBodyText lines={4} />
-                  </BlockStack>
-                </Card>
+      <BlockStack gap="400">
+        <InlineGrid columns={{ xs: 1, md: ["twoThirds", "oneThird"] }} gap="400" alignItems="start">
+          <BlockStack gap="400">
+            <Card padding="400">
+              <BlockStack gap="300">
+                <SkeletonBodyText lines={2} />
               </BlockStack>
-            </div>
-            <Box position="sticky" insetBlockStart="400" zIndex="400" width="100%">
-              <Card padding="400">
-                <BlockStack gap="300">
-                  <SkeletonBodyText lines={1} />
-                  <Box background="bg-surface-secondary" borderRadius="300" padding="400" minHeight="420px">
-                    <BlockStack gap="300">
-                      <SkeletonBodyText lines={8} />
-                    </BlockStack>
-                  </Box>
-                </BlockStack>
-              </Card>
-            </Box>
-          </InlineGrid>
-        </BlockStack>
-      </div>
+            </Card>
+            <Card padding="400">
+              <BlockStack gap="300">
+                <SkeletonBodyText lines={6} />
+              </BlockStack>
+            </Card>
+            <Card padding="400">
+              <BlockStack gap="300">
+                <SkeletonBodyText lines={4} />
+              </BlockStack>
+            </Card>
+          </BlockStack>
+          <Box position="sticky" insetBlockStart="400" zIndex="400" width="100%">
+            <Card padding="400">
+              <BlockStack gap="300">
+                <SkeletonBodyText lines={1} />
+                <Box background="bg-surface-secondary" borderRadius="300" padding="400" minHeight="420px">
+                  <BlockStack gap="300">
+                    <SkeletonBodyText lines={8} />
+                  </BlockStack>
+                </Box>
+              </BlockStack>
+            </Card>
+          </Box>
+        </InlineGrid>
+      </BlockStack>
     );
   }
 
