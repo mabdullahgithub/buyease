@@ -1,7 +1,9 @@
+import { Session } from "@shopify/shopify-api";
 import { Prisma } from "@buyease/db";
 
 import { prisma } from "@/lib/db";
 import shopify, { sessionStorage } from "@/lib/shopify";
+import { ensureFreshToken } from "@/lib/token-refresh";
 
 const ADMIN_GRAPHQL_API_VERSION_PATH = "2026-04";
 const ONE_TIME_POLL_ATTEMPTS = 12;
@@ -13,7 +15,7 @@ query OneTimeCharge($id: ID!) {
     ... on AppPurchaseOneTime {
       id
       status
-      amount { amount currencyCode }
+      price { amount currencyCode }
     }
   }
 }`;
@@ -47,7 +49,7 @@ function isPaidOneTimePurchaseStatus(status: string): boolean {
 type OneTimeChargeNode = {
   id: string;
   status: string;
-  amount: { amount: string; currencyCode: string };
+  price: { amount: string; currencyCode: string };
 };
 
 async function fetchOneTimePurchase(
@@ -87,7 +89,7 @@ async function fetchOneTimePurchase(
   }
 
   const node = payload.data?.node;
-  if (!node?.amount) {
+  if (!node?.price) {
     return null;
   }
 
@@ -136,7 +138,7 @@ export async function creditMerchantBalanceForActivatedOneTimePurchase(
     return { ok: false, reason: "not_active_yet" };
   }
 
-  const amount = parseFloat(active.amount.amount);
+  const amount = parseFloat(active.price.amount);
   if (!Number.isFinite(amount) || amount <= 0) {
     return { ok: false, reason: "not_active_yet" };
   }
@@ -179,29 +181,101 @@ export async function creditMerchantBalanceForActivatedOneTimePurchase(
   return { ok: true, reason: "credited" };
 }
 
+/** Returns a valid (non-expired) offline access token for the shop, refreshing it if needed. */
 export async function resolveOfflineMerchantAccessToken(shopRaw: string): Promise<string | null> {
   const shop = normalizeShopForMerchantDb(shopRaw);
-  const session = await prisma.session.findFirst({
+
+  // Try the Session DB row first — it has full expiry metadata for ensureFreshToken.
+  const dbSession = await prisma.session.findFirst({
     where: { shop, isOnline: false },
-    select: { accessToken: true },
     orderBy: { updatedAt: "desc" },
   });
-  if (session?.accessToken) {
-    return session.accessToken;
+
+  if (dbSession?.accessToken) {
+    const session = new Session({
+      id: dbSession.id,
+      shop: dbSession.shop,
+      state: dbSession.state ?? "",
+      isOnline: false,
+      scope: dbSession.scope ?? undefined,
+      expires: dbSession.expires ?? undefined,
+      accessToken: dbSession.accessToken,
+    });
+    try {
+      const fresh = await ensureFreshToken(session);
+      return fresh.accessToken ?? null;
+    } catch {
+      // Token refresh failed — fall through to other sources.
+    }
   }
 
-  const sessions = await sessionStorage.findSessionsByShop(shop);
-  const offline = sessions.find((s) => !s.isOnline && s.accessToken);
+  // Try Redis sessionStorage.
+  const redisSessions = await sessionStorage.findSessionsByShop(shop);
+  const offline = redisSessions.find((s) => !s.isOnline && s.accessToken);
   if (offline?.accessToken) {
-    return offline.accessToken;
+    try {
+      const fresh = await ensureFreshToken(offline);
+      return fresh.accessToken ?? null;
+    } catch {
+      // Fall through to Merchant row.
+    }
   }
 
-  // Final fallback: token stored on the Merchant row during installation
+  // Final fallback: token stored on the Merchant row during installation.
   const merchant = await prisma.merchant.findUnique({
     where: { shop },
-    select: { accessToken: true },
+    select: { accessToken: true, tokenExpiresAt: true, refreshToken: true },
   });
-  return merchant?.accessToken ?? null;
+
+  if (!merchant?.accessToken) {
+    return null;
+  }
+
+  // If the Merchant token is still fresh, use it directly.
+  const expiresAt = merchant.tokenExpiresAt;
+  const isExpired = expiresAt && expiresAt.getTime() - Date.now() < 5 * 60 * 1000;
+  if (!isExpired) {
+    return merchant.accessToken;
+  }
+
+  // Expired: refresh using the stored refresh token.
+  if (!merchant.refreshToken) {
+    console.error(`resolveOfflineMerchantAccessToken: expired token, no refresh token for ${shop}`);
+    return null;
+  }
+
+  try {
+    const refreshUrl = `https://${shop}/admin/oauth/access_token`;
+    const body = new URLSearchParams({
+      client_id: process.env.SHOPIFY_API_KEY!,
+      client_secret: process.env.SHOPIFY_API_SECRET!,
+      grant_type: "refresh_token",
+      refresh_token: merchant.refreshToken,
+    });
+    const res = await fetch(refreshUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded", Accept: "application/json" },
+      body: body.toString(),
+    });
+    if (!res.ok) {
+      console.error(`resolveOfflineMerchantAccessToken: token refresh failed [${res.status}] for ${shop}`);
+      return null;
+    }
+    const data = (await res.json()) as { access_token: string; expires_in?: number; refresh_token?: string };
+    const newExpiresAt = data.expires_in ? new Date(Date.now() + data.expires_in * 1000) : undefined;
+    await prisma.merchant.updateMany({
+      where: { shop },
+      data: {
+        accessToken: data.access_token,
+        ...(data.refresh_token ? { refreshToken: data.refresh_token } : {}),
+        ...(newExpiresAt ? { tokenExpiresAt: newExpiresAt } : {}),
+      },
+    });
+    return data.access_token;
+  } catch (error) {
+    console.error(`resolveOfflineMerchantAccessToken: refresh threw for ${shop}`, error);
+    return null;
+  }
 }
 
 /** When Shopify omits charge_id on the billing return URL, use the latest pending intent for this shop. */
