@@ -1383,10 +1383,10 @@ export function FormDesignerWorkspace({
 
   if (loading) {
     return (
-      <Box width="100%">
+      <div style={{ width: "100%", display: "block" }}>
         <BlockStack gap="400">
-          <Layout>
-            <Layout.Section>
+          <InlineGrid columns={{ xs: 1, md: ["twoThirds", "oneThird"] }} gap="400" alignItems="start">
+            <div style={{ width: "100%" }}>
               <BlockStack gap="400">
                 <Card padding="400">
                   <BlockStack gap="300">
@@ -1404,8 +1404,8 @@ export function FormDesignerWorkspace({
                   </BlockStack>
                 </Card>
               </BlockStack>
-            </Layout.Section>
-            <Layout.Section variant="oneThird">
+            </div>
+            <Box position="sticky" insetBlockStart="400" zIndex="400" width="100%">
               <Card padding="400">
                 <BlockStack gap="300">
                   <SkeletonBodyText lines={1} />
@@ -1416,10 +1416,10 @@ export function FormDesignerWorkspace({
                   </Box>
                 </BlockStack>
               </Card>
-            </Layout.Section>
-          </Layout>
+            </Box>
+          </InlineGrid>
         </BlockStack>
-      </Box>
+      </div>
     );
   }
 

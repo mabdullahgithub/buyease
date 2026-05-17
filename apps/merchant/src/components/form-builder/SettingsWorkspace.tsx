@@ -658,46 +658,46 @@ export function SettingsWorkspace({ embedEnabled }: Props): ReactElement {
 
   if (isLoading) {
     return (
-      <Box width="100%">
+      <div style={{ width: "100%", display: "block" }}>
         <BlockStack gap="800">
-          <Layout>
-            <Layout.Section variant="oneThird">
+          <InlineGrid columns={["oneThird", "twoThirds"]} gap="400">
+            <div style={{ width: "100%" }}>
               <BlockStack gap="200">
                 <SkeletonBodyText lines={2} />
               </BlockStack>
-            </Layout.Section>
-            <Layout.Section>
+            </div>
+            <div style={{ width: "100%" }}>
               <Card padding="400">
                 <SkeletonBodyText lines={3} />
               </Card>
-            </Layout.Section>
-          </Layout>
-          <Layout>
-            <Layout.Section variant="oneThird">
+            </div>
+          </InlineGrid>
+          <InlineGrid columns={["oneThird", "twoThirds"]} gap="400">
+            <div style={{ width: "100%" }}>
               <BlockStack gap="200">
                 <SkeletonBodyText lines={2} />
               </BlockStack>
-            </Layout.Section>
-            <Layout.Section>
+            </div>
+            <div style={{ width: "100%" }}>
               <Card padding="400">
                 <SkeletonBodyText lines={4} />
               </Card>
-            </Layout.Section>
-          </Layout>
-          <Layout>
-            <Layout.Section variant="oneThird">
+            </div>
+          </InlineGrid>
+          <InlineGrid columns={["oneThird", "twoThirds"]} gap="400">
+            <div style={{ width: "100%" }}>
               <BlockStack gap="200">
                 <SkeletonBodyText lines={2} />
               </BlockStack>
-            </Layout.Section>
-            <Layout.Section>
+            </div>
+            <div style={{ width: "100%" }}>
               <Card padding="400">
                 <SkeletonBodyText lines={5} />
               </Card>
-            </Layout.Section>
-          </Layout>
+            </div>
+          </InlineGrid>
         </BlockStack>
-      </Box>
+      </div>
     );
   }
 
