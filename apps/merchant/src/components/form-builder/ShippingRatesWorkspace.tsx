@@ -668,46 +668,48 @@ export function ShippingRatesWorkspace(): ReactElement {
 
   if (loading) {
     return (
-      <BlockStack gap="400">
-        <Card roundedAbove="sm">
-          <SkeletonBodyText lines={2} />
-        </Card>
-        <Card roundedAbove="sm" padding="0">
-          <Box padding="400">
-            <InlineStack gap="200">
-              <Box minWidth="110px"><SkeletonBodyText lines={1} /></Box>
-              <Box minWidth="160px"><SkeletonBodyText lines={1} /></Box>
-            </InlineStack>
-          </Box>
-          <Divider />
-          <Box paddingInline="400" paddingBlock="300" background="bg-surface-secondary">
-            <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 90px 3fr 120px", gap: "var(--p-space-300)", alignItems: "center" }}>
-              <SkeletonBodyText lines={1} />
-              <SkeletonBodyText lines={1} />
-              <SkeletonBodyText lines={1} />
-              <SkeletonBodyText lines={1} />
-              <SkeletonBodyText lines={1} />
-            </div>
-          </Box>
-          <Divider />
-          <BlockStack gap="0">
-            {[0, 1, 2].map((i) => (
-              <Box key={i}>
-                {i > 0 && <Divider />}
-                <Box paddingInline="400" paddingBlock="300">
-                  <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 90px 3fr 120px", gap: "var(--p-space-300)", alignItems: "center" }}>
-                    <SkeletonBodyText lines={1} />
-                    <SkeletonBodyText lines={1} />
-                    <SkeletonBodyText lines={1} />
-                    <SkeletonBodyText lines={1} />
-                    <SkeletonBodyText lines={1} />
-                  </div>
+      <Box width="100%">
+        <BlockStack gap="400">
+          <Card roundedAbove="sm">
+            <SkeletonBodyText lines={2} />
+          </Card>
+          <Card roundedAbove="sm" padding="0">
+            <Box padding="400">
+              <InlineStack gap="200">
+                <Box minWidth="110px"><SkeletonBodyText lines={1} /></Box>
+                <Box minWidth="160px"><SkeletonBodyText lines={1} /></Box>
+              </InlineStack>
+            </Box>
+            <Divider />
+            <Box paddingInline="400" paddingBlock="300" background="bg-surface-secondary">
+              <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 90px 3fr 120px", gap: "var(--p-space-300)", alignItems: "center" }}>
+                <SkeletonBodyText lines={1} />
+                <SkeletonBodyText lines={1} />
+                <SkeletonBodyText lines={1} />
+                <SkeletonBodyText lines={1} />
+                <SkeletonBodyText lines={1} />
+              </div>
+            </Box>
+            <Divider />
+            <BlockStack gap="0">
+              {[0, 1, 2].map((i) => (
+                <Box key={i}>
+                  {i > 0 && <Divider />}
+                  <Box paddingInline="400" paddingBlock="300">
+                    <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 90px 3fr 120px", gap: "var(--p-space-300)", alignItems: "center" }}>
+                      <SkeletonBodyText lines={1} />
+                      <SkeletonBodyText lines={1} />
+                      <SkeletonBodyText lines={1} />
+                      <SkeletonBodyText lines={1} />
+                      <SkeletonBodyText lines={1} />
+                    </div>
+                  </Box>
                 </Box>
-              </Box>
-            ))}
-          </BlockStack>
-        </Card>
-      </BlockStack>
+              ))}
+            </BlockStack>
+          </Card>
+        </BlockStack>
+      </Box>
     );
   }
 
