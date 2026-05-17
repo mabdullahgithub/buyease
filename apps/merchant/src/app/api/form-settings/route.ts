@@ -37,11 +37,8 @@ export const GET = withGuards({ skipPlanGate: true }, async (_req, ctx) => {
     select: SELECT,
   });
 
-  if (!config) {
-    return NextResponse.json({ error: "Config not found" }, { status: 404 });
-  }
-
-  return NextResponse.json(config);
+  const defaults = formSettingsConfigSchema.parse({});
+  return NextResponse.json(config ?? defaults);
 });
 
 export const PUT = withGuards({ skipPlanGate: true }, async (req: NextRequest, ctx) => {

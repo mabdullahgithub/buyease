@@ -114,8 +114,6 @@ export function FormBuilderPageContent(): ReactElement {
       });
       if (!res.ok) return;
       const data = (await res.json()) as { enabled: boolean | null; reason?: string; blockDebug?: { key: string; type: string | null; disabled: boolean | null }[] };
-      // eslint-disable-next-line no-console
-      console.warn("[BuyEase] theme-embed-status →", JSON.stringify(data));
       setEmbedEnabled(data.enabled ?? null);
     } catch {
       // leave as null — unknown state
@@ -143,7 +141,7 @@ export function FormBuilderPageContent(): ReactElement {
   const active = MODES.find((m) => m.id === mode) ?? MODES[0]!;
 
   const embedStatusBadge =
-    embedEnabled === true ? <Badge tone="warning">Form enabled</Badge> : null;
+    embedEnabled === true ? <Badge tone="success">Form enabled</Badge> : null;
 
   const secondaryActions = embedEnabled === true
     ? [

@@ -64,7 +64,7 @@ const DEFAULTS = {
   hideAddToCart:           false,
   hideBuyNow:              false,
   whenOpened:              "product-and-cart",
-  disableInPages:          {},
+  disableInPages:          { homePage: false, collectionPage: false, regularPage: false, searchResultPage: false, cartDrawer: false },
   allowCountriesOnly:      false,
   allowedCountries:        [] as string[],
   enableOrderEligibility:  false,
