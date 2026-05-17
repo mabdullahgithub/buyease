@@ -269,7 +269,12 @@ export async function ensureHeaderRow(
     body: JSON.stringify({ values: [header] }),
   });
 
-  await applySheetDesign(accessToken, spreadsheetId, sheetName, designName);
+  // Design application is cosmetic — never let it block header writing or order sync.
+  try {
+    await applySheetDesign(accessToken, spreadsheetId, sheetName, designName);
+  } catch {
+    // Styling failed (e.g. quota, permissions) — headers are written, sync continues.
+  }
 }
 
 // ---------------------------------------------------------------------------
