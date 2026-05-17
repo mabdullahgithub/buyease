@@ -3,6 +3,8 @@ import type { Order } from "@prisma/client";
 import { getValidAccessToken } from "@/lib/google-oauth";
 
 const SHEETS_BASE = "https://sheets.googleapis.com/v4/spreadsheets";
+const FETCH_TIMEOUT_MS = 15_000;
+const EXPORT_BATCH_SIZE = 500;
 
 // ---------------------------------------------------------------------------
 // Low-level Sheets REST helpers
@@ -16,6 +18,7 @@ async function sheetsRequest(
   const url = path.startsWith("http") ? path : `${SHEETS_BASE}${path}`;
   const res = await fetch(url, {
     ...options,
+    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
     headers: {
       Authorization: `Bearer ${accessToken}`,
       "Content-Type": "application/json",
@@ -37,58 +40,61 @@ async function sheetsRequest(
 // ---------------------------------------------------------------------------
 
 function getFieldData(order: Order, fieldName: string): string {
-  const meta = (order.metadata as any) || {};
-  
+  const meta = (order.metadata as Record<string, unknown>) ?? {};
+
+  const str = (v: unknown): string => (v != null ? String(v) : "");
+
   switch (fieldName) {
     case "Order number": return order.orderId;
     case "Order ID": return order.id;
-    case "Creation date (YYYY-MM-DD)": return order.createdAt.toISOString().split('T')[0];
+    case "Creation date (YYYY-MM-DD)": return order.createdAt.toISOString().split("T")[0] ?? "";
     case "Date & Time": return order.createdAt.toISOString();
-    case "First name": return order.customerName?.split(' ')[0] || "";
-    case "Last name": return order.customerName?.split(' ').slice(1).join(' ') || "";
-    case "Full name": return order.customerName || "";
-    case "Company": return meta.company || "";
-    case "Email": return order.customerEmail || "";
-    case "Phone number": return order.customerPhone || "";
-    case "Address": return meta.address1 || meta.address || "";
-    case "Address 2": return meta.address2 || "";
-    case "City": return meta.city || "";
-    case "Province": return meta.province || "";
-    case "Zip code": return meta.zip || "";
-    case "Country": return meta.country || "";
-    case "Product name and variant": return meta.product_name_variant || "";
-    case "Product name": return meta.product_name || "";
-    case "Variant name": return meta.variant_name || "";
-    case "Product quantity": return meta.quantity?.toString() || "1";
-    case "Product SKU": return meta.sku || "";
-    case "Product ID": return meta.product_id || "";
-    case "Product vendor": return meta.vendor || "";
-    case "Product price": return meta.price?.toString() || "";
+    case "First name": return order.customerName?.split(" ")[0] ?? "";
+    case "Last name": return order.customerName?.split(" ").slice(1).join(" ") ?? "";
+    case "Full name": return order.customerName ?? "";
+    case "Company": return str(meta.company);
+    case "Email": return order.customerEmail ?? "";
+    case "Phone number": return order.customerPhone ?? "";
+    case "Address": return str(meta.address1 || meta.address);
+    case "Address 2": return str(meta.address2);
+    case "City": return str(meta.city);
+    case "Province": return str(meta.province);
+    case "Zip code": return str(meta.zip);
+    case "Country": return str(meta.country);
+    case "Product name and variant": return str(meta.product_name_variant);
+    case "Product name": return str(meta.product_name);
+    case "Variant name": return str(meta.variant_name);
+    case "Product quantity": return meta.quantity != null ? str(meta.quantity) : "1";
+    case "Product SKU": return str(meta.sku);
+    case "Product ID": return str(meta.product_id);
+    case "Product vendor": return str(meta.vendor);
+    case "Product price": return str(meta.price);
     case "Total price": return order.codAmount.toString();
-    case "Order currency": return meta.currency || "USD";
-    case "Total weight (grams)": return meta.total_weight?.toString() || "0";
-    case "Shipping price": return meta.shipping_price?.toString() || "0";
-    case "Shipping rate name": return meta.shipping_method || "";
-    case "Total discounts": return meta.total_discounts?.toString() || "0";
-    case "Discount codes applied": return meta.discount_codes || "";
-    case "Order note": return meta.note || "";
-    case "Order type (abandoned or normal)": return order.status === "PENDING" && meta.is_abandoned ? "abandoned" : "normal";
-    case "UTM source": return meta.utm_source || "";
-    case "UTM medium": return meta.utm_medium || "";
-    case "UTM campaign": return meta.utm_campaign || "";
-    case "UTM term": return meta.utm_term || "";
-    case "UTM content": return meta.utm_content || "";
-    case "Page URL": return meta.page_url || "";
-    case "IP address": return meta.ip_address || "";
-    case "Abandoned order recovery URL": return meta.recovery_url || "";
-    case "Store domain (myshopify.com)": return meta.shop_domain || "";
+    case "Order currency": return str(meta.currency) || "USD";
+    case "Total weight (grams)": return meta.total_weight != null ? str(meta.total_weight) : "0";
+    case "Shipping price": return meta.shipping_price != null ? str(meta.shipping_price) : "0";
+    case "Shipping rate name": return str(meta.shipping_method);
+    case "Total discounts": return meta.total_discounts != null ? str(meta.total_discounts) : "0";
+    case "Discount codes applied": return str(meta.discount_codes);
+    case "Order note": return str(meta.note);
+    case "Order type (abandoned or normal)":
+      return order.status === "PENDING" && meta.is_abandoned ? "abandoned" : "normal";
+    case "UTM source": return str(meta.utm_source);
+    case "UTM medium": return str(meta.utm_medium);
+    case "UTM campaign": return str(meta.utm_campaign);
+    case "UTM term": return str(meta.utm_term);
+    case "UTM content": return str(meta.utm_content);
+    case "Page URL": return str(meta.page_url);
+    case "IP address": return str(meta.ip_address);
+    case "Abandoned order recovery URL": return str(meta.recovery_url);
+    case "Store domain (myshopify.com)": return str(meta.shop_domain);
     case "All order details (in one cell)": return JSON.stringify(meta);
     default: return "";
   }
 }
 
 function orderToRow(order: Order, selectedFields: string[]): string[] {
-  return selectedFields.filter(f => f !== "").map(f => getFieldData(order, f));
+  return selectedFields.filter((f) => f !== "").map((f) => getFieldData(order, f));
 }
 
 // Returns one row per order when singleRowPerOrder=true, or one row per line
@@ -160,7 +166,7 @@ export async function getSheetTabs(
   return data.sheets.map((s) => s.properties.title);
 }
 
-const SHEET_THEMES: Record<string, any> = {
+const SHEET_THEMES: Record<string, { headerBg: string; headerText: string; row1Bg: string; row2Bg: string }> = {
   "Standard": { headerBg: "#FFFFFF", headerText: "#5C5F62", row1Bg: "#FFFFFF", row2Bg: "#FFFFFF" },
   "Sunset (Orange)": { headerBg: "#D35400", headerText: "#FFFFFF", row1Bg: "#FFF8F0", row2Bg: "#FFFFFF" },
   "With Headers": { headerBg: "#F4F6F8", headerText: "#202223", row1Bg: "#FFFFFF", row2Bg: "#FFFFFF" },
@@ -174,7 +180,7 @@ const SHEET_THEMES: Record<string, any> = {
   "Gold (Yellow)": { headerBg: "#EEC200", headerText: "#202223", row1Bg: "#FCF9E8", row2Bg: "#FFFFFF" },
 };
 
-function hexToRgb(hex: string) {
+function hexToRgb(hex: string): { red: number; green: number; blue: number } {
   const r = parseInt(hex.slice(1, 3), 16) / 255;
   const g = parseInt(hex.slice(3, 5), 16) / 255;
   const b = parseInt(hex.slice(5, 7), 16) / 255;
@@ -185,62 +191,64 @@ export async function applySheetDesign(
   accessToken: string,
   spreadsheetId: string,
   sheetName: string,
-  designName: string = "Standard"
+  designName: string = "Standard",
 ): Promise<void> {
-  const theme = SHEET_THEMES[designName] || SHEET_THEMES["Standard"];
-  
-  try {
-    const spreadsheet = (await sheetsRequest(accessToken, `/${spreadsheetId}?fields=sheets(properties(sheetId,title))`)) as { sheets: Array<{ properties: { sheetId: number, title: string } }> };
-    const sheet = spreadsheet.sheets.find(s => s.properties.title.trim().toLowerCase() === sheetName.trim().toLowerCase());
-    if (!sheet) return;
+  const theme = SHEET_THEMES[designName] ?? SHEET_THEMES["Standard"]!;
 
-    const sheetId = sheet.properties.sheetId;
-    
-    const requests = [
-      // 1. Apply header row styling (background + text)
-      {
-        repeatCell: {
-          range: { sheetId, startRowIndex: 0, endRowIndex: 1, startColumnIndex: 0, endColumnIndex: 26 },
-          cell: {
-            userEnteredFormat: {
-              backgroundColor: hexToRgb(theme.headerBg),
-              textFormat: { foregroundColor: hexToRgb(theme.headerText), bold: true, fontSize: 10 },
-              horizontalAlignment: "LEFT"
-            }
-          },
-          fields: "userEnteredFormat(backgroundColor,textFormat,horizontalAlignment)"
-        }
-      },
-      // 2. Apply zebra striping for rows 2-1000 using basic repeatCell (more reliable than alternating groups)
-      {
-        repeatCell: {
-          range: { sheetId, startRowIndex: 1, endRowIndex: 1000, startColumnIndex: 0, endColumnIndex: 26 },
-          cell: { userEnteredFormat: { backgroundColor: hexToRgb(theme.row1Bg) } },
-          fields: "userEnteredFormat.backgroundColor"
-        }
-      },
-      // 3. Apply alternate background for even rows using a conditional rule (highest compatibility)
-      {
-        addConditionalFormatRule: {
-          rule: {
-            ranges: [{ sheetId, startRowIndex: 1, endRowIndex: 1000, startColumnIndex: 0, endColumnIndex: 26 }],
-            booleanRule: {
-              condition: { type: "CUSTOM_FORMULA", values: [{ userEnteredValue: "=ISEVEN(ROW())" }] },
-              format: { backgroundColor: hexToRgb(theme.row2Bg) }
-            }
-          },
-          index: 0
-        }
-      }
-    ];
+  const spreadsheet = (await sheetsRequest(
+    accessToken,
+    `/${spreadsheetId}?fields=sheets(properties(sheetId,title))`,
+  )) as { sheets: Array<{ properties: { sheetId: number; title: string } }> };
 
-    await sheetsRequest(accessToken, `/${spreadsheetId}:batchUpdate`, {
-      method: "POST",
-      body: JSON.stringify({ requests })
-    });
-  } catch (e) {
-    console.error("Failed to apply sheet design:", e);
-  }
+  const sheet = spreadsheet.sheets.find(
+    (s) => s.properties.title.trim().toLowerCase() === sheetName.trim().toLowerCase(),
+  );
+  if (!sheet) return;
+
+  const sheetId = sheet.properties.sheetId;
+
+  const requests = [
+    // 1. Apply header row styling (background + text)
+    {
+      repeatCell: {
+        range: { sheetId, startRowIndex: 0, endRowIndex: 1, startColumnIndex: 0, endColumnIndex: 26 },
+        cell: {
+          userEnteredFormat: {
+            backgroundColor: hexToRgb(theme.headerBg),
+            textFormat: { foregroundColor: hexToRgb(theme.headerText), bold: true, fontSize: 10 },
+            horizontalAlignment: "LEFT",
+          },
+        },
+        fields: "userEnteredFormat(backgroundColor,textFormat,horizontalAlignment)",
+      },
+    },
+    // 2. Apply base background for rows 2-1000
+    {
+      repeatCell: {
+        range: { sheetId, startRowIndex: 1, endRowIndex: 1000, startColumnIndex: 0, endColumnIndex: 26 },
+        cell: { userEnteredFormat: { backgroundColor: hexToRgb(theme.row1Bg) } },
+        fields: "userEnteredFormat.backgroundColor",
+      },
+    },
+    // 3. Alternate even rows via conditional formatting
+    {
+      addConditionalFormatRule: {
+        rule: {
+          ranges: [{ sheetId, startRowIndex: 1, endRowIndex: 1000, startColumnIndex: 0, endColumnIndex: 26 }],
+          booleanRule: {
+            condition: { type: "CUSTOM_FORMULA", values: [{ userEnteredValue: "=ISEVEN(ROW())" }] },
+            format: { backgroundColor: hexToRgb(theme.row2Bg) },
+          },
+        },
+        index: 0,
+      },
+    },
+  ];
+
+  await sheetsRequest(accessToken, `/${spreadsheetId}:batchUpdate`, {
+    method: "POST",
+    body: JSON.stringify({ requests }),
+  });
 }
 
 export async function ensureHeaderRow(
@@ -248,9 +256,11 @@ export async function ensureHeaderRow(
   spreadsheetId: string,
   sheetName: string,
   selectedFields: string[] | null = null,
-  designName: string = "Standard"
+  designName: string = "Standard",
 ): Promise<void> {
-  const header = (selectedFields || ["Order number", "Order ID", "Date", "Status", "Customer Name", "Customer Phone", "Customer Email", "Total Price", "Order Details"]).filter(f => f !== "");
+  const header = (
+    selectedFields ?? ["Order number", "Order ID", "Date", "Status", "Customer Name", "Customer Phone", "Customer Email", "Total Price", "Order Details"]
+  ).filter((f) => f !== "");
   if (header.length === 0) return;
 
   const range = encodeURIComponent(`${sheetName}!A1`);
@@ -345,26 +355,36 @@ export async function syncOrderToSheet(
   let accessToken: string;
   try {
     accessToken = await getValidAccessToken(shop);
-  } catch {
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Token refresh failed";
+    await db.googleSheetsIntegration.update({
+      where: { shop },
+      data: { lastSyncError: msg },
+    });
     return;
   }
 
   // Choose sheet based on order type
-  const meta = (order.metadata as any) || {};
-  const isAbandoned = order.status === "PENDING" && meta.is_abandoned;
+  const meta = (order.metadata as Record<string, unknown>) ?? {};
+  const isAbandoned = order.status === "PENDING" && Boolean(meta.is_abandoned);
   const sheetName = isAbandoned ? integration.abandonedSheetName : integration.sheetName;
 
-  const selectedFields = integration.selectedFields as string[] || [];
+  const selectedFields = (integration.selectedFields as string[]) ?? [];
 
+  // Atomic header-row guard: only write the header once, even under concurrent
+  // webhooks. We attempt an atomic DB update first; if it returns 0 updated rows
+  // another concurrent call already claimed it.
   if (!integration.headerRowWritten) {
-    await ensureHeaderRow(accessToken, integration.spreadsheetId, integration.sheetName, selectedFields, integration.layoutDesign);
-    if (integration.abandonedSheetName !== integration.sheetName) {
-      await ensureHeaderRow(accessToken, integration.spreadsheetId, integration.abandonedSheetName, selectedFields, integration.layoutDesign);
-    }
-    await db.googleSheetsIntegration.update({
-      where: { shop },
+    const claimed = await db.googleSheetsIntegration.updateMany({
+      where: { shop, headerRowWritten: false },
       data: { headerRowWritten: true },
     });
+    if (claimed.count > 0) {
+      await ensureHeaderRow(accessToken, integration.spreadsheetId, integration.sheetName, selectedFields, integration.layoutDesign);
+      if (integration.abandonedSheetName !== integration.sheetName) {
+        await ensureHeaderRow(accessToken, integration.spreadsheetId, integration.abandonedSheetName, selectedFields, integration.layoutDesign);
+      }
+    }
   }
 
   await appendOrderRow(
@@ -395,7 +415,7 @@ export async function exportAllOrdersToSheet(shop: string): Promise<{ count: num
   }
 
   const accessToken = await getValidAccessToken(shop);
-  const selectedFields = (integration.selectedFields as string[]) || [];
+  const selectedFields = (integration.selectedFields as string[]) ?? [];
   const insertAtTop = integration.insertAtTop;
   const singleRowPerOrder = integration.singleRowPerOrder;
 
@@ -405,48 +425,74 @@ export async function exportAllOrdersToSheet(shop: string): Promise<{ count: num
     await ensureHeaderRow(accessToken, integration.spreadsheetId, integration.abandonedSheetName, selectedFields, integration.layoutDesign);
   }
 
-  // When insertAtTop is enabled, write newest orders first so they appear
-  // closest to the header row (matching the behaviour of auto-sync).
-  const orders = await db.order.findMany({
-    where: { shopId: shop },
-    orderBy: { createdAt: insertAtTop ? "desc" : "asc" },
-  });
+  // Stream orders in batches to avoid loading the full table into memory.
+  // Track per-sheet row offsets independently — abandoned and normal orders go
+  // to different tabs so their row counts must not be conflated.
+  let cursor: string | undefined;
+  let normalRowOffset = 0;
+  let abandonedRowOffset = 0;
+  let totalCount = 0;
 
-  if (orders.length === 0) return { count: 0 };
+  do {
+    const batch = await db.order.findMany({
+      where: { shopId: shop },
+      orderBy: { createdAt: insertAtTop ? "desc" : "asc" },
+      take: EXPORT_BATCH_SIZE,
+      ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
+    });
 
-  const normalOrders = orders.filter((o) => !((o.metadata as Record<string, unknown>)?.is_abandoned));
-  const abandonedOrders = orders.filter((o) => (o.metadata as Record<string, unknown>)?.is_abandoned);
+    if (batch.length === 0) break;
 
-  if (normalOrders.length > 0) {
-    const rows = normalOrders.flatMap((o) => getOrderRows(o, selectedFields, singleRowPerOrder));
-    const range = encodeURIComponent(`${integration.sheetName}!A2`);
-    await sheetsRequest(
-      accessToken,
-      `/${integration.spreadsheetId}/values/${range}?valueInputOption=RAW`,
-      {
-        method: "PUT",
-        body: JSON.stringify({ values: rows }),
-      },
-    );
-  }
+    cursor = batch[batch.length - 1]!.id;
+    totalCount += batch.length;
 
-  if (abandonedOrders.length > 0 && integration.abandonedSheetName !== integration.sheetName) {
-    const rows = abandonedOrders.flatMap((o) => getOrderRows(o, selectedFields, singleRowPerOrder));
-    const range = encodeURIComponent(`${integration.abandonedSheetName}!A2`);
-    await sheetsRequest(
-      accessToken,
-      `/${integration.spreadsheetId}/values/${range}?valueInputOption=RAW`,
-      {
-        method: "PUT",
-        body: JSON.stringify({ values: rows }),
-      },
-    );
-  }
+    const normalRows: string[][] = [];
+    const abandonedRows: string[][] = [];
+
+    for (const order of batch) {
+      const isAbandoned = Boolean((order.metadata as Record<string, unknown>)?.is_abandoned);
+      const rows = getOrderRows(order, selectedFields, singleRowPerOrder);
+      if (isAbandoned) {
+        abandonedRows.push(...rows);
+      } else {
+        normalRows.push(...rows);
+      }
+    }
+
+    // Flush each batch to Sheets using the correct per-sheet row offset.
+    if (normalRows.length > 0) {
+      const startRow = 2 + normalRowOffset;
+      const range = encodeURIComponent(`${integration.sheetName}!A${startRow}`);
+      await sheetsRequest(
+        accessToken,
+        `/${integration.spreadsheetId}/values/${range}?valueInputOption=RAW`,
+        {
+          method: "PUT",
+          body: JSON.stringify({ values: normalRows }),
+        },
+      );
+      normalRowOffset += normalRows.length;
+    }
+
+    if (abandonedRows.length > 0 && integration.abandonedSheetName !== integration.sheetName) {
+      const startRow = 2 + abandonedRowOffset;
+      const range = encodeURIComponent(`${integration.abandonedSheetName}!A${startRow}`);
+      await sheetsRequest(
+        accessToken,
+        `/${integration.spreadsheetId}/values/${range}?valueInputOption=RAW`,
+        {
+          method: "PUT",
+          body: JSON.stringify({ values: abandonedRows }),
+        },
+      );
+      abandonedRowOffset += abandonedRows.length;
+    }
+  } while (cursor);
 
   await db.googleSheetsIntegration.update({
     where: { shop },
     data: { lastSyncAt: new Date(), lastSyncError: null, headerRowWritten: true },
   });
 
-  return { count: orders.length };
+  return { count: totalCount };
 }

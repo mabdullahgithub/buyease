@@ -7,22 +7,24 @@ import { encryptToken, exchangeCodeForTokens, parseOAuthState } from "@/lib/goog
 // Called by Google after the user grants consent. No Shopify session here —
 // shop identity comes from the signed `state` parameter.
 export async function GET(req: NextRequest): Promise<NextResponse> {
-  const { searchParams } = new URL(req.url);
+  const reqUrl = new URL(req.url);
+  const appOrigin = `${reqUrl.protocol}//${reqUrl.host}`;
+  const { searchParams } = reqUrl;
   const code = searchParams.get("code");
   const state = searchParams.get("state");
   const error = searchParams.get("error");
 
   if (error) {
-    return htmlResponse(false, `Google denied access: ${error}`);
+    return htmlResponse(false, `Google denied access: ${error}`, appOrigin);
   }
 
   if (!code || !state) {
-    return htmlResponse(false, "Missing code or state parameter.");
+    return htmlResponse(false, "Missing code or state parameter.", appOrigin);
   }
 
   const parsed = parseOAuthState(state);
   if (!parsed) {
-    return htmlResponse(false, "Invalid or expired state parameter.");
+    return htmlResponse(false, "Invalid or expired state parameter.", appOrigin);
   }
 
   const { shop } = parsed;
@@ -32,13 +34,14 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     tokens = await exchangeCodeForTokens(code);
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Unknown error";
-    return htmlResponse(false, `Token exchange failed: ${msg}`);
+    return htmlResponse(false, `Token exchange failed: ${msg}`, appOrigin);
   }
 
   if (!tokens.refreshToken) {
     return htmlResponse(
       false,
       "Google did not return a refresh token. Please revoke access at myaccount.google.com/permissions and try again.",
+      appOrigin,
     );
   }
 
@@ -69,13 +72,26 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     return htmlResponse(
       false,
       `Failed to save connection to database: ${msg}. If you recently added new fields, make sure to run your database migrations.`,
+      appOrigin,
     );
   }
 
-  return htmlResponse(true, "Connected successfully!");
+  return htmlResponse(true, "Connected successfully!", appOrigin);
 }
 
-function htmlResponse(success: boolean, message: string): NextResponse {
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function htmlResponse(success: boolean, message: string, appOrigin: string): NextResponse {
+  // escapeHtml is used only for HTML text nodes/attributes.
+  // appOrigin is passed to JSON.stringify for the JS context — no HTML escaping there.
+  const safeMessage = escapeHtml(message);
   const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -96,12 +112,13 @@ function htmlResponse(success: boolean, message: string): NextResponse {
 <body>
   <div class="card">
     <h1>${success ? "✓ Connected!" : "✗ Connection failed"}</h1>
-    <p>${message}</p>
+    <p>${safeMessage}</p>
     <button onclick="window.close()">Close this window</button>
   </div>
   <script>
+    var _appOrigin = ${JSON.stringify(appOrigin)};
     if (${success ? "true" : "false"} && window.opener) {
-      window.opener.postMessage({ type: 'BUYEASE_GOOGLE_CONNECTED', success: true }, '*');
+      window.opener.postMessage({ type: 'BUYEASE_GOOGLE_CONNECTED', success: true }, _appOrigin);
     }
     // Auto-close after 3 s if opener handled the message
     setTimeout(() => { try { window.close(); } catch (_) {} }, 3000);
