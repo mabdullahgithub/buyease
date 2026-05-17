@@ -823,36 +823,38 @@ export function BuyButtonDesignerWorkspace(): ReactElement {
 
   if (loading) {
     return (
-      <BlockStack gap="400">
-        <Layout>
-          <Layout.Section>
-            <BlockStack gap="400">
-              <Card padding="400">
-                <BlockStack gap="300">
-                  <SkeletonBodyText lines={3} />
-                </BlockStack>
-              </Card>
-              <Card padding="400">
-                <BlockStack gap="300">
-                  <SkeletonBodyText lines={5} />
-                </BlockStack>
-              </Card>
-            </BlockStack>
-          </Layout.Section>
-          <Layout.Section variant="oneThird">
-            <Card padding="400">
-              <BlockStack gap="300">
-                <SkeletonBodyText lines={1} />
-                <Box background="bg-surface-secondary" borderRadius="300" padding="400" minHeight="300px">
+      <Box width="100%">
+        <BlockStack gap="400">
+          <Layout>
+            <Layout.Section>
+              <BlockStack gap="400">
+                <Card padding="400">
                   <BlockStack gap="300">
-                    <SkeletonBodyText lines={4} />
+                    <SkeletonBodyText lines={3} />
                   </BlockStack>
-                </Box>
+                </Card>
+                <Card padding="400">
+                  <BlockStack gap="300">
+                    <SkeletonBodyText lines={5} />
+                  </BlockStack>
+                </Card>
               </BlockStack>
-            </Card>
-          </Layout.Section>
-        </Layout>
-      </BlockStack>
+            </Layout.Section>
+            <Layout.Section variant="oneThird">
+              <Card padding="400">
+                <BlockStack gap="300">
+                  <SkeletonBodyText lines={1} />
+                  <Box background="bg-surface-secondary" borderRadius="300" padding="400" minHeight="300px">
+                    <BlockStack gap="300">
+                      <SkeletonBodyText lines={4} />
+                    </BlockStack>
+                  </Box>
+                </BlockStack>
+              </Card>
+            </Layout.Section>
+          </Layout>
+        </BlockStack>
+      </Box>
     );
   }
 

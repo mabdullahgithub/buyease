@@ -658,44 +658,46 @@ export function SettingsWorkspace({ embedEnabled }: Props): ReactElement {
 
   if (isLoading) {
     return (
-      <BlockStack gap="800">
-        <Layout>
-          <Layout.Section variant="oneThird">
-            <BlockStack gap="200">
-              <SkeletonBodyText lines={2} />
-            </BlockStack>
-          </Layout.Section>
-          <Layout.Section>
-            <Card padding="400">
-              <SkeletonBodyText lines={3} />
-            </Card>
-          </Layout.Section>
-        </Layout>
-        <Layout>
-          <Layout.Section variant="oneThird">
-            <BlockStack gap="200">
-              <SkeletonBodyText lines={2} />
-            </BlockStack>
-          </Layout.Section>
-          <Layout.Section>
-            <Card padding="400">
-              <SkeletonBodyText lines={4} />
-            </Card>
-          </Layout.Section>
-        </Layout>
-        <Layout>
-          <Layout.Section variant="oneThird">
-            <BlockStack gap="200">
-              <SkeletonBodyText lines={2} />
-            </BlockStack>
-          </Layout.Section>
-          <Layout.Section>
-            <Card padding="400">
-              <SkeletonBodyText lines={5} />
-            </Card>
-          </Layout.Section>
-        </Layout>
-      </BlockStack>
+      <Box width="100%">
+        <BlockStack gap="800">
+          <Layout>
+            <Layout.Section variant="oneThird">
+              <BlockStack gap="200">
+                <SkeletonBodyText lines={2} />
+              </BlockStack>
+            </Layout.Section>
+            <Layout.Section>
+              <Card padding="400">
+                <SkeletonBodyText lines={3} />
+              </Card>
+            </Layout.Section>
+          </Layout>
+          <Layout>
+            <Layout.Section variant="oneThird">
+              <BlockStack gap="200">
+                <SkeletonBodyText lines={2} />
+              </BlockStack>
+            </Layout.Section>
+            <Layout.Section>
+              <Card padding="400">
+                <SkeletonBodyText lines={4} />
+              </Card>
+            </Layout.Section>
+          </Layout>
+          <Layout>
+            <Layout.Section variant="oneThird">
+              <BlockStack gap="200">
+                <SkeletonBodyText lines={2} />
+              </BlockStack>
+            </Layout.Section>
+            <Layout.Section>
+              <Card padding="400">
+                <SkeletonBodyText lines={5} />
+              </Card>
+            </Layout.Section>
+          </Layout>
+        </BlockStack>
+      </Box>
     );
   }
 
