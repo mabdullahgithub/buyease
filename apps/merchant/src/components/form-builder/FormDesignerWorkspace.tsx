@@ -19,6 +19,7 @@ import {
   InlineGrid,
   InlineStack,
   Labelled,
+  Layout,
   Link,
   Modal,
   Popover,
@@ -1383,35 +1384,39 @@ export function FormDesignerWorkspace({
   if (loading) {
     return (
       <BlockStack gap="400">
-        <InlineGrid columns={{ xs: 1, md: ["twoThirds", "oneThird"] }} gap="400" alignItems="start">
-          <BlockStack gap="400">
-            <Card padding="400">
-              <BlockStack gap="300">
-                <SkeletonBodyText lines={2} />
-              </BlockStack>
-            </Card>
-            <Card padding="400">
-              <BlockStack gap="300">
-                <SkeletonBodyText lines={6} />
-              </BlockStack>
-            </Card>
-            <Card padding="400">
-              <BlockStack gap="300">
-                <SkeletonBodyText lines={4} />
-              </BlockStack>
-            </Card>
-          </BlockStack>
-          <Card padding="400">
-            <BlockStack gap="300">
-              <SkeletonBodyText lines={1} />
-              <Box background="bg-surface-secondary" borderRadius="300" padding="400" minHeight="420px">
+        <Layout>
+          <Layout.Section>
+            <BlockStack gap="400">
+              <Card padding="400">
                 <BlockStack gap="300">
-                  <SkeletonBodyText lines={8} />
+                  <SkeletonBodyText lines={2} />
                 </BlockStack>
-              </Box>
+              </Card>
+              <Card padding="400">
+                <BlockStack gap="300">
+                  <SkeletonBodyText lines={6} />
+                </BlockStack>
+              </Card>
+              <Card padding="400">
+                <BlockStack gap="300">
+                  <SkeletonBodyText lines={4} />
+                </BlockStack>
+              </Card>
             </BlockStack>
-          </Card>
-        </InlineGrid>
+          </Layout.Section>
+          <Layout.Section variant="oneThird">
+            <Card padding="400">
+              <BlockStack gap="300">
+                <SkeletonBodyText lines={1} />
+                <Box background="bg-surface-secondary" borderRadius="300" padding="400" minHeight="420px">
+                  <BlockStack gap="300">
+                    <SkeletonBodyText lines={8} />
+                  </BlockStack>
+                </Box>
+              </BlockStack>
+            </Card>
+          </Layout.Section>
+        </Layout>
       </BlockStack>
     );
   }

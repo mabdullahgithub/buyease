@@ -16,6 +16,7 @@ import {
   Icon,
   InlineGrid,
   InlineStack,
+  Layout,
   Link,
   List,
   SkeletonBodyText,
@@ -658,30 +659,42 @@ export function SettingsWorkspace({ embedEnabled }: Props): ReactElement {
   if (isLoading) {
     return (
       <BlockStack gap="800">
-        <InlineGrid columns={["oneThird", "twoThirds"]} gap="400">
-          <BlockStack gap="200">
-            <SkeletonBodyText lines={2} />
-          </BlockStack>
-          <Card padding="400">
-            <SkeletonBodyText lines={3} />
-          </Card>
-        </InlineGrid>
-        <InlineGrid columns={["oneThird", "twoThirds"]} gap="400">
-          <BlockStack gap="200">
-            <SkeletonBodyText lines={2} />
-          </BlockStack>
-          <Card padding="400">
-            <SkeletonBodyText lines={4} />
-          </Card>
-        </InlineGrid>
-        <InlineGrid columns={["oneThird", "twoThirds"]} gap="400">
-          <BlockStack gap="200">
-            <SkeletonBodyText lines={2} />
-          </BlockStack>
-          <Card padding="400">
-            <SkeletonBodyText lines={5} />
-          </Card>
-        </InlineGrid>
+        <Layout>
+          <Layout.Section variant="oneThird">
+            <BlockStack gap="200">
+              <SkeletonBodyText lines={2} />
+            </BlockStack>
+          </Layout.Section>
+          <Layout.Section>
+            <Card padding="400">
+              <SkeletonBodyText lines={3} />
+            </Card>
+          </Layout.Section>
+        </Layout>
+        <Layout>
+          <Layout.Section variant="oneThird">
+            <BlockStack gap="200">
+              <SkeletonBodyText lines={2} />
+            </BlockStack>
+          </Layout.Section>
+          <Layout.Section>
+            <Card padding="400">
+              <SkeletonBodyText lines={4} />
+            </Card>
+          </Layout.Section>
+        </Layout>
+        <Layout>
+          <Layout.Section variant="oneThird">
+            <BlockStack gap="200">
+              <SkeletonBodyText lines={2} />
+            </BlockStack>
+          </Layout.Section>
+          <Layout.Section>
+            <Card padding="400">
+              <SkeletonBodyText lines={5} />
+            </Card>
+          </Layout.Section>
+        </Layout>
       </BlockStack>
     );
   }
