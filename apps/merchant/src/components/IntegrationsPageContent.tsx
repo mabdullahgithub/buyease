@@ -154,7 +154,13 @@ const WHATSAPP_PRICING_ROWS = [
   { label: "Abandoned Cart Recovery", price: "$0.0320" },
 ];
 
-type Channel = "sms" | "whatsapp";
+const EMAIL_PRICING_ROWS = [
+  { label: "Phone Number Verification", price: "$0.0050" },
+  { label: "Order / Shipping Confirmation", price: "$0.0050" },
+  { label: "Abandoned Cart Recovery", price: "$0.0050" },
+];
+
+type Channel = "sms" | "whatsapp" | "email";
 
 // ── Google Sheets helpers ────────────────────────────────────────────────────
 
@@ -1605,9 +1611,13 @@ function SmsWhatsAppPage({ onBack }: { onBack: () => void }): ReactElement {
       : "Top up";
 
   const pricingRows =
-    channel === "whatsapp" ? WHATSAPP_PRICING_ROWS : SMS_PRICING_ROWS;
+    channel === "whatsapp" ? WHATSAPP_PRICING_ROWS
+    : channel === "email" ? EMAIL_PRICING_ROWS
+    : SMS_PRICING_ROWS;
   const pricingTitle =
-    channel === "whatsapp" ? "Pricing - WhatsApp" : "Pricing - SMS";
+    channel === "whatsapp" ? "Pricing - WhatsApp"
+    : channel === "email" ? "Pricing - Email"
+    : "Pricing - SMS";
 
   return (
     <Page
@@ -1700,6 +1710,7 @@ function SmsWhatsAppPage({ onBack }: { onBack: () => void }): ReactElement {
                   options={[
                     { label: "SMS", value: "sms" },
                     { label: "WhatsApp", value: "whatsapp" },
+                    { label: "Email", value: "email" },
                   ]}
                   value={channel}
                   onChange={(value) => setChannel(value as Channel)}
