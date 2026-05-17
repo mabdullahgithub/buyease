@@ -35,6 +35,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 
   const accessToken = await resolveOfflineMerchantAccessToken(normalizeShopForMerchantDb(shop));
   if (!accessToken) {
+    console.error(`Top-up callback: no offline access token found for shop ${shop}`);
     return buildRedirect(host, shop, SMS_VIEW_PATH);
   }
 

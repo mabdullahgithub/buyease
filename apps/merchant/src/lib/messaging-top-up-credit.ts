@@ -71,6 +71,9 @@ async function fetchOneTimePurchase(
   );
 
   if (!response.ok) {
+    console.error(
+      `fetchOneTimePurchase: ${response.status} ${response.statusText} from Shopify API for ${shopDomain}`,
+    );
     return null;
   }
 
@@ -189,7 +192,16 @@ export async function resolveOfflineMerchantAccessToken(shopRaw: string): Promis
 
   const sessions = await sessionStorage.findSessionsByShop(shop);
   const offline = sessions.find((s) => !s.isOnline && s.accessToken);
-  return offline?.accessToken ?? null;
+  if (offline?.accessToken) {
+    return offline.accessToken;
+  }
+
+  // Final fallback: token stored on the Merchant row during installation
+  const merchant = await prisma.merchant.findUnique({
+    where: { shop },
+    select: { accessToken: true },
+  });
+  return merchant?.accessToken ?? null;
 }
 
 /** When Shopify omits charge_id on the billing return URL, use the latest pending intent for this shop. */
