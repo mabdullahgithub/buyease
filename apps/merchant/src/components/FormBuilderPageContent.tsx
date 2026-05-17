@@ -209,6 +209,7 @@ export function FormBuilderPageContent(): ReactElement {
           </InlineGrid>
         </Box>
 
+        <div style={{ width: "100%", minWidth: 0 }}>
         {mode === "buy-button" ? (
           <BuyButtonDesignerWorkspace />
         ) : mode === "form-designer" ? (
@@ -293,6 +294,7 @@ export function FormBuilderPageContent(): ReactElement {
             </Box>
           </InlineGrid>
         )}
+        </div>
       </BlockStack>
     </Page>
   );
