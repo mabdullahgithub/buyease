@@ -671,7 +671,8 @@
   }
 
   function applyHideButtonsCSS(formCfg) {
-    if (document.getElementById('buyease-hide-btns')) return;
+    var existing = document.getElementById('buyease-hide-btns');
+    if (existing) existing.remove();
     var rules = [];
 
     if (formCfg && formCfg.hideCheckout) {
@@ -680,6 +681,7 @@
         'form[action="/cart"] button[name="checkout"],' +
         'form[action="/cart"] input[name="checkout"],' +
         'a[href="/checkout"],' +
+        'a[href="/cart/checkout"],' +
         '.cart__checkout-button,' +
         '.cart-checkout-button,' +
         '[data-cart-checkout-btn]' +
@@ -689,9 +691,12 @@
 
     if (formCfg && formCfg.hideAddToCart) {
       rules.push(
+        'button[name="add"]:not(#buyease-btn),' +
+        '[data-add-to-cart]:not(#buyease-btn),' +
         'form[action*="/cart/add"] [name="add"],' +
         'form[action*="/cart/add"] [data-add-to-cart],' +
-        'form[action*="/cart/add"] button[type="submit"]:not(#buyease-btn)' +
+        'form[action*="/cart/add"] button[type="submit"]:not(#buyease-btn),' +
+        'form[action*="/cart/add"] button:not([type="button"]):not(#buyease-btn)' +
         ' { display: none !important; }'
       );
     }
@@ -1202,6 +1207,10 @@
     document.documentElement.classList.remove('buyease-active');
     if (_mountObserver) { _mountObserver.disconnect(); _mountObserver = null; }
     if (_mountRetryTimer) { clearTimeout(_mountRetryTimer); _mountRetryTimer = null; }
+    var hideStyle = document.getElementById('buyease-hide-btns');
+    if (hideStyle) hideStyle.remove();
+    var customStyle = document.getElementById('buyease-custom-css');
+    if (customStyle) customStyle.remove();
   }
 
   function renderIneligibleMessage(message) {
