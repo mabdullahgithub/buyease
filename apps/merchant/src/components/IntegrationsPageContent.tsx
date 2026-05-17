@@ -1108,11 +1108,13 @@ function GoogleSheetsPage({ onBack }: { onBack: () => void }): ReactElement {
                       )}
                     </BlockStack>
                   )}
-                  <InlineStack align="end">
-                    <Button variant="primary" loading={isSaving} onClick={() => void handleNext()}>
-                      {sheetMode === "new" ? "Create & Connect" : "Save & Continue"}
-                    </Button>
-                  </InlineStack>
+                  {!sheetCompleted && (
+                    <InlineStack align="end">
+                      <Button variant="primary" loading={isSaving} onClick={() => void handleNext()}>
+                        {sheetMode === "new" ? "Create & Connect" : "Connect Sheet"}
+                      </Button>
+                    </InlineStack>
+                  )}
                 </BlockStack>
               </Box>
             </div>

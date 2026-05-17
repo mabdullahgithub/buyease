@@ -49,44 +49,46 @@ export const POST = withGuards({ skipPlanGate: true }, async (req: NextRequest, 
     );
   }
 
-  // Validate that the spreadsheet exists and is accessible
-  let spreadsheetTitle: string;
-  try {
-    spreadsheetTitle = await getSpreadsheetTitle(accessToken, spreadsheetId);
-  } catch {
-    return NextResponse.json(
-      {
-        error:
-          "Could not access this Google Sheet. Make sure the Sheet ID is correct and your Google account has edit access to it.",
-      },
-      { status: 400 },
-    );
-  }
+  // Load existing config to detect which fields actually changed
+  const existing = await db.googleSheetsIntegration.findUnique({
+    where: { shop: ctx.shop },
+    select: {
+      spreadsheetId: true,
+      sheetName: true,
+      abandonedSheetName: true,
+      selectedFields: true,
+      layoutDesign: true,
+      headerRowWritten: true,
+    },
+  });
 
-  // Write header row now so first-time setup is visible immediately
-  // Run both sheet writes in parallel when two distinct tabs are configured
-  try {
-    const headerPromises: Promise<void>[] = [
-      ensureHeaderRow(accessToken, spreadsheetId, sheetName, selectedFields, layoutDesign),
-    ];
-    if (abandonedSheetName && abandonedSheetName !== sheetName) {
-      headerPromises.push(
-        ensureHeaderRow(accessToken, spreadsheetId, abandonedSheetName, selectedFields, layoutDesign),
+  const isNewSpreadsheet = existing?.spreadsheetId !== spreadsheetId;
+  const headerRelatedChanged =
+    isNewSpreadsheet ||
+    existing?.sheetName !== sheetName ||
+    existing?.abandonedSheetName !== (abandonedSheetName ?? sheetName) ||
+    existing?.layoutDesign !== layoutDesign ||
+    JSON.stringify(existing?.selectedFields) !== JSON.stringify(selectedFields);
+
+  // Validate spreadsheet accessibility only on first connection or spreadsheet change
+  let spreadsheetTitle: string | undefined;
+  if (isNewSpreadsheet || !existing?.headerRowWritten) {
+    try {
+      spreadsheetTitle = await getSpreadsheetTitle(accessToken, spreadsheetId);
+    } catch {
+      return NextResponse.json(
+        {
+          error:
+            "Could not access this Google Sheet. Make sure the Sheet ID is correct and your Google account has edit access to it.",
+        },
+        { status: 400 },
       );
     }
-    await Promise.all(headerPromises);
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : "";
-    return NextResponse.json(
-      {
-        error: `Could not write to sheet. Make sure the sheet tabs exist in your spreadsheet. ${msg}`,
-      },
-      { status: 400 },
-    );
   }
 
   const spreadsheetUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}`;
 
+  // Persist settings immediately so the response is fast
   await db.googleSheetsIntegration.update({
     where: { shop: ctx.shop },
     data: {
@@ -101,10 +103,33 @@ export const POST = withGuards({ skipPlanGate: true }, async (req: NextRequest, 
       layoutDesign,
       importPreset,
       isEnabled,
-      headerRowWritten: true,
+      headerRowWritten: headerRelatedChanged ? true : existing?.headerRowWritten ?? false,
       lastSyncError: null,
     },
   });
+
+  // Only re-write header rows when column mapping or design actually changed
+  if (headerRelatedChanged) {
+    try {
+      const headerPromises: Promise<void>[] = [
+        ensureHeaderRow(accessToken, spreadsheetId, sheetName, selectedFields, layoutDesign),
+      ];
+      if (abandonedSheetName && abandonedSheetName !== sheetName) {
+        headerPromises.push(
+          ensureHeaderRow(accessToken, spreadsheetId, abandonedSheetName, selectedFields, layoutDesign),
+        );
+      }
+      await Promise.all(headerPromises);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "";
+      return NextResponse.json(
+        {
+          error: `Could not write to sheet. Make sure the sheet tabs exist in your spreadsheet. ${msg}`,
+        },
+        { status: 400 },
+      );
+    }
+  }
 
   return NextResponse.json({ ok: true, spreadsheetTitle, spreadsheetUrl });
 });
