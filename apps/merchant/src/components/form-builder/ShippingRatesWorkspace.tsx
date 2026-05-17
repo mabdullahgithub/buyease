@@ -121,7 +121,7 @@ function toApiPayload(rates: ShippingRate[]): unknown[] {
     currency: r.currency,
     conditions: r.conditions.map((c) => ({
       type: c.type,
-      value: isNaN(Number(c.value)) ? c.value : Number(c.value),
+      value: Number.isNaN(Number(c.value)) ? c.value : Number(c.value),
     })),
     countriesEnabled: r.countryRestrictionEnabled,
     countries: r.selectedCountries,
@@ -140,7 +140,7 @@ function fromApiResponse(apiRates: ApiShippingRate[]): ShippingRate[] {
     price: String(r.price),
     currency: r.currency,
     conditions: (r.conditions as ApiCondition[]).map((c) => ({
-      id: `cond-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      id: createCondition().id,
       type: c.type,
       value: String(c.value),
     })),

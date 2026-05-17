@@ -19,7 +19,6 @@ import {
   InlineGrid,
   InlineStack,
   Labelled,
-  Layout,
   Link,
   Modal,
   Popover,
@@ -89,7 +88,7 @@ const FORM_ICONS = [
   { id: "edit",     source: EditIcon },
 ];
 
-function getFormIcon(id: string) {
+function getFormIcon(id: string): { id: string; source: typeof FORM_ICONS[number]["source"] } | undefined {
   return FORM_ICONS.find((e) => e.id === id);
 }
 

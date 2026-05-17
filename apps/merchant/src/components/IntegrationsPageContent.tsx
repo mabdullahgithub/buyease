@@ -1505,6 +1505,11 @@ function SmsWhatsAppPage({ onBack }: { onBack: () => void }): ReactElement {
   };
 
   const handleTopUp = async () => {
+    const amount = parseFloat(topUpAmount);
+    if (isNaN(amount) || amount <= 0) {
+      shopify.toast.show("Enter a valid top-up amount");
+      return;
+    }
     try {
       const token = await shopify.idToken();
       const res = await fetch("/api/billing/top-up", {
@@ -1514,12 +1519,16 @@ function SmsWhatsAppPage({ onBack }: { onBack: () => void }): ReactElement {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          amount: topUpAmount,
+          amount,
           host: new URLSearchParams(window.location.search).get("host"),
         }),
       });
 
       const data = await res.json();
+      if (data.reauth) {
+        shopify.toast.show("Session expired. Please refresh the page.");
+        return;
+      }
       if (data.confirmationUrl) {
         window.top!.location.href = data.confirmationUrl;
       } else {
@@ -1585,6 +1594,7 @@ function SmsWhatsAppPage({ onBack }: { onBack: () => void }): ReactElement {
       .replace(/\{order_id\}/g, "#1001")
       .replace(/\{order_total\}/g, "$50.00")
       .replace(/\{tracking_number\}/g, "TRK123456789")
+      .replace(/\{tracking_url\}/g, "https://track.store.com/TRK123456789")
       .replace(/\{recovery_url\}/g, "product-store-122417.myshopify.com/abc");
   };
 
@@ -1674,7 +1684,7 @@ function SmsWhatsAppPage({ onBack }: { onBack: () => void }): ReactElement {
                       onChange={(value) => setTopUpAmount(value)}
                     />
                   </div>
-                  <Button variant="primary" onClick={handleTopUp}>Top up ${topUpAmount}</Button>
+                  <Button variant="primary" onClick={handleTopUp} disabled={isNaN(numericAmount) || numericAmount <= 0}>{buttonLabel}</Button>
                 </BlockStack>
               </BlockStack>
             </Card>

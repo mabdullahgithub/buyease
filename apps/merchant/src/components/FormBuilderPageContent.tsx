@@ -8,14 +8,8 @@ import {
   BlockStack,
   Box,
   Button,
-  Card,
-  Divider,
-  EmptyState,
-  Icon,
   InlineGrid,
   Page,
-  SkeletonBodyText,
-  Text,
 } from "@shopify/polaris";
 import {
   ButtonIcon,
@@ -23,22 +17,16 @@ import {
   FormsIcon,
   QuestionCircleIcon,
   SettingsIcon,
-  TabletIcon,
   ThemeEditIcon,
 } from "@shopify/polaris-icons";
 
 import { useShopifyBridge } from "@/lib/use-shopify-bridge";
+import { buildThemeEditorUrl } from "@/lib/shopify-urls";
 
 import { BuyButtonDesignerWorkspace } from "@/components/form-builder/BuyButtonDesignerWorkspace";
 import { FormDesignerWorkspace } from "@/components/form-builder/FormDesignerWorkspace";
 import { SettingsWorkspace } from "@/components/form-builder/SettingsWorkspace";
 import { ShippingRatesWorkspace } from "@/components/form-builder/ShippingRatesWorkspace";
-
-/** Official Polaris empty-state illustration (decorative); required by `EmptyState`. */
-const FORM_BUILDER_EMPTY_ILLUSTRATION =
-  "https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png";
-
-const BUYEASE_MARKETING_URL = "https://buyease-landing.vercel.app/";
 
 type FormBuilderMode = "buy-button" | "form-designer" | "shipping-rates" | "settings";
 
@@ -46,59 +34,19 @@ type ModeConfig = {
   id: FormBuilderMode;
   label: string;
   icon: IconSource;
-  description: string;
-  /** Short, actionable empty-state headline (Polaris content guidance). */
-  emptyHeading: string;
 };
 
 const MODES: ModeConfig[] = [
-  {
-    id: "buy-button",
-    label: "Buy Button",
-    icon: ButtonIcon,
-    emptyHeading: "Customize how customers start COD checkout",
-    description:
-      "Control where the COD buy button appears, how it looks, and how it opens your form.",
-  },
-  {
-    id: "form-designer",
-    label: "Form Designer",
-    icon: FormsIcon,
-    emptyHeading: "Build the fields shoppers complete before COD",
-    description:
-      "Reorder fields, set required inputs, and match your brand while keeping conversions high.",
-  },
-  {
-    id: "shipping-rates",
-    label: "Shipping Rates",
-    icon: DeliveryIcon,
-    emptyHeading: "Show clear delivery options before the order",
-    description:
-      "Publish rates and timelines so COD customers understand cost and speed up front.",
-  },
-  {
-    id: "settings",
-    label: "Settings",
-    icon: SettingsIcon,
-    emptyHeading: "Configure how your COD form behaves",
-    description:
-      "Set up form visibility, placement restrictions, form options, and custom styles.",
-  },
+  { id: "buy-button",     label: "Buy Button",     icon: ButtonIcon   },
+  { id: "form-designer",  label: "Form Designer",  icon: FormsIcon    },
+  { id: "shipping-rates", label: "Shipping Rates", icon: DeliveryIcon },
+  { id: "settings",       label: "Settings",       icon: SettingsIcon },
 ];
 
 /**
  * Form Builder workspace: Polaris-only layout aligned with Built for Shopify patterns
  * (page structure, cards, fitted tabs, EmptyState placeholder).
  */
-const SHOPIFY_API_KEY = process.env.NEXT_PUBLIC_SHOPIFY_API_KEY ?? "";
-const EXTENSION_HANDLE = "cod-form";
-
-function buildThemeEditorUrl(shopDomain: string): string {
-  if (!shopDomain) return "";
-  const storeName = shopDomain.replace(".myshopify.com", "");
-  return `https://admin.shopify.com/store/${storeName}/themes/current/editor?context=apps&appEmbed=${SHOPIFY_API_KEY}%2F${EXTENSION_HANDLE}`;
-}
-
 export function FormBuilderPageContent(): ReactElement {
   const [mode, setMode] = useState<FormBuilderMode>("buy-button");
   const [themeEditorUrl, setThemeEditorUrl] = useState("");
@@ -113,7 +61,7 @@ export function FormBuilderPageContent(): ReactElement {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) return;
-      const data = (await res.json()) as { enabled: boolean | null; reason?: string; blockDebug?: { key: string; type: string | null; disabled: boolean | null }[] };
+      const data = (await res.json()) as { enabled: boolean | null; reason?: string };
       setEmbedEnabled(data.enabled ?? null);
     } catch {
       // leave as null — unknown state
@@ -137,8 +85,6 @@ export function FormBuilderPageContent(): ReactElement {
   const handleModeChange = useCallback((next: FormBuilderMode): void => {
     setMode(next);
   }, []);
-
-  const active = MODES.find((m) => m.id === mode) ?? MODES[0]!;
 
   const embedStatusBadge =
     embedEnabled === true ? <Badge tone="success">Form enabled</Badge> : null;
@@ -214,83 +160,8 @@ export function FormBuilderPageContent(): ReactElement {
           <FormDesignerWorkspace onNavigateToBuyButton={() => setMode("buy-button")} />
         ) : mode === "shipping-rates" ? (
           <ShippingRatesWorkspace />
-        ) : mode === "settings" ? (
-          <SettingsWorkspace embedEnabled={embedEnabled} />
         ) : (
-          <InlineGrid
-            columns={{
-              xs: 1,
-              md: ["twoThirds", "oneThird"],
-            }}
-            gap="400"
-            alignItems="start"
-          >
-            <Card roundedAbove="sm">
-              <BlockStack gap="0">
-                <EmptyState
-                  image={FORM_BUILDER_EMPTY_ILLUSTRATION}
-                  imageContained
-                  heading={active.emptyHeading}
-                  secondaryAction={{
-                    content: "Learn more about BuyEase",
-                    url: BUYEASE_MARKETING_URL,
-                    target: "_blank",
-                  }}
-                >
-                  <BlockStack gap="200">
-                    <Text as="p" variant="bodyMd">
-                      {active.description}
-                    </Text>
-                    <Text as="p" variant="bodySm" tone="subdued">
-                      This editor is not available yet. You can move between workspaces now; settings
-                      will save here once each flow ships.
-                    </Text>
-                  </BlockStack>
-                </EmptyState>
-                <Divider />
-                <Box paddingBlockStart="400" paddingBlockEnd="100" paddingInline="500">
-                  <Text as="p" variant="bodySm" tone="subdued">
-                    Tip: keep one goal per tab—button visibility, form questions, then delivery—so
-                    shoppers get a consistent COD experience.
-                  </Text>
-                </Box>
-              </BlockStack>
-            </Card>
-
-            <Box position="sticky" insetBlockStart="400" zIndex="400" width="100%">
-              <Card roundedAbove="sm">
-                <BlockStack gap="400">
-                  <BlockStack gap="100">
-                    <Text as="h2" variant="headingSm">
-                      Live preview
-                    </Text>
-                    <Text as="p" variant="bodySm" tone="subdued">
-                      Storefront preview for this workspace—updates when you publish changes here.
-                      Coming soon for {active.label}.
-                    </Text>
-                  </BlockStack>
-                  <Box
-                    background="bg-surface-secondary"
-                    borderWidth="025"
-                    borderColor="border"
-                    borderRadius="300"
-                    padding="400"
-                    minHeight="320px"
-                  >
-                    <BlockStack gap="300" inlineAlign="center">
-                      <Icon source={TabletIcon} tone="subdued" />
-                      <Box width="100%">
-                        <SkeletonBodyText lines={6} />
-                      </Box>
-                      <Text as="p" variant="bodySm" tone="subdued" alignment="center">
-                        Preview placeholder
-                      </Text>
-                    </BlockStack>
-                  </Box>
-                </BlockStack>
-              </Card>
-            </Box>
-          </InlineGrid>
+          <SettingsWorkspace embedEnabled={embedEnabled} />
         )}
         </div>
       </BlockStack>

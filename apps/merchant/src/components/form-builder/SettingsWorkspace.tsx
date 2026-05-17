@@ -16,7 +16,6 @@ import {
   Icon,
   InlineGrid,
   InlineStack,
-  Layout,
   Link,
   List,
   SkeletonBodyText,
@@ -36,6 +35,7 @@ import {
 import { SaveBar } from "@shopify/app-bridge-react";
 
 import { useShopifyBridge } from "@/lib/use-shopify-bridge";
+import { buildThemeEditorUrl } from "@/lib/shopify-urls";
 import { SHIPPING_COUNTRIES } from "@/components/form-builder/shipping-rates-countries";
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -156,15 +156,6 @@ const PLACEMENTS: PlacementConfig[] = [
   { value: "product-pages", label: "Product pages" },
   { value: "cart-page", label: "Cart page only" },
 ];
-
-const SHOPIFY_API_KEY = process.env.NEXT_PUBLIC_SHOPIFY_API_KEY ?? "";
-const EXTENSION_HANDLE = "cod-form";
-
-function buildThemeEditorUrl(shopDomain: string): string {
-  if (!shopDomain) return "";
-  const storeName = shopDomain.replace(".myshopify.com", "");
-  return `https://admin.shopify.com/store/${storeName}/themes/current/editor?context=apps&appEmbed=${SHOPIFY_API_KEY}%2F${EXTENSION_HANDLE}`;
-}
 
 const PLACEMENT_INFO: Record<FormPlacement, { title: string; description: string }> = {
   "whole-store": {
@@ -468,6 +459,9 @@ export function SettingsWorkspace({ embedEnabled }: Props): ReactElement {
           savedConfigRef.current = cfg;
         }
       } catch {
+        if (!cancelled) {
+          setSaveError("Unable to load settings. Refresh the page.");
+        }
       } finally {
         if (!cancelled) {
           setLoading(false);
@@ -776,7 +770,7 @@ export function SettingsWorkspace({ embedEnabled }: Props): ReactElement {
                         Start by enabling the app
                       </Text>
                     </InlineStack>
-                    <Link url="#" removeUnderline>
+                    <Link url="https://buyease-landing.vercel.app" target="_blank">
                       Learn more
                     </Link>
                   </InlineStack>
@@ -838,7 +832,7 @@ export function SettingsWorkspace({ embedEnabled }: Props): ReactElement {
                   <Text as="p" variant="bodyMd" tone="subdued">
                     Need help getting started? We&apos;re here for you.
                   </Text>
-                  <Button icon={ChatIcon} variant="secondary">
+                  <Button icon={ChatIcon} variant="secondary" url="mailto:support@buyease.com">
                     Chat with us
                   </Button>
                 </InlineStack>
@@ -870,8 +864,8 @@ export function SettingsWorkspace({ embedEnabled }: Props): ReactElement {
               <Banner
                 tone="info"
                 onDismiss={() => setShowBanner(false)}
-                action={{ content: "How to enable the form on my store?", url: "#" }}
-                secondaryAction={{ content: "Chat with us" }}
+                action={{ content: "How to enable the form on my store?", url: "https://buyease-landing.vercel.app" }}
+                secondaryAction={{ content: "Chat with us", url: "mailto:support@buyease.com" }}
               >
                 <Text as="p" variant="bodyMd">
                   If you can&apos;t see the form in your store, or you need help to enable it,
@@ -1208,7 +1202,7 @@ export function SettingsWorkspace({ embedEnabled }: Props): ReactElement {
                           const num = v === "" ? null : parseFloat(v);
                           setRestrict((prev) => ({
                             ...prev,
-                            orderEligibilityMin: num !== null && !isNaN(num) ? num : null,
+                            orderEligibilityMin: num !== null && !Number.isNaN(num) ? num : null,
                           }));
                         }}
                         autoComplete="off"
@@ -1226,7 +1220,7 @@ export function SettingsWorkspace({ embedEnabled }: Props): ReactElement {
                           const num = v === "" ? null : parseFloat(v);
                           setRestrict((prev) => ({
                             ...prev,
-                            orderEligibilityMax: num !== null && !isNaN(num) ? num : null,
+                            orderEligibilityMax: num !== null && !Number.isNaN(num) ? num : null,
                           }));
                         }}
                         autoComplete="off"
