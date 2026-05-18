@@ -20,7 +20,7 @@ import {
   Popover,
   RangeSlider,
   Select,
-  SkeletonBodyText,
+  SkeletonDisplayText,
   Text,
   TextField,
 } from "@shopify/polaris";
@@ -822,34 +822,89 @@ export function BuyButtonDesignerWorkspace(): ReactElement {
 
   if (loading) {
     return (
-      <BlockStack gap="400">
-        <InlineGrid columns={{ xs: 1, md: ["twoThirds", "oneThird"] }} gap="400" alignItems="start">
-          <BlockStack gap="400">
-            <Card padding="400">
-              <BlockStack gap="300">
-                <SkeletonBodyText lines={3} />
-              </BlockStack>
-            </Card>
-            <Card padding="400">
-              <BlockStack gap="300">
-                <SkeletonBodyText lines={5} />
-              </BlockStack>
-            </Card>
+      <InlineGrid
+        columns={{ xs: 1, md: ["twoThirds", "oneThird"] }}
+        gap="400"
+        alignItems="start"
+      >
+        <Card>
+          <BlockStack gap="500">
+            <InlineStack gap="300" blockAlign="center">
+              <div style={{ width: 16, height: 16, backgroundColor: "var(--p-color-bg-surface-secondary)", borderRadius: 3, flexShrink: 0 }} />
+              <SkeletonDisplayText size="small" maxWidth="26ch" />
+            </InlineStack>
+            <InlineGrid columns={2} gap="400">
+              {([10, 14] as const).map((w, i) => (
+                <BlockStack key={i} gap="100">
+                  <SkeletonDisplayText size="small" maxWidth={`${w}ch`} />
+                  <div style={{ height: 36, backgroundColor: "var(--p-color-bg-surface-secondary)", borderRadius: "var(--p-border-radius-200)" }} />
+                </BlockStack>
+              ))}
+            </InlineGrid>
+            <InlineGrid columns={3} gap="300">
+              {[0, 1, 2].map((i) => (
+                <BlockStack key={i} gap="100">
+                  <SkeletonDisplayText size="small" maxWidth="8ch" />
+                  <div style={{ height: 36, backgroundColor: "var(--p-color-bg-surface-secondary)", borderRadius: "var(--p-border-radius-200)" }} />
+                </BlockStack>
+              ))}
+            </InlineGrid>
+            <InlineGrid columns={2} gap="400">
+              {[0, 1].map((i) => (
+                <BlockStack key={i} gap="100">
+                  <SkeletonDisplayText size="small" maxWidth="10ch" />
+                  <div style={{ height: 36, backgroundColor: "var(--p-color-bg-surface-secondary)", borderRadius: "var(--p-border-radius-200)" }} />
+                </BlockStack>
+              ))}
+            </InlineGrid>
+            <InlineGrid columns={2} gap="400">
+              {([16, 10] as const).map((w, i) => (
+                <BlockStack key={i} gap="200">
+                  <SkeletonDisplayText size="small" maxWidth={`${w}ch`} />
+                  <div style={{ height: 180, backgroundColor: "var(--p-color-bg-surface-secondary)", borderRadius: "var(--p-border-radius-200)" }} />
+                  <div style={{ height: 36, backgroundColor: "var(--p-color-bg-surface-secondary)", borderRadius: "var(--p-border-radius-200)" }} />
+                </BlockStack>
+              ))}
+            </InlineGrid>
+            <BlockStack gap="200">
+              <SkeletonDisplayText size="small" maxWidth="12ch" />
+              <div style={{ height: 180, backgroundColor: "var(--p-color-bg-surface-secondary)", borderRadius: "var(--p-border-radius-200)" }} />
+              <div style={{ height: 36, backgroundColor: "var(--p-color-bg-surface-secondary)", borderRadius: "var(--p-border-radius-200)" }} />
+            </BlockStack>
+            <InlineGrid columns={2} gap="400">
+              {[0, 1].map((i) => (
+                <BlockStack key={i} gap="100">
+                  <SkeletonDisplayText size="small" maxWidth="12ch" />
+                  <div style={{ height: 20, backgroundColor: "var(--p-color-bg-surface-secondary)", borderRadius: 10, margin: "6px 0" }} />
+                </BlockStack>
+              ))}
+            </InlineGrid>
+            <BlockStack gap="100">
+              <SkeletonDisplayText size="small" maxWidth="8ch" />
+              <div style={{ height: 20, backgroundColor: "var(--p-color-bg-surface-secondary)", borderRadius: 10, margin: "6px 0" }} />
+            </BlockStack>
+            <BlockStack gap="100">
+              <SkeletonDisplayText size="small" maxWidth="12ch" />
+              <div style={{ height: 20, backgroundColor: "var(--p-color-bg-surface-secondary)", borderRadius: 10, margin: "6px 0" }} />
+            </BlockStack>
           </BlockStack>
-          <Box position="sticky" insetBlockStart="400" zIndex="400" width="100%">
-            <Card padding="400">
-              <BlockStack gap="300">
-                <SkeletonBodyText lines={1} />
-                <Box background="bg-surface-secondary" borderRadius="300" padding="400" minHeight="300px">
-                  <BlockStack gap="300">
-                    <SkeletonBodyText lines={4} />
-                  </BlockStack>
-                </Box>
-              </BlockStack>
+        </Card>
+        <Box position="sticky" insetBlockStart="400" zIndex="400" width="100%">
+          <BlockStack gap="300">
+            <InlineStack align="center">
+              <SkeletonDisplayText size="small" maxWidth="12ch" />
+            </InlineStack>
+            <Card>
+              <div style={{ backgroundColor: "var(--p-color-bg-surface-secondary)", borderRadius: "var(--p-border-radius-300)", padding: 16, minHeight: 160, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <div style={{ backgroundColor: "var(--p-color-bg-surface)", borderRadius: "var(--p-border-radius-200)", width: "85%", height: 48 }} />
+              </div>
             </Card>
-          </Box>
-        </InlineGrid>
-      </BlockStack>
+            <InlineStack align="center">
+              <div style={{ width: 140, height: 32, backgroundColor: "var(--p-color-bg-surface-secondary)", borderRadius: "var(--p-border-radius-200)" }} />
+            </InlineStack>
+          </BlockStack>
+        </Box>
+      </InlineGrid>
     );
   }
 

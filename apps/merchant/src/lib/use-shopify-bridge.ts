@@ -16,7 +16,7 @@ export function useShopifyBridge(): ShopifyBridge {
       };
     }
     return {
-      async idToken() { return ""; },
+      async idToken(): Promise<string> { return ""; },
       toast: { show() {} },
     };
   }, []);

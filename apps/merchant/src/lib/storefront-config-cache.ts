@@ -13,6 +13,14 @@ const buttonConfigCache = new LRUCache<string, Record<string, unknown>>({
   ttl: TTL_MS,
 });
 
+// Admin-panel cache for the authenticated GET response — includes updatedAt
+// for concurrency detection. Separate from the storefront cache to avoid
+// leaking updatedAt to public CDN responses.
+const adminButtonConfigCache = new LRUCache<string, Record<string, unknown>>({
+  max: MAX_ENTRIES,
+  ttl: TTL_MS,
+});
+
 export function getCachedFormConfig(shop: string): Record<string, unknown> | undefined {
   return formConfigCache.get(shop);
 }
@@ -34,5 +42,25 @@ export function setCachedButtonConfig(shop: string, config: Record<string, unkno
 }
 
 export function invalidateButtonConfig(shop: string): void {
+  buttonConfigCache.delete(shop);
+}
+
+export function getCachedAdminButtonConfig(shop: string): Record<string, unknown> | undefined {
+  return adminButtonConfigCache.get(shop);
+}
+
+/**
+ * Cache the full admin config response (includes updatedAt for concurrency
+ * detection). Also writes to the storefront cache (without updatedAt) so both
+ * caches stay in sync after every save.
+ */
+export function setCachedAdminButtonConfig(shop: string, config: Record<string, unknown>): void {
+  adminButtonConfigCache.set(shop, config);
+  const { updatedAt: _at, ...storefrontData } = config as { updatedAt?: unknown } & Record<string, unknown>;
+  buttonConfigCache.set(shop, storefrontData);
+}
+
+export function invalidateAdminButtonConfig(shop: string): void {
+  adminButtonConfigCache.delete(shop);
   buttonConfigCache.delete(shop);
 }

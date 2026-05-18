@@ -7,23 +7,22 @@ import {
   Card,
   InlineGrid,
   InlineStack,
-  Page,
   SkeletonBodyText,
   SkeletonDisplayText,
-  SkeletonThumbnail,
+  SkeletonPage,
 } from "@shopify/polaris";
 
 /**
- * Full-width loading skeleton for the Form Builder page.
- * Uses Page (not SkeletonPage) to match the actual page width exactly.
- * Mirrors the Buy Button Designer workspace (default view) - two-column layout
- * with form controls (twoThirds) + sticky preview sidebar (oneThird).
+ * Loading skeleton for Form Builder — uses SkeletonPage (animated title) and
+ * inline-style placeholder boxes matching the integrations page pattern.
+ * Shows during route load; workspace internal skeleton is suppressed to avoid
+ * the double-skeleton flash.
  */
 export default function FormBuilderPageSkeleton(): ReactElement {
   return (
-    <Page title="Form Builder">
+    <SkeletonPage title="Form Builder">
       <BlockStack gap="400">
-        {/* Mode selector bar — 4 columns matching actual page */}
+        {/* Mode selector — 4 equal-width pill buttons */}
         <Box
           padding="100"
           background="bg-surface-secondary"
@@ -32,346 +31,286 @@ export default function FormBuilderPageSkeleton(): ReactElement {
           borderRadius="200"
         >
           <InlineGrid columns={4} gap="100">
-            {Array.from({ length: 4 }, (_, i) => (
-              <Box
+            {[0, 1, 2, 3].map((i) => (
+              <div
                 key={i}
-                paddingBlock="200"
-                paddingInline="400"
-                borderRadius="200"
-                background={i === 0 ? "bg-surface" : "bg-surface-secondary"}
+                style={{
+                  height: 36,
+                  backgroundColor:
+                    i === 0
+                      ? "var(--p-color-bg-surface)"
+                      : "transparent",
+                  borderRadius: "var(--p-border-radius-200)",
+                  padding: "0 16px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                }}
               >
-                <InlineStack gap="100" blockAlign="center" wrap={false}>
-                  <SkeletonThumbnail size="extraSmall" />
-                  <Box minWidth="0" width="100%">
-                    <SkeletonDisplayText size="small" maxWidth="10ch" />
-                  </Box>
-                </InlineStack>
-              </Box>
+                <div
+                  style={{
+                    width: 16,
+                    height: 16,
+                    backgroundColor: "var(--p-color-bg-surface-secondary)",
+                    borderRadius: 3,
+                    flexShrink: 0,
+                  }}
+                />
+                <div style={{ flex: 1 }}>
+                  <SkeletonDisplayText size="small" />
+                </div>
+              </div>
             ))}
           </InlineGrid>
         </Box>
 
-        {/* Workspace grid: main content (twoThirds) + preview sidebar (oneThird) */}
+        {/* Two-column workspace: twoThirds form + oneThird preview */}
         <InlineGrid
           columns={{ xs: 1, md: ["twoThirds", "oneThird"] }}
           gap="400"
           alignItems="start"
         >
-          {/* Main workspace card - form controls */}
-          <Card roundedAbove="sm">
+          {/* ── Main form card ── */}
+          <Card>
             <BlockStack gap="500">
-              {/* Visibility checkbox */}
+              {/* Visibility checkbox row */}
               <InlineStack gap="300" blockAlign="center">
-                <Box minWidth="16px">
-                  <SkeletonThumbnail size="extraSmall" />
-                </Box>
+                <div
+                  style={{
+                    width: 16,
+                    height: 16,
+                    backgroundColor: "var(--p-color-bg-surface-secondary)",
+                    borderRadius: 3,
+                    flexShrink: 0,
+                  }}
+                />
                 <SkeletonDisplayText size="small" maxWidth="26ch" />
               </InlineStack>
 
-              {/* Button text and subtitle fields (2-column) */}
+              {/* Button text + subtitle (2-col) */}
               <InlineGrid columns={2} gap="400">
-                <BlockStack gap="100">
-                  <SkeletonDisplayText size="small" maxWidth="10ch" />
-                  <Box
-                    borderWidth="025"
-                    borderColor="border"
-                    borderRadius="200"
-                    paddingBlock="200"
-                    paddingInline="300"
-                  >
-                    <SkeletonBodyText lines={1} />
-                  </Box>
-                </BlockStack>
-                <BlockStack gap="100">
-                  <SkeletonDisplayText size="small" maxWidth="14ch" />
-                  <Box
-                    borderWidth="025"
-                    borderColor="border"
-                    borderRadius="200"
-                    paddingBlock="200"
-                    paddingInline="300"
-                  >
-                    <SkeletonBodyText lines={1} />
-                  </Box>
-                </BlockStack>
+                {[10, 14].map((w, i) => (
+                  <BlockStack key={i} gap="100">
+                    <SkeletonDisplayText size="small" maxWidth={`${w}ch`} />
+                    <div
+                      style={{
+                        height: 36,
+                        backgroundColor: "var(--p-color-bg-surface-secondary)",
+                        borderRadius: "var(--p-border-radius-200)",
+                      }}
+                    />
+                  </BlockStack>
+                ))}
               </InlineGrid>
 
-              {/* Text size, style, icon row (3-column) */}
+              {/* Font size / style / icon (3-col) */}
               <InlineGrid columns={3} gap="300">
-                <BlockStack gap="100">
-                  <SkeletonDisplayText size="small" maxWidth="8ch" />
-                  <Box
-                    borderWidth="025"
-                    borderColor="border"
-                    borderRadius="200"
-                    paddingBlock="200"
-                    paddingInline="300"
-                  >
-                    <SkeletonBodyText lines={1} />
-                  </Box>
-                </BlockStack>
-                <BlockStack gap="100">
-                  <SkeletonDisplayText size="small" maxWidth="6ch" />
-                  <Box
-                    borderWidth="025"
-                    borderColor="border"
-                    borderRadius="200"
-                  >
-                    <InlineGrid columns={2} gap="0">
-                      <Box
-                        paddingBlock="200"
-                        paddingInline="300"
-                        borderInlineEndWidth="025"
-                        borderColor="border"
-                      >
-                        <SkeletonDisplayText size="small" maxWidth="2ch" />
-                      </Box>
-                      <Box paddingBlock="200" paddingInline="300">
-                        <SkeletonDisplayText size="small" maxWidth="2ch" />
-                      </Box>
-                    </InlineGrid>
-                  </Box>
-                </BlockStack>
-                <BlockStack gap="100">
-                  <SkeletonDisplayText size="small" maxWidth="10ch" />
-                  <Box
-                    borderWidth="025"
-                    borderColor="border"
-                    borderRadius="200"
-                    paddingBlock="200"
-                    paddingInline="300"
-                  >
-                    <InlineStack gap="100" blockAlign="center" wrap={false}>
-                      <SkeletonThumbnail size="extraSmall" />
-                      <Box minWidth="0" width="100%">
-                        <SkeletonBodyText lines={1} />
-                      </Box>
-                    </InlineStack>
-                  </Box>
-                </BlockStack>
+                {[0, 1, 2].map((i) => (
+                  <BlockStack key={i} gap="100">
+                    <SkeletonDisplayText size="small" maxWidth="8ch" />
+                    <div
+                      style={{
+                        height: 36,
+                        backgroundColor: "var(--p-color-bg-surface-secondary)",
+                        borderRadius: "var(--p-border-radius-200)",
+                      }}
+                    />
+                  </BlockStack>
+                ))}
               </InlineGrid>
 
-              {/* Animation and sticky position dropdowns (2-column) */}
+              {/* Animation + sticky position (2-col) */}
               <InlineGrid columns={2} gap="400">
-                <BlockStack gap="100">
-                  <SkeletonDisplayText size="small" maxWidth="10ch" />
-                  <Box
-                    borderWidth="025"
-                    borderColor="border"
-                    borderRadius="200"
-                    paddingBlock="200"
-                    paddingInline="300"
-                  >
-                    <SkeletonBodyText lines={1} />
-                  </Box>
-                </BlockStack>
-                <BlockStack gap="100">
-                  <SkeletonDisplayText size="small" maxWidth="18ch" />
-                  <Box
-                    borderWidth="025"
-                    borderColor="border"
-                    borderRadius="200"
-                    paddingBlock="200"
-                    paddingInline="300"
-                  >
-                    <SkeletonBodyText lines={1} />
-                  </Box>
-                </BlockStack>
+                {[0, 1].map((i) => (
+                  <BlockStack key={i} gap="100">
+                    <SkeletonDisplayText size="small" maxWidth="10ch" />
+                    <div
+                      style={{
+                        height: 36,
+                        backgroundColor: "var(--p-color-bg-surface-secondary)",
+                        borderRadius: "var(--p-border-radius-200)",
+                      }}
+                    />
+                  </BlockStack>
+                ))}
               </InlineGrid>
 
-              {/* Color pickers (2-column: Background + Text) */}
+              {/* Background + text color pickers (2-col, tall) */}
               <InlineGrid columns={2} gap="400">
-                <BlockStack gap="200">
-                  <SkeletonDisplayText size="small" maxWidth="16ch" />
-                  <Box
-                    background="bg-surface-secondary"
-                    borderWidth="025"
-                    borderColor="border"
-                    borderRadius="200"
-                    minHeight="200px"
-                  />
-                  <Box
-                    borderWidth="025"
-                    borderColor="border"
-                    borderRadius="200"
-                    paddingBlock="200"
-                    paddingInline="300"
-                  >
-                    <SkeletonBodyText lines={1} />
-                  </Box>
-                </BlockStack>
-                <BlockStack gap="200">
-                  <SkeletonDisplayText size="small" maxWidth="10ch" />
-                  <Box
-                    background="bg-surface-secondary"
-                    borderWidth="025"
-                    borderColor="border"
-                    borderRadius="200"
-                    minHeight="200px"
-                  />
-                  <Box
-                    borderWidth="025"
-                    borderColor="border"
-                    borderRadius="200"
-                    paddingBlock="200"
-                    paddingInline="300"
-                  >
-                    <SkeletonBodyText lines={1} />
-                  </Box>
-                </BlockStack>
+                {[16, 10].map((w, i) => (
+                  <BlockStack key={i} gap="200">
+                    <SkeletonDisplayText size="small" maxWidth={`${w}ch`} />
+                    <div
+                      style={{
+                        height: 180,
+                        backgroundColor: "var(--p-color-bg-surface-secondary)",
+                        borderRadius: "var(--p-border-radius-200)",
+                      }}
+                    />
+                    <div
+                      style={{
+                        height: 36,
+                        backgroundColor: "var(--p-color-bg-surface-secondary)",
+                        borderRadius: "var(--p-border-radius-200)",
+                      }}
+                    />
+                  </BlockStack>
+                ))}
               </InlineGrid>
 
-              {/* Border color picker (full-width) */}
+              {/* Border color picker (full-width, tall) */}
               <BlockStack gap="200">
                 <SkeletonDisplayText size="small" maxWidth="12ch" />
-                <Box
-                  background="bg-surface-secondary"
-                  borderWidth="025"
-                  borderColor="border"
-                  borderRadius="200"
-                  minHeight="200px"
+                <div
+                  style={{
+                    height: 180,
+                    backgroundColor: "var(--p-color-bg-surface-secondary)",
+                    borderRadius: "var(--p-border-radius-200)",
+                  }}
                 />
-                <Box
-                  borderWidth="025"
-                  borderColor="border"
-                  borderRadius="200"
-                  paddingBlock="200"
-                  paddingInline="300"
-                >
-                  <SkeletonBodyText lines={1} />
-                </Box>
+                <div
+                  style={{
+                    height: 36,
+                    backgroundColor: "var(--p-color-bg-surface-secondary)",
+                    borderRadius: "var(--p-border-radius-200)",
+                  }}
+                />
               </BlockStack>
 
-              {/* Border radius & width sliders (2-column) */}
+              {/* Border radius + border width sliders (2-col) */}
               <InlineGrid columns={2} gap="400">
-                <BlockStack gap="100">
-                  <SkeletonDisplayText size="small" maxWidth="13ch" />
-                  <Box paddingBlock="200">
-                    <SkeletonBodyText lines={1} />
-                  </Box>
-                </BlockStack>
-                <BlockStack gap="100">
-                  <SkeletonDisplayText size="small" maxWidth="12ch" />
-                  <Box paddingBlock="200">
-                    <SkeletonBodyText lines={1} />
-                  </Box>
-                </BlockStack>
+                {[0, 1].map((i) => (
+                  <BlockStack key={i} gap="100">
+                    <SkeletonDisplayText size="small" maxWidth="12ch" />
+                    <div
+                      style={{
+                        height: 20,
+                        backgroundColor: "var(--p-color-bg-surface-secondary)",
+                        borderRadius: 10,
+                        margin: "6px 0",
+                      }}
+                    />
+                  </BlockStack>
+                ))}
               </InlineGrid>
 
               {/* Shadow slider */}
               <BlockStack gap="100">
                 <SkeletonDisplayText size="small" maxWidth="8ch" />
-                <Box paddingBlock="200">
-                  <SkeletonBodyText lines={1} />
-                </Box>
+                <div
+                  style={{
+                    height: 20,
+                    backgroundColor: "var(--p-color-bg-surface-secondary)",
+                    borderRadius: 10,
+                    margin: "6px 0",
+                  }}
+                />
               </BlockStack>
 
-              {/* Width slider with help text */}
+              {/* Width slider */}
               <BlockStack gap="100">
                 <SkeletonDisplayText size="small" maxWidth="12ch" />
-                <Box maxWidth="45ch">
-                  <SkeletonBodyText lines={1} />
-                </Box>
-                <Box paddingBlock="200">
-                  <SkeletonBodyText lines={1} />
-                </Box>
+                <div
+                  style={{
+                    height: 20,
+                    backgroundColor: "var(--p-color-bg-surface-secondary)",
+                    borderRadius: 10,
+                    margin: "6px 0",
+                  }}
+                />
               </BlockStack>
 
-              {/* Mobile checkboxes */}
+              {/* Checkboxes */}
               <InlineStack gap="300" blockAlign="center">
-                <Box minWidth="16px">
-                  <SkeletonThumbnail size="extraSmall" />
-                </Box>
-                <Box minWidth="0" width="100%">
-                  <SkeletonBodyText lines={1} />
-                </Box>
+                <div
+                  style={{
+                    width: 16,
+                    height: 16,
+                    backgroundColor: "var(--p-color-bg-surface-secondary)",
+                    borderRadius: 3,
+                    flexShrink: 0,
+                  }}
+                />
+                <SkeletonBodyText lines={1} />
+              </InlineStack>
+              <InlineStack gap="300" blockAlign="center">
+                <div
+                  style={{
+                    width: 16,
+                    height: 16,
+                    backgroundColor: "var(--p-color-bg-surface-secondary)",
+                    borderRadius: 3,
+                    flexShrink: 0,
+                  }}
+                />
+                <SkeletonBodyText lines={1} />
               </InlineStack>
 
-              <InlineStack gap="300" blockAlign="start">
-                <Box minWidth="16px">
-                  <SkeletonThumbnail size="extraSmall" />
-                </Box>
-                <BlockStack gap="100">
-                  <SkeletonBodyText lines={1} />
-                  <Box maxWidth="42ch">
-                    <SkeletonBodyText lines={1} />
-                  </Box>
-                </BlockStack>
-              </InlineStack>
-
-              {/* Contact banner at bottom */}
-              <Card roundedAbove="sm" background="bg-surface-secondary">
-                <BlockStack gap="200">
-                  <InlineStack gap="200" blockAlign="center" wrap={false}>
-                    <SkeletonThumbnail size="small" />
-                    <Box minWidth="0" width="100%">
-                      <SkeletonDisplayText size="small" maxWidth="22ch" />
-                    </Box>
-                  </InlineStack>
-                  <SkeletonBodyText lines={2} />
-                </BlockStack>
-              </Card>
+              {/* Contact banner */}
+              <div
+                style={{
+                  backgroundColor: "var(--p-color-bg-surface-secondary)",
+                  borderRadius: "var(--p-border-radius-200)",
+                  padding: 16,
+                }}
+              >
+                <InlineStack gap="200" blockAlign="center" wrap={false}>
+                  <div
+                    style={{
+                      width: 32,
+                      height: 32,
+                      backgroundColor: "var(--p-color-bg-surface)",
+                      borderRadius: "50%",
+                      flexShrink: 0,
+                    }}
+                  />
+                  <BlockStack gap="100">
+                    <SkeletonDisplayText size="small" maxWidth="22ch" />
+                    <SkeletonBodyText lines={2} />
+                  </BlockStack>
+                </InlineStack>
+              </div>
             </BlockStack>
           </Card>
 
-          {/* Live preview sidebar (oneThird, sticky) */}
+          {/* ── Preview sidebar ── */}
           <Box position="sticky" insetBlockStart="400" zIndex="400" width="100%">
             <BlockStack gap="300">
-              {/* Preview heading */}
               <InlineStack align="center">
-                <Box
-                  borderBlockEndWidth="025"
-                  borderColor="border-secondary"
-                  paddingBlockEnd="100"
-                >
-                  <SkeletonDisplayText size="small" maxWidth="12ch" />
-                </Box>
+                <SkeletonDisplayText size="small" maxWidth="12ch" />
               </InlineStack>
-
-              {/* Preview card with button mockup */}
-              <Card roundedAbove="sm">
-                <Box
-                  padding="400"
-                  background="bg-surface-secondary"
-                  borderRadius="300"
-                  borderWidth="025"
-                  borderColor="border"
-                  minHeight="160px"
+              <Card>
+                <div
+                  style={{
+                    backgroundColor: "var(--p-color-bg-surface-secondary)",
+                    borderRadius: "var(--p-border-radius-300)",
+                    padding: 16,
+                    minHeight: 160,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
                 >
-                  <BlockStack gap="300" inlineAlign="center">
-                    <Box
-                      background="bg-surface"
-                      borderRadius="200"
-                      paddingBlock="300"
-                      paddingInline="500"
-                      width="85%"
-                      minHeight="48px"
-                    >
-                      <InlineStack gap="200" blockAlign="center" align="center">
-                        <SkeletonThumbnail size="small" />
-                        <Box minWidth="0" width="60%">
-                          <SkeletonBodyText lines={1} />
-                        </Box>
-                      </InlineStack>
-                    </Box>
-                  </BlockStack>
-                </Box>
+                  <div
+                    style={{
+                      backgroundColor: "var(--p-color-bg-surface)",
+                      borderRadius: "var(--p-border-radius-200)",
+                      width: "85%",
+                      height: 48,
+                    }}
+                  />
+                </div>
               </Card>
-
-              {/* Reset button */}
               <InlineStack align="center">
-                <Box
-                  borderWidth="025"
-                  borderColor="border"
-                  borderRadius="200"
-                  paddingBlock="150"
-                  paddingInline="400"
-                >
-                  <SkeletonDisplayText size="small" maxWidth="16ch" />
-                </Box>
+                <div
+                  style={{
+                    width: 140,
+                    height: 32,
+                    backgroundColor: "var(--p-color-bg-surface-secondary)",
+                    borderRadius: "var(--p-border-radius-200)",
+                  }}
+                />
               </InlineStack>
-
-              {/* Caption */}
               <InlineStack align="center">
                 <Box maxWidth="30ch">
                   <SkeletonBodyText lines={1} />
@@ -381,6 +320,6 @@ export default function FormBuilderPageSkeleton(): ReactElement {
           </Box>
         </InlineGrid>
       </BlockStack>
-    </Page>
+    </SkeletonPage>
   );
 }

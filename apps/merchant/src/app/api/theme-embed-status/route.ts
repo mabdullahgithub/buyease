@@ -1,6 +1,13 @@
 import { NextResponse } from "next/server";
+import { LRUCache } from "lru-cache";
 
 import { withGuards } from "@/lib/middleware-stack";
+
+type EmbedResult = { enabled: boolean | null; reason?: string };
+
+// 2-minute TTL: fast enough to reflect theme changes within a short session,
+// long enough to avoid hammering Shopify's Admin API on tab focus events.
+const embedCache = new LRUCache<string, EmbedResult>({ max: 1000, ttl: 2 * 60 * 1000 });
 
 // Extension UID as deployed to Shopify — visible in live theme settings_data.json.
 // Note: differs from the UID in shopify.extension.toml (279c058d…) which is the dev UID.
@@ -45,12 +52,23 @@ function isBuyEaseBlock(key: string, block: SettingsBlock): boolean {
 }
 
 export const GET = withGuards({ skipPlanGate: true }, async (_req, ctx) => {
+  const { shop, session } = ctx;
+
+  const hit = embedCache.get(shop);
+  if (hit !== undefined) {
+    return NextResponse.json(hit);
+  }
+
+  const respond = (result: EmbedResult): NextResponse => {
+    embedCache.set(shop, result);
+    return NextResponse.json(result);
+  };
+
   try {
-    const { shop, session } = ctx;
     const accessToken = session.accessToken ?? "";
 
     if (!accessToken) {
-      return NextResponse.json({ enabled: null, reason: "no_token" });
+      return respond({ enabled: null, reason: "no_token" });
     }
 
     const themesRes = await fetch(`https://${shop}/admin/api/2026-04/themes.json`, {
@@ -59,14 +77,14 @@ export const GET = withGuards({ skipPlanGate: true }, async (_req, ctx) => {
 
     if (!themesRes.ok) {
       // 403 = missing read_themes scope; treat as unknown, not false
-      return NextResponse.json({ enabled: null, reason: `themes_api_${themesRes.status}` });
+      return respond({ enabled: null, reason: `themes_api_${themesRes.status}` });
     }
 
     const themesData = (await themesRes.json()) as ThemesResponse;
     const mainTheme = themesData.themes.find((t) => t.role === "main");
 
     if (!mainTheme) {
-      return NextResponse.json({ enabled: null, reason: "no_main_theme" });
+      return respond({ enabled: null, reason: "no_main_theme" });
     }
 
     const assetRes = await fetch(
@@ -75,14 +93,14 @@ export const GET = withGuards({ skipPlanGate: true }, async (_req, ctx) => {
     );
 
     if (!assetRes.ok) {
-      return NextResponse.json({ enabled: null, reason: `asset_api_${assetRes.status}` });
+      return respond({ enabled: null, reason: `asset_api_${assetRes.status}` });
     }
 
     const assetData = (await assetRes.json()) as ThemeAssetsResponse;
     const content = assetData.asset?.value;
 
     if (!content) {
-      return NextResponse.json({ enabled: null, reason: "no_content" });
+      return respond({ enabled: null, reason: "no_content" });
     }
 
     const settings = JSON.parse(content) as SettingsData;
@@ -92,12 +110,8 @@ export const GET = withGuards({ skipPlanGate: true }, async (_req, ctx) => {
       ([key, block]) => isBuyEaseBlock(key, block) && block.disabled !== true,
     );
 
-    if (!enabled) {
-      return NextResponse.json({ enabled: false, reason: "block_not_matched" });
-    }
-
-    return NextResponse.json({ enabled: true });
+    return respond({ enabled: enabled ? true : false });
   } catch {
-    return NextResponse.json({ enabled: null, reason: "exception" });
+    return respond({ enabled: null, reason: "exception" });
   }
 });

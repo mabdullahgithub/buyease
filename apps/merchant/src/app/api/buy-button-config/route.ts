@@ -3,7 +3,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { buyButtonConfigSchema } from "@/lib/form-config-schemas";
 import { withGuards } from "@/lib/middleware-stack";
-import { setCachedButtonConfig } from "@/lib/storefront-config-cache";
+import {
+  getCachedAdminButtonConfig,
+  setCachedAdminButtonConfig,
+} from "@/lib/storefront-config-cache";
 import { parseBody } from "@/lib/validation";
 
 const BUTTON_SELECT = {
@@ -31,6 +34,12 @@ const BUTTON_SELECT = {
 } as const;
 
 export const GET = withGuards({ skipPlanGate: true }, async (_req, ctx) => {
+  // Serve from in-process LRU cache — pre-warmed by PUT and kept in sync.
+  const cached = getCachedAdminButtonConfig(ctx.shop);
+  if (cached) {
+    return NextResponse.json(cached);
+  }
+
   const config = await prisma.buyButtonConfig.findUnique({
     where: { shop: ctx.shop },
     select: BUTTON_SELECT,
@@ -40,6 +49,7 @@ export const GET = withGuards({ skipPlanGate: true }, async (_req, ctx) => {
     return NextResponse.json({ error: "Config not found" }, { status: 404 });
   }
 
+  setCachedAdminButtonConfig(ctx.shop, config as Record<string, unknown>);
   return NextResponse.json(config);
 });
 
@@ -82,11 +92,9 @@ export const PUT = withGuards({ skipPlanGate: true }, async (req: NextRequest, c
     select: BUTTON_SELECT,
   });
 
-  // Pre-warm the storefront LRU cache immediately so the next shopper request
-  // hits the cache instead of the DB. Strip updatedAt — storefront responses
-  // don't include it and we don't want it leaking to the public CDN response.
-  const { updatedAt: _at, ...cacheData } = updated;
-  setCachedButtonConfig(ctx.shop, cacheData as Record<string, unknown>);
+  // Pre-warm both admin and storefront caches so the next request is a cache
+  // hit. setCachedAdminButtonConfig handles both caches atomically.
+  setCachedAdminButtonConfig(ctx.shop, updated as Record<string, unknown>);
 
   void prisma.formConfigChangeLog.create({
     data: { shop: ctx.shop, configType: "buy_button" },
