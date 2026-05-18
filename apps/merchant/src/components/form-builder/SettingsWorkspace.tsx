@@ -491,34 +491,49 @@ export function SettingsWorkspace({ embedEnabled }: Props): ReactElement {
 
   // ── Apply fetched config to state ────────────────────────────────────────────
 
-  const applyConfigToState = useCallback((cfg: SettingsPayload): void => {
-    setFormPlacement(cfg.formPlacement);
-    setHideCheckout(cfg.hideCheckout);
-    setHideAddToCart(cfg.hideAddToCart);
-    setHideBuyNow(cfg.hideBuyNow);
-    setWhenOpened(cfg.whenOpened);
-    setDisableIn(cfg.disableInPages);
-    setProductRestrictionMode(cfg.productRestrictionMode);
-    setRestrictedProducts(Array.isArray(cfg.restrictedProducts) ? cfg.restrictedProducts : []);
-    setRestrictedCollections(Array.isArray(cfg.restrictedCollections) ? cfg.restrictedCollections : []);
-    setRestrict({
-      allowCountriesOnly: cfg.allowCountriesOnly,
+  const applyConfigToState = useCallback((cfg: SettingsPayload): SettingsPayload => {
+    const normalized: SettingsPayload = {
+      ...cfg,
+      restrictedProducts: Array.isArray(cfg.restrictedProducts) ? cfg.restrictedProducts : [],
+      restrictedCollections: Array.isArray(cfg.restrictedCollections) ? cfg.restrictedCollections : [],
       allowedCountries: Array.isArray(cfg.allowedCountries) ? cfg.allowedCountries : [],
-      enableOrderEligibility: cfg.enableOrderEligibility,
       orderEligibilityMin: cfg.orderEligibilityMin ?? null,
       orderEligibilityMax: cfg.orderEligibilityMax ?? null,
       showIneligibleMessage: cfg.showIneligibleMessage ?? false,
       ineligibleMessage: cfg.ineligibleMessage ?? "",
+      redirection: cfg.redirection ?? "shopify-thank-you",
+      redirectionUrl: cfg.redirectionUrl ?? "",
+      whatsappMessage: cfg.whatsappMessage ?? "",
+      whatsappPhone: cfg.whatsappPhone ?? "",
+    };
+    setFormPlacement(normalized.formPlacement);
+    setHideCheckout(normalized.hideCheckout);
+    setHideAddToCart(normalized.hideAddToCart);
+    setHideBuyNow(normalized.hideBuyNow);
+    setWhenOpened(normalized.whenOpened);
+    setDisableIn(normalized.disableInPages);
+    setProductRestrictionMode(normalized.productRestrictionMode);
+    setRestrictedProducts(normalized.restrictedProducts);
+    setRestrictedCollections(normalized.restrictedCollections);
+    setRestrict({
+      allowCountriesOnly: normalized.allowCountriesOnly,
+      allowedCountries: normalized.allowedCountries,
+      enableOrderEligibility: normalized.enableOrderEligibility,
+      orderEligibilityMin: normalized.orderEligibilityMin,
+      orderEligibilityMax: normalized.orderEligibilityMax,
+      showIneligibleMessage: normalized.showIneligibleMessage,
+      ineligibleMessage: normalized.ineligibleMessage,
     });
-    setHideSubmitButton(cfg.hideSubmitButton);
-    setDisableOutOfStock(cfg.disableOutOfStock);
-    setDisableAllDiscounts(cfg.disableAllDiscounts);
-    setDisableShopifyDiscount(cfg.disableShopifyDiscount);
-    setCustomCss(cfg.customCss);
-    setRedirection(cfg.redirection ?? "shopify-thank-you");
-    setRedirectionUrl(cfg.redirectionUrl ?? "");
-    setWhatsappMessage(cfg.whatsappMessage ?? "");
-    setWhatsappPhone(cfg.whatsappPhone ?? "");
+    setHideSubmitButton(normalized.hideSubmitButton);
+    setDisableOutOfStock(normalized.disableOutOfStock);
+    setDisableAllDiscounts(normalized.disableAllDiscounts);
+    setDisableShopifyDiscount(normalized.disableShopifyDiscount);
+    setCustomCss(normalized.customCss);
+    setRedirection(normalized.redirection);
+    setRedirectionUrl(normalized.redirectionUrl);
+    setWhatsappMessage(normalized.whatsappMessage);
+    setWhatsappPhone(normalized.whatsappPhone);
+    return normalized;
   }, []);
 
   // ── Fetch settings on mount ──────────────────────────────────────────────────
@@ -539,8 +554,7 @@ export function SettingsWorkspace({ embedEnabled }: Props): ReactElement {
           if (cancelled) return;
           updatedAtRef.current = data.updatedAt ?? null;
           const { updatedAt: _at, ...cfg } = data as SettingsPayload & { updatedAt?: string };
-          applyConfigToState(cfg);
-          savedConfigRef.current = cfg;
+          savedConfigRef.current = applyConfigToState(cfg);
         }
       } catch {
         if (!cancelled) {
@@ -591,7 +605,7 @@ export function SettingsWorkspace({ embedEnabled }: Props): ReactElement {
         const data = (await res.json()) as SettingsPayload & { updatedAt?: string };
         updatedAtRef.current = data.updatedAt ?? null;
         const { updatedAt: _at, ...cfg } = data as SettingsPayload & { updatedAt?: string };
-        savedConfigRef.current = cfg;
+        savedConfigRef.current = applyConfigToState(cfg);
         setDirty(false);
         shopify.toast.show("Settings saved");
       } else if (res.status === 409) {
