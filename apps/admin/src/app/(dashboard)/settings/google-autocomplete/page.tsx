@@ -13,18 +13,12 @@ import { requireAdminSession } from "@/lib/admin-session";
 import { GoogleAcForm } from "./google-ac-form";
 
 async function getGoogleAcConfig() {
-  const existing = await db.googleAutocompleteGlobalConfig.findUnique({
+  // upsert avoids a race condition on first access (findUnique + create would conflict
+  // if two requests arrive simultaneously before the row exists).
+  return db.googleAutocompleteGlobalConfig.upsert({
     where: { id: 1 },
-  });
-  if (existing) return existing;
-
-  return db.googleAutocompleteGlobalConfig.create({
-    data: {
-      id: 1,
-      pricePerSession: 0.05,
-      pricePerGeocode: 0.01,
-      isEnabled: true,
-    },
+    create: { id: 1, pricePerSession: 0.05, pricePerGeocode: 0.01, isEnabled: true },
+    update: {},
   });
 }
 
@@ -47,8 +41,14 @@ async function saveGoogleAcConfig(
   if (isNaN(pricePerSession) || pricePerSession < 0) {
     return { success: false, error: "Invalid session price." };
   }
+  if (pricePerSession > 1) {
+    return { success: false, error: "Session price cannot exceed $1.00." };
+  }
   if (isNaN(pricePerGeocode) || pricePerGeocode < 0) {
     return { success: false, error: "Invalid geocode price." };
+  }
+  if (pricePerGeocode > 1) {
+    return { success: false, error: "Geocode price cannot exceed $1.00." };
   }
 
   await db.googleAutocompleteGlobalConfig.upsert({

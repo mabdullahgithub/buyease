@@ -2763,6 +2763,25 @@ function GoogleAutocompletePage({ onBack }: { onBack: () => void }): ReactElemen
               </p>
             </Banner>
 
+            {balance <= 0 && googleAutocomplete && (
+              <Banner tone="critical" title="Autocomplete paused — balance depleted">
+                <p>
+                  Your balance has reached $0.00. Google Autocomplete sessions are no longer
+                  being charged, but service quality may degrade. Top up below to resume
+                  uninterrupted service.
+                </p>
+              </Banner>
+            )}
+
+            {balance > 0 && balance < 1 && (
+              <Banner tone="warning" title="Low balance — top up soon">
+                <p>
+                  Your remaining balance is <strong>${balance.toFixed(3)}</strong>. Autocomplete
+                  will stop when it reaches $0.00. Top up below to keep it running.
+                </p>
+              </Banner>
+            )}
+
             <div
               style={{
                 display: "grid",
@@ -2989,6 +3008,7 @@ function GoogleAutocompletePage({ onBack }: { onBack: () => void }): ReactElemen
 export function IntegrationsPageContent(): ReactElement {
   const [activeView, setActiveView] = useState<ActiveView>("list");
   const [isHydrating, setIsHydrating] = useState(true);
+  const [portalBannerDismissed, setPortalBannerDismissed] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -3138,17 +3158,13 @@ export function IntegrationsPageContent(): ReactElement {
                   style={{
                     width: 80,
                     height: 80,
-                    borderRadius: "50%",
-                    background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a78bfa 100%)",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
                     flexShrink: 0,
                   }}
                 >
-                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none">
-                    <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
+                  <Icon source={OrderIcon} />
                 </div>
               </InlineStack>
             </Card>
@@ -3163,43 +3179,66 @@ export function IntegrationsPageContent(): ReactElement {
               flexDirection: "column",
               alignItems: "center",
               justifyContent: "center",
-              gap: "8px",
+              gap: "10px",
               borderRadius: "12px",
-              background: "rgba(255,255,255,0.15)",
-              backdropFilter: "blur(1px)",
             }}
           >
-            <div
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "8px",
-                background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
+            <style>{`
+              @keyframes be-border-spin {
+                from { transform: translate(-50%, -50%) rotate(0deg); }
+                to   { transform: translate(-50%, -50%) rotate(360deg); }
+              }
+            `}</style>
+            {/* outer pill: overflow hidden clips the spinning square to the pill rim */}
+            <div style={{
+              position: "relative",
+              display: "inline-flex",
+              borderRadius: "999px",
+              padding: "3px",
+              overflow: "hidden",
+              isolation: "isolate",
+            }}>
+              {/* spinning square — dark base with yellow+white arc baked in */}
+              <div style={{
+                position: "absolute",
+                width: "600px",
+                height: "600px",
+                top: "50%",
+                left: "50%",
+                background: "conic-gradient(from 0deg, #161616 0deg, #161616 270deg, #fbbf24 310deg, #ffffff 345deg, #fbbf24 360deg)",
+                animation: "be-border-spin 2s linear infinite",
+                willChange: "transform",
+              }} />
+              {/* inner pill covers the center — only the 3px rim stays visible */}
+              <div style={{
+                position: "relative",
+                zIndex: 1,
+                background: "rgb(22, 22, 22)",
+                borderRadius: "999px",
+                padding: "8px 20px",
                 color: "#fff",
                 fontSize: "13px",
-                fontWeight: 700,
-                letterSpacing: "0.08em",
-                textTransform: "uppercase",
-                padding: "6px 16px",
-                borderRadius: "999px",
-                boxShadow: "0 4px 16px rgba(99,102,241,0.4)",
-              }}
-            >
-              <span style={{ fontSize: "15px" }}>✨</span>
-              Something Special Coming Soon
-            </div>
-            <div
-              style={{
-                fontSize: "12px",
-                color: "#4b5563",
                 fontWeight: 500,
-                textAlign: "center",
-              }}
-            >
-              Our dedicated team is crafting something extraordinary just for you
+                letterSpacing: "0.04em",
+                whiteSpace: "nowrap",
+              }}>
+                ✨ Something Special Coming Soon
+              </div>
             </div>
           </div>
         </div>
+
+        {!portalBannerDismissed && (
+          <Banner
+            title="Something special is on its way — just for you"
+            tone="warning"
+            onDismiss={() => setPortalBannerDismissed(true)}
+          >
+            <Text as="p" variant="bodySm">
+              Our dedicated team is crafting <Text as="span" variant="bodySm" fontWeight="semibold">something extraordinary</Text>. A powerful new experience designed to help every merchant <Text as="span" variant="bodySm" fontWeight="semibold">rise above the competition</Text>, reach more customers, and <Text as="span" variant="bodySm" fontWeight="semibold">earn more — every single day</Text>. We&apos;re putting everything into this. The wait will be worth it.
+            </Text>
+          </Banner>
+        )}
 
       </BlockStack>
       </div>

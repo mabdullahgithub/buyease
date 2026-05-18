@@ -12,20 +12,16 @@ export const POST = withGuards({ skipPlanGate: true }, async (_req: NextRequest,
   });
 
   if (integration) {
-    // Revoke both tokens with Google (best-effort — don't block on failure)
-    const tokensToRevoke = [integration.googleAccessToken, integration.googleRefreshToken]
-      .filter(Boolean) as string[];
-
-    await Promise.allSettled(
-      tokensToRevoke.map(async (enc) => {
-        try {
-          const raw = decryptToken(enc);
-          await revokeToken(raw);
-        } catch {
-          // Ignore revocation errors — we still clear locally
-        }
-      }),
-    );
+    // Revoking the refresh token automatically invalidates all associated access tokens,
+    // so there is no need to revoke the access token separately.
+    if (integration.googleRefreshToken) {
+      try {
+        const raw = decryptToken(integration.googleRefreshToken);
+        await revokeToken(raw);
+      } catch {
+        // Ignore revocation errors — we still clear locally
+      }
+    }
 
     await db.googleSheetsIntegration.update({
       where: { shop: ctx.shop },

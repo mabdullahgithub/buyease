@@ -19,6 +19,7 @@
   var _cartItems = [];
   var _isCartMode = false;
   var _placesReady = false;
+  var _placesBalanceDepleted = false;
   var _googleData = { formattedAddress: null, mapsUrl: null, latitude: null, longitude: null, placeId: null };
 
   // ─── Fallback defaults (used when API is unreachable or shop has no saved config) ─
@@ -1491,12 +1492,16 @@
   }
 
   function logPlacesUsage(sessionType) {
-    if (!_ctx.shop || !_ctx.apiBase) return;
+    if (!_ctx.shop || !_ctx.apiBase || _placesBalanceDepleted) return;
     fetch(_ctx.apiBase + '/api/storefront/places-usage', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ shop: _ctx.shop, sessionType: sessionType }),
       keepalive: true,
+    }).then(function (res) {
+      // When the merchant's balance runs out the server returns 402.
+      // Set the flag so no further charge requests are made this session.
+      if (res.status === 402) { _placesBalanceDepleted = true; }
     }).catch(function () { /* silent */ });
   }
 

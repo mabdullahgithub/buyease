@@ -51,7 +51,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       create: {
         shop,
         googleAccessToken: encryptToken(tokens.accessToken),
-        googleRefreshToken: encryptToken(tokens.refreshToken as string),
+        googleRefreshToken: encryptToken(tokens.refreshToken!),
         googleTokenExpiresAt: tokens.expiresAt,
         googleEmail: tokens.email,
         isEnabled: false,
@@ -59,7 +59,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       },
       update: {
         googleAccessToken: encryptToken(tokens.accessToken),
-        googleRefreshToken: encryptToken(tokens.refreshToken as string),
+        googleRefreshToken: encryptToken(tokens.refreshToken!),
         googleTokenExpiresAt: tokens.expiresAt,
         googleEmail: tokens.email,
         // Reset header flag when reconnecting so we re-verify the sheet
@@ -68,7 +68,6 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Database update failed";
-    console.error("Google Sheets connection error:", err);
     return htmlResponse(
       false,
       `Failed to save connection to database: ${msg}. If you recently added new fields, make sure to run your database migrations.`,

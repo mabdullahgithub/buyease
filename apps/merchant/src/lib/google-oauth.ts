@@ -1,4 +1,4 @@
-import { createCipheriv, createDecipheriv, createHmac, randomBytes } from "crypto";
+import { createCipheriv, createDecipheriv, createHmac, randomBytes, timingSafeEqual } from "crypto";
 
 const ENCRYPTION_KEY = (process.env.GOOGLE_TOKEN_ENCRYPTION_KEY ?? "").trim();
 const OAUTH_STATE_SECRET = (process.env.GOOGLE_OAUTH_STATE_SECRET ?? ENCRYPTION_KEY).trim();
@@ -67,7 +67,10 @@ export function parseOAuthState(state: string): { shop: string } | null {
   const encoded = state.slice(0, dotIdx);
   const sig = state.slice(dotIdx + 1);
   const expected = createHmac("sha256", OAUTH_STATE_SECRET).update(encoded).digest("hex");
-  if (sig !== expected) return null;
+  // Use constant-time comparison to prevent timing attacks against the HMAC.
+  const sigBuf = Buffer.from(sig, "hex");
+  const expectedBuf = Buffer.from(expected, "hex");
+  if (sigBuf.length !== expectedBuf.length || !timingSafeEqual(sigBuf, expectedBuf)) return null;
 
   let parsed: { shop: string; ts: number };
   try {
