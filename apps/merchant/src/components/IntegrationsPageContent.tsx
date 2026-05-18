@@ -3112,6 +3112,95 @@ export function IntegrationsPageContent(): ReactElement {
             </InlineStack>
           </Card>
         ))}
+
+        {/* Dedicated Portal — Coming Soon */}
+        <div style={{ position: "relative" }}>
+          <div style={{ filter: "blur(3px)", pointerEvents: "none", userSelect: "none" }}>
+            <Card>
+              <InlineStack align="space-between" blockAlign="center" gap="600" wrap={false}>
+                <BlockStack gap="300" inlineAlign="start">
+                  <InlineStack gap="200" align="start" blockAlign="center">
+                    <Icon source={PersonIcon} />
+                    <Text as="h2" variant="headingMd" fontWeight="semibold">
+                      Dedicated Merchant Portal
+                    </Text>
+                  </InlineStack>
+                  <Text as="p" variant="bodyMd" tone="subdued">
+                    A fully branded, end-to-end portal tailored exclusively for your store — manage orders, customers, and operations all in one place.
+                  </Text>
+                  <div>
+                    <Button icon={PersonIcon} variant="primary" disabled>
+                      Open Dedicated Portal
+                    </Button>
+                  </div>
+                </BlockStack>
+                <div
+                  style={{
+                    width: 80,
+                    height: 80,
+                    borderRadius: "50%",
+                    background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a78bfa 100%)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                  }}
+                >
+                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none">
+                    <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </div>
+              </InlineStack>
+            </Card>
+          </div>
+
+          {/* Overlay */}
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "8px",
+              borderRadius: "12px",
+              background: "rgba(255,255,255,0.15)",
+              backdropFilter: "blur(1px)",
+            }}
+          >
+            <div
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "8px",
+                background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
+                color: "#fff",
+                fontSize: "13px",
+                fontWeight: 700,
+                letterSpacing: "0.08em",
+                textTransform: "uppercase",
+                padding: "6px 16px",
+                borderRadius: "999px",
+                boxShadow: "0 4px 16px rgba(99,102,241,0.4)",
+              }}
+            >
+              <span style={{ fontSize: "15px" }}>✨</span>
+              Something Special Coming Soon
+            </div>
+            <div
+              style={{
+                fontSize: "12px",
+                color: "#4b5563",
+                fontWeight: 500,
+                textAlign: "center",
+              }}
+            >
+              Our dedicated team is crafting something extraordinary just for you
+            </div>
+          </div>
+        </div>
+
       </BlockStack>
       </div>
     </Page>
