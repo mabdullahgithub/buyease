@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { Redis } from "ioredis";
+
 import { prisma } from "@/lib/db";
 import {
   getCachedFormConfig,
@@ -79,27 +81,46 @@ const DEFAULTS = {
   customCss:               "",
 };
 
-// ─── Google global config cache (30-second TTL) ───────────────────────────────
+// ─── Google global config cache (30-second TTL, Redis-backed) ────────────────
 // Kept separate from the per-shop LRU so that admin-side changes to the API key
 // or the isEnabled toggle propagate to storefronts within 30 seconds without
 // needing cross-process cache invalidation.
+//
+// Redis is used (instead of a process-local variable) so the cache is shared
+// across all serverless instances. A process-local fallback would cause a DB
+// query on every invocation in Vercel serverless, where each invocation is a
+// fresh process with no warm module state.
 //
 // SECURITY NOTE: The API key returned here is sent to browser clients so the
 // Google Places script can load. You MUST restrict this key in the Google Cloud
 // Console to HTTP referrer restrictions (e.g. *.myshopify.com/* and any custom
 // domains) to prevent unauthorised use and unexpected billing charges.
-let _googleGlobal: { apiKey: string | null; isEnabled: boolean } | null = null;
-let _googleGlobalExp = 0;
+let _redis: Redis | null = null;
+function getRedis(): Redis {
+  if (!_redis) _redis = new Redis(process.env.REDIS_URL!);
+  return _redis;
+}
+
+const GOOGLE_GLOBAL_REDIS_KEY = "buyease:google:global";
+const GOOGLE_GLOBAL_TTL_S = 30;
 
 async function fetchGoogleGlobalConfig(): Promise<{ apiKey: string | null; isEnabled: boolean }> {
-  if (Date.now() < _googleGlobalExp && _googleGlobal) return _googleGlobal;
+  try {
+    const cached = await getRedis().get(GOOGLE_GLOBAL_REDIS_KEY);
+    if (cached) return JSON.parse(cached) as { apiKey: string | null; isEnabled: boolean };
+  } catch { /* Redis unavailable — fall through to DB */ }
+
   const cfg = await prisma.googleAutocompleteGlobalConfig.findUnique({
     where: { id: 1 },
     select: { apiKey: true, isEnabled: true },
   });
-  _googleGlobal = { apiKey: cfg?.apiKey?.trim() || null, isEnabled: cfg?.isEnabled ?? true };
-  _googleGlobalExp = Date.now() + 30_000;
-  return _googleGlobal;
+  const result = { apiKey: cfg?.apiKey?.trim() || null, isEnabled: cfg?.isEnabled ?? true };
+
+  try {
+    await getRedis().setex(GOOGLE_GLOBAL_REDIS_KEY, GOOGLE_GLOBAL_TTL_S, JSON.stringify(result));
+  } catch { /* Redis write failure is non-fatal */ }
+
+  return result;
 }
 
 export async function OPTIONS(): Promise<NextResponse> {

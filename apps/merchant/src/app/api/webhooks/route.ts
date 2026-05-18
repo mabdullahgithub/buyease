@@ -148,29 +148,30 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
             payload.app_subscription?.interval,
           );
 
-          const dbPlan = await prisma.plan.upsert({
-            where: { name: planRecord.name },
-            create: {
-              name: planRecord.name,
-              price: planRecord.price,
-              interval: dbInterval,
-              features: planRecord.features,
-              limits: planRecord.limits,
-              isActive: true,
-            },
-            update: {
-              price: planRecord.price,
-              interval: dbInterval,
-              features: planRecord.features,
-              limits: planRecord.limits,
-              isActive: true,
-            },
-          });
-
-          const existingMerchant = await prisma.merchant.findUnique({
-            where: { shop },
-            select: { planId: true },
-          });
+          const [dbPlan, existingMerchant] = await Promise.all([
+            prisma.plan.upsert({
+              where: { name: planRecord.name },
+              create: {
+                name: planRecord.name,
+                price: planRecord.price,
+                interval: dbInterval,
+                features: planRecord.features,
+                limits: planRecord.limits,
+                isActive: true,
+              },
+              update: {
+                price: planRecord.price,
+                interval: dbInterval,
+                features: planRecord.features,
+                limits: planRecord.limits,
+                isActive: true,
+              },
+            }),
+            prisma.merchant.findUnique({
+              where: { shop },
+              select: { planId: true },
+            }),
+          ]);
           const isNewSubscription = !existingMerchant?.planId || existingMerchant.planId !== dbPlan.id;
 
           const gid = payload.app_subscription?.admin_graphql_api_id;
