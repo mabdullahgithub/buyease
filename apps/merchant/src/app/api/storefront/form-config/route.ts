@@ -77,6 +77,18 @@ const DEFAULTS = {
   disableAllDiscounts:     false,
   disableShopifyDiscount:  false,
   customCss:               "",
+  // ── Google Address Autocomplete ──
+  googlePlacesEnabled:    false,
+  googlePlacesApiKey:     undefined as string | undefined,
+  googleAcCountries:      [] as string[],
+  googleAcLanguage:       null as string | null,
+  googleAcPlaceType:      "address",
+  googleAcFillCity:       true,
+  googleAcFillPostalCode: true,
+  googleAcFillProvince:   true,
+  googleAcFillCountry:    true,
+  googleAcMapPicker:      false,
+  googleAcAutoLocate:     false,
 };
 
 export async function OPTIONS(): Promise<NextResponse> {
@@ -150,13 +162,62 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       disableAllDiscounts:    true,
       disableShopifyDiscount: true,
       customCss:              true,
+      // ── Google Address Autocomplete ──
+      googleAutocomplete:     true,
+      googleAcCountries:      true,
+      googleAcLanguage:       true,
+      googleAcPlaceType:      true,
+      googleAcFillCity:       true,
+      googleAcFillPostalCode: true,
+      googleAcFillProvince:   true,
+      googleAcFillCountry:    true,
+      googleAcMapPicker:      true,
+      googleAcAutoLocate:     true,
     },
   });
 
-  const result = (config ?? DEFAULTS) as Record<string, unknown>;
-  setCachedFormConfig(shop, result);
+  const base = (config ?? DEFAULTS) as Record<string, unknown>;
 
-  return NextResponse.json(result, {
+  if (config?.googleAutocomplete) {
+    const globalConfig = await prisma.googleAutocompleteGlobalConfig.findUnique({
+      where: { id: 1 },
+      select: { apiKey: true, isEnabled: true },
+    });
+    const adminKey = globalConfig?.apiKey?.trim() || null;
+    const envKey = process.env.GOOGLE_PLACES_API_KEY ?? "";
+    const apiKey = adminKey || envKey;
+    const isGloballyEnabled = globalConfig?.isEnabled ?? true;
+
+    base.googlePlacesEnabled = isGloballyEnabled && !!apiKey;
+    base.googlePlacesApiKey = isGloballyEnabled && apiKey ? apiKey : undefined;
+    base.googleAcCountries = config.googleAcCountries ?? [];
+    base.googleAcLanguage = config.googleAcLanguage ?? null;
+    base.googleAcPlaceType = config.googleAcPlaceType ?? "address";
+    base.googleAcFillCity = config.googleAcFillCity ?? true;
+    base.googleAcFillPostalCode = config.googleAcFillPostalCode ?? true;
+    base.googleAcFillProvince = config.googleAcFillProvince ?? true;
+    base.googleAcFillCountry = config.googleAcFillCountry ?? true;
+    base.googleAcMapPicker = config.googleAcMapPicker ?? false;
+    base.googleAcAutoLocate = config.googleAcAutoLocate ?? false;
+  } else {
+    base.googlePlacesEnabled = false;
+    base.googlePlacesApiKey = undefined;
+    base.googleAcCountries = [];
+    base.googleAcLanguage = null;
+    base.googleAcPlaceType = "address";
+    base.googleAcFillCity = true;
+    base.googleAcFillPostalCode = true;
+    base.googleAcFillProvince = true;
+    base.googleAcFillCountry = true;
+    base.googleAcMapPicker = false;
+    base.googleAcAutoLocate = false;
+  }
+
+  delete base.googleAutocomplete;
+
+  setCachedFormConfig(shop, base);
+
+  return NextResponse.json(base, {
     headers: { ...CORS, "Cache-Control": CACHE_CONTROL },
   });
 }

@@ -505,6 +505,7 @@ type ApiConfig = {
   isVisible: boolean;
   countriesEnabled: boolean;
   countries: string[];
+  googleAutocomplete?: boolean;
   updatedAt?: string;
 };
 
@@ -689,6 +690,7 @@ export function FormDesignerWorkspace({
   // Country restriction
   const [countriesEnabled, setCountriesEnabled] = useState(false);
   const [formCountries,    setFormCountries]    = useState<string[]>([]);
+  const [googleAcEnabled, setGoogleAcEnabled] = useState(false);
   const [countrySearch,    setCountrySearch]    = useState("");
 
   // Error messages
@@ -844,6 +846,7 @@ export function FormDesignerWorkspace({
     setIsVisible(cfg.isVisible);
     setCountriesEnabled(cfg.countriesEnabled ?? false);
     setFormCountries(Array.isArray(cfg.countries) ? cfg.countries : []);
+    setGoogleAcEnabled(cfg.googleAutocomplete ?? false);
   }, []);
 
   // ── Load on mount ──────────────────────────────────────────────────────────
@@ -2053,6 +2056,20 @@ export function FormDesignerWorkspace({
                   checked={stickyMobile}
                   onChange={setStickyMobile}
                 />
+                <InlineStack gap="200" blockAlign="center">
+                  <div
+                    style={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: "50%",
+                      backgroundColor: googleAcEnabled ? "var(--p-color-bg-fill-success)" : "var(--p-color-bg-fill-secondary)",
+                    }}
+                  />
+                  <Text as="p" variant="bodySm">
+                    Google Address Autocomplete is {googleAcEnabled ? "enabled" : "disabled"}.{" "}
+                    <Link url="/integrations?view=google-autocomplete">Configure</Link>
+                  </Text>
+                </InlineStack>
               </BlockStack>
 
               <Divider />

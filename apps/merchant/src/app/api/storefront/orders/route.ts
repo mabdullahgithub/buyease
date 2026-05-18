@@ -40,6 +40,11 @@ const storefrontOrderSchema = z.object({
   country: z.string().trim().length(2).toUpperCase(),
   note: z.string().trim().max(1000).optional(),
   marketingConsent: z.boolean().default(false),
+  googleFormattedAddress: z.string().trim().max(500).optional(),
+  googleMapsUrl: z.string().trim().max(1000).optional(),
+  googleLatitude: z.number().min(-90).max(90).optional(),
+  googleLongitude: z.number().min(-180).max(180).optional(),
+  googlePlaceId: z.string().trim().max(300).optional(),
 });
 
 type ShopifyDraftOrderBody = {
@@ -62,6 +67,7 @@ type ShopifyDraftOrderBody = {
       price: string;
     };
     note?: string;
+    note_attributes?: Array<{ name: string; value: string }>;
     tags: string;
     email?: string;
   };
@@ -231,6 +237,23 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     );
   }
 
+  const noteAttributes: Array<{ name: string; value: string }> = [];
+  if (data.googleFormattedAddress) {
+    noteAttributes.push({ name: "Google Formatted Address", value: data.googleFormattedAddress });
+  }
+  if (data.googleMapsUrl) {
+    noteAttributes.push({ name: "Google Maps Url", value: data.googleMapsUrl });
+  }
+  if (data.googleLatitude !== undefined && data.googleLongitude !== undefined) {
+    noteAttributes.push({
+      name: "Google Location",
+      value: `Latitude: ${data.googleLatitude} Longitude: ${data.googleLongitude}`,
+    });
+  }
+  if (data.googlePlaceId) {
+    noteAttributes.push({ name: "Location", value: data.googlePlaceId });
+  }
+
   const draftPayload: ShopifyDraftOrderBody = {
     draft_order: {
       line_items: draftLineItems,
@@ -246,6 +269,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         phone: data.customerPhone,
       },
       ...(shippingLine ? { shipping_line: shippingLine } : {}),
+      ...(noteAttributes.length > 0 ? { note_attributes: noteAttributes } : {}),
       ...(data.note ? { note: data.note } : {}),
       ...(data.customerEmail ? { email: data.customerEmail } : {}),
       tags: "cod,buyease",
@@ -378,6 +402,11 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
           address1: data.address1,
           city: data.city,
           country: data.country,
+          ...(data.googleFormattedAddress ? { googleFormattedAddress: data.googleFormattedAddress } : {}),
+          ...(data.googleMapsUrl ? { googleMapsUrl: data.googleMapsUrl } : {}),
+          ...(data.googleLatitude !== undefined ? { googleLatitude: data.googleLatitude } : {}),
+          ...(data.googleLongitude !== undefined ? { googleLongitude: data.googleLongitude } : {}),
+          ...(data.googlePlaceId ? { googlePlaceId: data.googlePlaceId } : {}),
         },
       },
       update: {},

@@ -35,6 +35,16 @@ const SELECT = {
   isVisible:           true,
   countriesEnabled:    true,
   countries:           true,
+  googleAutocomplete:     true,
+  googleAcCountries:      true,
+  googleAcLanguage:       true,
+  googleAcPlaceType:      true,
+  googleAcFillCity:       true,
+  googleAcFillPostalCode: true,
+  googleAcFillProvince:   true,
+  googleAcFillCountry:    true,
+  googleAcMapPicker:      true,
+  googleAcAutoLocate:     true,
   updatedAt:           true,
 } as const;
 

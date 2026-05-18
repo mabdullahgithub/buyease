@@ -73,9 +73,10 @@ model Merchant {
   buyButtonConfig   BuyButtonConfig?
   formDesignConfig  FormDesignConfig?
   shippingRates     ShippingRate[]
-  whatsAppConfig          MerchantWhatsAppConfig?
-  googleSheetsIntegration GoogleSheetsIntegration?
-  messagingSettings       MessagingSettings?
+  whatsAppConfig             MerchantWhatsAppConfig?
+  googleSheetsIntegration    GoogleSheetsIntegration?
+  messagingSettings          MessagingSettings?
+  googleAutocompleteUsage    GoogleAutocompleteUsageLog[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -370,6 +371,18 @@ model FormDesignConfig {
   disableAllDiscounts     Boolean @default(false)
   disableShopifyDiscount  Boolean @default(false)
   customCss               String  @default("")
+
+  // ── Google Address Autocomplete ───────────────────────────────────────
+  googleAutocomplete     Boolean @default(false)
+  googleAcCountries      Json    @default("[]")
+  googleAcLanguage       String?
+  googleAcPlaceType      String  @default("address")
+  googleAcFillCity       Boolean @default(true)
+  googleAcFillPostalCode Boolean @default(true)
+  googleAcFillProvince   Boolean @default(true)
+  googleAcFillCountry    Boolean @default(true)
+  googleAcMapPicker      Boolean @default(false)
+  googleAcAutoLocate     Boolean @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -723,4 +736,33 @@ model MessagingSettings {
   updatedAt DateTime @updatedAt
 
   @@index([shop])
+}
+
+// ---------------------------------------------------------------------------
+// Google Autocomplete — platform-wide config (singleton, id=1)
+// ---------------------------------------------------------------------------
+model GoogleAutocompleteGlobalConfig {
+  id              Int     @id @default(1)
+  apiKey          String?
+  pricePerSession Decimal @default(0.05) @db.Decimal(10, 4)
+  pricePerGeocode Decimal @default(0.01) @db.Decimal(10, 4)
+  isEnabled       Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ---------------------------------------------------------------------------
+// Google Autocomplete — per-session usage audit log
+// ---------------------------------------------------------------------------
+model GoogleAutocompleteUsageLog {
+  id          String   @id @default(cuid())
+  shop        String
+  merchant    Merchant @relation(fields: [shop], references: [shop], onDelete: Cascade)
+  sessionType String
+  costUsd     Decimal  @db.Decimal(10, 6)
+  createdAt   DateTime @default(now())
+
+  @@index([shop])
+  @@index([createdAt])
 }

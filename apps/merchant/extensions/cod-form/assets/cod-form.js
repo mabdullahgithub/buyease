@@ -18,6 +18,8 @@
   var _submitLabelTemplate = 'Place Order';
   var _cartItems = [];
   var _isCartMode = false;
+  var _placesReady = false;
+  var _googleData = { formattedAddress: null, mapsUrl: null, latitude: null, longitude: null, placeId: null };
 
   // ─── Fallback defaults (used when API is unreachable or shop has no saved config) ─
   var DEFAULT_BTN_CFG = {
@@ -574,6 +576,19 @@
       '@keyframes buye-bounce { 0%{transform:translateY(0)} 25%{transform:translateY(-8px)} 50%{transform:translateY(0)} 75%{transform:translateY(-4px)} 100%{transform:translateY(0)} }',
       '@keyframes buye-fanfare { 0%{transform:translateX(0)} 20%{transform:translateX(4px)} 40%{transform:translateX(-4px)} 60%{transform:translateX(3px)} 80%{transform:translateX(-3px)} 100%{transform:translateX(0)} }',
       '@keyframes buye-spin { to { transform: rotate(360deg); } }',
+
+      /* Google Places Map Picker */
+      '.buye-address-wrap { display: flex; gap: 8px; }',
+      '.buye-address-wrap .buye-input-wrap { flex: 1; }',
+      '.buye-map-btn { flex-shrink: 0; width: 40px; height: 40px; border: 1px solid ' + esc(formCfg.fieldBorderColor) + '; border-radius: ' + formCfg.fieldBorderRadiusPx + 'px; background: ' + esc(formCfg.fieldBgColor) + '; cursor: pointer; display: flex; align-items: center; justify-content: center; color: ' + esc(formCfg.fieldTextColor) + '; }',
+      '.buye-map-btn:hover { opacity: 0.8; }',
+      '#buye-map-overlay { position: fixed; inset: 0; z-index: 2147483647; background: rgba(0,0,0,0.55); display: flex; flex-direction: column; }',
+      '#buye-map-container { flex: 1; width: 100%; }',
+      '#buye-map-toolbar { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background: #fff; gap: 12px; box-shadow: 0 -2px 8px rgba(0,0,0,0.08); }',
+      '#buye-map-confirm { padding: 10px 24px; background: #111; color: #fff; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; }',
+      '#buye-map-confirm:hover { background: #333; }',
+      '#buye-map-close { padding: 10px 16px; background: transparent; border: 1px solid #d1d5db; border-radius: 8px; font-size: 15px; cursor: pointer; color: #374151; }',
+      '#buye-map-address-preview { font-size: 13px; color: #6b7280; flex: 1; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }',
     ].join('\n');
 
     var style = document.createElement('style');
@@ -821,6 +836,9 @@
     document.body.appendChild(_overlay);
     document.body.style.overflow = 'hidden';
 
+    _googleData = { formattedAddress: null, mapsUrl: null, latitude: null, longitude: null, placeId: null };
+    initGooglePlaces();
+
     bindFormEvents(card);
 
     var firstInput = card.querySelector('input[type="text"], input[type="tel"], input[type="email"], textarea');
@@ -903,7 +921,7 @@
       return { variantId: item.variant_id, quantity: item.quantity };
     });
 
-    return {
+    var payload = {
       shop: _ctx.shop,
       lineItems: lineItems,
       shippingRateId: shippingRateId,
@@ -919,6 +937,14 @@
       note: data.note || data.message || data.order_notes || undefined,
       marketingConsent: !!(data.marketing_checkbox || data.marketingConsent || data.marketing),
     };
+
+    if (_googleData.formattedAddress) payload.googleFormattedAddress = _googleData.formattedAddress;
+    if (_googleData.mapsUrl) payload.googleMapsUrl = _googleData.mapsUrl;
+    if (_googleData.latitude !== null) payload.googleLatitude = _googleData.latitude;
+    if (_googleData.longitude !== null) payload.googleLongitude = _googleData.longitude;
+    if (_googleData.placeId) payload.googlePlaceId = _googleData.placeId;
+
+    return payload;
   }
 
   function init() {
@@ -970,6 +996,8 @@
         _btnCfg = results[0] || DEFAULT_BTN_CFG;
         _formCfg = results[1] || DEFAULT_FORM_CFG;
         _rates = (results[2] && results[2].rates) ? results[2].rates : [];
+
+        warmGoogleDns();
 
         // Always apply dynamic button hiding and custom CSS regardless of visibility
         applyHideButtonsCSS(_formCfg);
@@ -1268,6 +1296,9 @@
     document.body.appendChild(_overlay);
     document.body.style.overflow = 'hidden';
 
+    _googleData = { formattedAddress: null, mapsUrl: null, latitude: null, longitude: null, placeId: null };
+    initGooglePlaces();
+
     bindFormEvents(card);
 
     // Focus first text input that isn't readonly/disabled — skip qty buttons & radios.
@@ -1281,6 +1312,192 @@
       _overlay = null;
       document.body.style.overflow = '';
     }
+  }
+
+  // ─── Google Places Autocomplete ─────────────────────────────────────────────
+  function warmGoogleDns() {
+    if (!_formCfg || !_formCfg.googlePlacesEnabled) return;
+    if (document.querySelector('link[href="https://maps.googleapis.com"]')) return;
+    var l = document.createElement('link');
+    l.rel = 'preconnect'; l.href = 'https://maps.googleapis.com'; l.crossOrigin = 'anonymous';
+    document.head.appendChild(l);
+  }
+
+  function loadGooglePlaces(cb) {
+    if (_placesReady) { cb(); return; }
+    if (!_formCfg || !_formCfg.googlePlacesApiKey) return;
+    var p = 'key=' + encodeURIComponent(_formCfg.googlePlacesApiKey) + '&libraries=places,geocoding&loading=async';
+    if (_formCfg.googleAcLanguage) p += '&language=' + encodeURIComponent(_formCfg.googleAcLanguage);
+    var s = document.createElement('script');
+    s.src = 'https://maps.googleapis.com/maps/api/js?' + p;
+    s.async = true; s.defer = true;
+    s.onload = function () { _placesReady = true; cb(); };
+    document.head.appendChild(s);
+  }
+
+  function initGooglePlaces() {
+    if (!_formCfg || !_formCfg.googlePlacesEnabled || !_formCfg.googlePlacesApiKey) return;
+    loadGooglePlaces(function () {
+      setupPlacesAutocomplete();
+      if (_formCfg.googleAcMapPicker) setupMapPicker();
+      if (_formCfg.googleAcAutoLocate) tryAutoLocate();
+    });
+  }
+
+  function setupPlacesAutocomplete() {
+    var input = document.getElementById('buye-address') || document.getElementById('buye-address1');
+    if (!input || !window.google || !window.google.maps || !window.google.maps.places) return;
+    var opts = { types: [_formCfg.googleAcPlaceType || 'address'], fields: ['address_components', 'formatted_address', 'geometry', 'place_id', 'url'] };
+    if (_formCfg.googleAcCountries && _formCfg.googleAcCountries.length) {
+      opts.componentRestrictions = { country: _formCfg.googleAcCountries };
+    }
+    var ac = new google.maps.places.Autocomplete(input, opts);
+    input.addEventListener('keydown', function (e) { if (e.key === 'Enter') e.preventDefault(); });
+    ac.addListener('place_changed', function () {
+      var place = ac.getPlace();
+      if (!place || !place.address_components) return;
+      _googleData.formattedAddress = place.formatted_address || null;
+      _googleData.mapsUrl = place.url || null;
+      _googleData.placeId = place.place_id || null;
+      if (place.geometry && place.geometry.location) {
+        _googleData.latitude = place.geometry.location.lat();
+        _googleData.longitude = place.geometry.location.lng();
+      }
+      applyAddressComponents(place.address_components, place.formatted_address);
+      logPlacesUsage('autocomplete');
+    });
+  }
+
+  function setupMapPicker() {
+    var btn = document.getElementById('buye-map-btn');
+    if (btn) btn.addEventListener('click', openMapOverlay);
+  }
+
+  function openMapOverlay() {
+    if (!window.google || !window.google.maps) return;
+    var geocoder = new google.maps.Geocoder();
+    var pendingComponents = null;
+    var pendingFormatted = '';
+
+    var overlay = document.createElement('div');
+    overlay.id = 'buye-map-overlay';
+    overlay.innerHTML =
+      '<div id="buye-map-container"></div>' +
+      '<div id="buye-map-toolbar">' +
+      '<button type="button" id="buye-map-close">Cancel</button>' +
+      '<span id="buye-map-address-preview">Drag the pin to your location</span>' +
+      '<button type="button" id="buye-map-confirm">Confirm</button>' +
+      '</div>';
+    document.body.appendChild(overlay);
+
+    var defaultCenter = { lat: 25, lng: 45 };
+    var map = new google.maps.Map(document.getElementById('buye-map-container'), {
+      zoom: 13, center: defaultCenter,
+      disableDefaultUI: true, zoomControl: true, gestureHandling: 'greedy',
+    });
+    var marker = new google.maps.Marker({
+      position: defaultCenter, map: map, draggable: true,
+      animation: google.maps.Animation.DROP,
+    });
+
+    function reverseGeocode(latlng) {
+      var req = { location: latlng };
+      geocoder.geocode(req, function (results, status) {
+        if (status === 'OK' && results[0]) {
+          pendingComponents = results[0].address_components;
+          pendingFormatted = results[0].formatted_address;
+          var el = document.getElementById('buye-map-address-preview');
+          if (el) el.textContent = pendingFormatted;
+        }
+      });
+    }
+
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(function (pos) {
+        var latlng = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        map.setCenter(latlng); marker.setPosition(latlng); reverseGeocode(latlng);
+      });
+    }
+
+    marker.addListener('dragend', function () { reverseGeocode(marker.getPosition().toJSON()); });
+
+    document.getElementById('buye-map-confirm').addEventListener('click', function () {
+      if (pendingComponents) {
+        var pos = marker.getPosition().toJSON();
+        _googleData.formattedAddress = pendingFormatted || null;
+        _googleData.placeId = null;
+        _googleData.latitude = pos.lat;
+        _googleData.longitude = pos.lng;
+        _googleData.mapsUrl = 'https://maps.google.com/?q=' + pos.lat + ',' + pos.lng;
+        applyAddressComponents(pendingComponents, pendingFormatted);
+        logPlacesUsage('geocode');
+      }
+      document.body.removeChild(overlay);
+    });
+    document.getElementById('buye-map-close').addEventListener('click', function () {
+      document.body.removeChild(overlay);
+    });
+  }
+
+  function tryAutoLocate() {
+    if (!navigator.geolocation || !window.google || !window.google.maps) return;
+    navigator.geolocation.getCurrentPosition(function (pos) {
+      var geocoder = new google.maps.Geocoder();
+      geocoder.geocode(
+        { location: { lat: pos.coords.latitude, lng: pos.coords.longitude } },
+        function (results, status) {
+          if (status === 'OK' && results[0]) {
+            _googleData.formattedAddress = results[0].formatted_address || null;
+            _googleData.placeId = results[0].place_id || null;
+            _googleData.latitude = pos.coords.latitude;
+            _googleData.longitude = pos.coords.longitude;
+            _googleData.mapsUrl = 'https://maps.google.com/?q=' + pos.coords.latitude + ',' + pos.coords.longitude;
+            applyAddressComponents(results[0].address_components, results[0].formatted_address);
+            logPlacesUsage('geocode');
+          }
+        }
+      );
+    }, function () { /* denied — silent */ });
+  }
+
+  function applyAddressComponents(components, formattedAddress) {
+    var streetNumber = '', route = '', city = '', province = '', postalCode = '', country = '';
+    components.forEach(function (c) {
+      var t = c.types;
+      if (t.indexOf('street_number') !== -1) streetNumber = c.long_name;
+      if (t.indexOf('route') !== -1) route = c.long_name;
+      if (t.indexOf('locality') !== -1) city = c.long_name;
+      if (t.indexOf('administrative_area_level_1') !== -1) province = c.short_name;
+      if (t.indexOf('postal_code') !== -1) postalCode = c.long_name;
+      if (t.indexOf('country') !== -1) country = c.short_name;
+    });
+    var input = document.getElementById('buye-address') || document.getElementById('buye-address1');
+    if (input) {
+      input.value = [streetNumber, route].filter(Boolean).join(' ') || formattedAddress || '';
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+    var fills = [
+      { id: 'city', value: city, enabled: _formCfg.googleAcFillCity !== false },
+      { id: 'postal_code', value: postalCode, enabled: _formCfg.googleAcFillPostalCode !== false },
+      { id: 'province', value: province, enabled: _formCfg.googleAcFillProvince !== false },
+      { id: 'state', value: province, enabled: _formCfg.googleAcFillProvince !== false },
+      { id: 'country', value: country, enabled: _formCfg.googleAcFillCountry !== false },
+    ];
+    fills.forEach(function (f) {
+      if (!f.enabled || !f.value) return;
+      var el = document.getElementById('buye-' + f.id);
+      if (el) { el.value = f.value; el.dispatchEvent(new Event('input', { bubbles: true })); }
+    });
+  }
+
+  function logPlacesUsage(sessionType) {
+    if (!_ctx.shop || !_ctx.apiBase) return;
+    fetch(_ctx.apiBase + '/api/storefront/places-usage', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ shop: _ctx.shop, sessionType: sessionType }),
+      keepalive: true,
+    }).catch(function () { /* silent */ });
   }
 
   // ─── Form HTML ────────────────────────────────────────────────────────────────
@@ -1512,9 +1729,10 @@
     var iconHtml = renderFieldIcon(field);
     var autocomplete = _formCfg.autocomplete !== false ? getAutocomplete(field.id) : 'off';
 
-    return [
-      '<div class="buye-field" data-field-wrap-id="' + esc(field.id) + '">',
-      label,
+    var isAddress = (field.id === 'address' || field.id === 'address1');
+    var showMapBtn = isAddress && _formCfg.googlePlacesEnabled && _formCfg.googleAcMapPicker;
+
+    var inputHtml = [
       '<div class="buye-input-wrap">',
       iconHtml,
       '<input',
@@ -1531,6 +1749,19 @@
       '  data-required="' + (field.required ? 'true' : 'false') + '"',
       '/>',
       '</div>',
+    ].join('');
+
+    var fieldContent = showMapBtn
+      ? '<div class="buye-address-wrap">' + inputHtml +
+        '<button type="button" id="buye-map-btn" class="buye-map-btn" aria-label="Pick on map">' +
+        '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>' +
+        '</button></div>'
+      : inputHtml;
+
+    return [
+      '<div class="buye-field" data-field-wrap-id="' + esc(field.id) + '">',
+      label,
+      fieldContent,
       '<div class="buye-error-msg">' + esc(field.errorMessage || _formCfg.errorRequired || 'This field is required') + '</div>',
       '</div>',
     ].join('');
@@ -1844,7 +2075,7 @@
       );
     }
 
-    return {
+    var payload = {
       shop: _ctx.shop,
       variantId: lineItems ? undefined : _ctx.variantId,
       quantity: lineItems ? undefined : (_ctx.quantity || 1),
@@ -1862,6 +2093,14 @@
       note: data.note || data.message || data.order_notes || undefined,
       marketingConsent: !!(data.marketing_checkbox || data.marketingConsent || data.marketing),
     };
+
+    if (_googleData.formattedAddress) payload.googleFormattedAddress = _googleData.formattedAddress;
+    if (_googleData.mapsUrl) payload.googleMapsUrl = _googleData.mapsUrl;
+    if (_googleData.latitude !== null) payload.googleLatitude = _googleData.latitude;
+    if (_googleData.longitude !== null) payload.googleLongitude = _googleData.longitude;
+    if (_googleData.placeId) payload.googlePlaceId = _googleData.placeId;
+
+    return payload;
   }
 
   // ─── Form banner (inline error / info) ───────────────────────────────────────
@@ -2027,6 +2266,8 @@
       return;
     }
 
+    _googleData = { formattedAddress: null, mapsUrl: null, latitude: null, longitude: null, placeId: null };
+    initGooglePlaces();
     bindEmbeddedFormEvents(card);
   }
 

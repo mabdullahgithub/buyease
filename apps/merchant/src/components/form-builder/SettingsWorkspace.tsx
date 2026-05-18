@@ -27,12 +27,15 @@ import {
   AlertCircleIcon,
   ChatIcon,
   CheckCircleIcon,
+  ChevronDownIcon,
+  ChevronUpIcon,
   DeleteIcon,
   ExternalIcon,
   ImageIcon,
   SearchIcon,
 } from "@shopify/polaris-icons";
 import { SaveBar } from "@shopify/app-bridge-react";
+import { RichTextEditor } from "@/components/RichTextEditor";
 
 import { useShopifyBridge } from "@/lib/use-shopify-bridge";
 import { buildThemeEditorUrl } from "@/lib/shopify-urls";
@@ -43,6 +46,11 @@ import { SHIPPING_COUNTRIES } from "@/components/form-builder/shipping-rates-cou
 type FormPlacement = "whole-store" | "product-pages" | "cart-page";
 type WhenOpened = "product-only" | "product-and-cart";
 type ProductRestrictionMode = "none" | "enable-only" | "disable-for";
+type RedirectionMode =
+  | "shopify-thank-you"
+  | "specific-page"
+  | "whatsapp"
+  | "no-redirection";
 
 type RestrictedProduct = {
   id: string;
@@ -104,6 +112,10 @@ type SettingsPayload = {
   disableAllDiscounts: boolean;
   disableShopifyDiscount: boolean;
   customCss: string;
+  redirection: RedirectionMode;
+  redirectionUrl: string;
+  whatsappMessage: string;
+  whatsappPhone: string;
 };
 
 // ── Resource picker response shapes ─────────────────────────────────────────
@@ -230,6 +242,63 @@ function ResourceThumbnail({ imageUrl, alt }: { imageUrl: string; alt: string })
         style={{ display: "block", objectFit: "cover", width: 48, height: 48 }}
       />
     </Box>
+  );
+}
+
+// ── Variables grid (for redirection) ────────────────────────────────────────
+
+const VARIABLES_GRID: string[][] = [
+  ["{{customer.name}}", "{{customer.city}}", "{{order.shipping_method}}"],
+  ["{{customer.phone}}", "{{customer.zip}}", "{{order.products}}"],
+  ["{{customer.email}}", "{{order.id}}", "{{order.variants}}"],
+  ["{{customer.address1}}", "{{order.number}}", "{{order.quantity}}"],
+  ["{{customer.address2}}", "{{order.total}}", "{{order.variant_ids}}"],
+  ["{{customer.province}}", "{{order.note}}", "{{order.products_urls}}"],
+];
+
+function VariablesSection(): ReactElement {
+  const [open, setOpen] = useState(true);
+
+  return (
+    <BlockStack gap="300">
+      <InlineStack>
+        <Button
+          variant="plain"
+          icon={open ? ChevronUpIcon : ChevronDownIcon}
+          onClick={() => setOpen(!open)}
+        >
+          Variables:
+        </Button>
+      </InlineStack>
+      {open && (
+        <InlineGrid columns={3} gap="200">
+          {VARIABLES_GRID.flat().map((variable) => (
+            <button
+              key={variable}
+              type="button"
+              onClick={() => {
+                void navigator.clipboard.writeText(variable);
+              }}
+              style={{
+                background: "none",
+                border: "none",
+                padding: "2px 0",
+                cursor: "pointer",
+                fontFamily: "monospace",
+                fontSize: "13px",
+                color: "#303030",
+                textAlign: "left",
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
+              {variable}
+            </button>
+          ))}
+        </InlineGrid>
+      )}
+    </BlockStack>
   );
 }
 
@@ -372,6 +441,12 @@ export function SettingsWorkspace({ embedEnabled }: Props): ReactElement {
   const [disableShopifyDiscount, setDisableShopifyDiscount] = useState(false);
   const [customCss, setCustomCss] = useState("");
 
+  // Redirection
+  const [redirection, setRedirection] = useState<RedirectionMode>("shopify-thank-you");
+  const [redirectionUrl, setRedirectionUrl] = useState("");
+  const [whatsappMessage, setWhatsappMessage] = useState("");
+  const [whatsappPhone, setWhatsappPhone] = useState("");
+
   useEffect(() => {
     const domain: string =
       (window as Window & { shopify?: { config?: { shop?: string } } }).shopify?.config?.shop ?? "";
@@ -402,11 +477,16 @@ export function SettingsWorkspace({ embedEnabled }: Props): ReactElement {
     disableAllDiscounts,
     disableShopifyDiscount,
     customCss,
+    redirection,
+    redirectionUrl,
+    whatsappMessage,
+    whatsappPhone,
   }), [
     formPlacement, hideCheckout, hideAddToCart, hideBuyNow, whenOpened,
     disableIn, productRestrictionMode, restrictedProducts, restrictedCollections,
     restrict, hideSubmitButton, disableOutOfStock, disableAllDiscounts,
-    disableShopifyDiscount, customCss,
+    disableShopifyDiscount, customCss, redirection, redirectionUrl,
+    whatsappMessage, whatsappPhone,
   ]);
 
   // ── Apply fetched config to state ────────────────────────────────────────────
@@ -435,6 +515,10 @@ export function SettingsWorkspace({ embedEnabled }: Props): ReactElement {
     setDisableAllDiscounts(cfg.disableAllDiscounts);
     setDisableShopifyDiscount(cfg.disableShopifyDiscount);
     setCustomCss(cfg.customCss);
+    setRedirection(cfg.redirection ?? "shopify-thank-you");
+    setRedirectionUrl(cfg.redirectionUrl ?? "");
+    setWhatsappMessage(cfg.whatsappMessage ?? "");
+    setWhatsappPhone(cfg.whatsappPhone ?? "");
   }, []);
 
   // ── Fetch settings on mount ──────────────────────────────────────────────────
@@ -1283,6 +1367,102 @@ export function SettingsWorkspace({ embedEnabled }: Props): ReactElement {
                 checked={disableShopifyDiscount}
                 onChange={setDisableShopifyDiscount}
               />
+            </BlockStack>
+          </Box>
+        </Card>
+      </InlineGrid>
+
+      <Divider />
+
+      {/* ── Manage Redirection ─────────────────────────────────────────── */}
+      <InlineGrid columns={["oneThird", "twoThirds"]} gap="400">
+        <BlockStack gap="200">
+          <Text as="h2" variant="headingMd">
+            Manage redirection
+          </Text>
+          <Text as="p" variant="bodyMd" tone="subdued">
+            Select where you want to redirect customers after placing the order
+          </Text>
+        </BlockStack>
+        <Card padding="0">
+          <Box padding="400">
+            <BlockStack gap="400">
+              <ChoiceList
+                title="Redirection"
+                titleHidden
+                choices={[
+                  {
+                    label:
+                      "Redirect customers to Shopify default Thank you page",
+                    value: "shopify-thank-you",
+                  },
+                  {
+                    label: "Redirect customers to specific page",
+                    value: "specific-page",
+                    renderChildren: (isSelected) =>
+                      isSelected ? (
+                        <Box paddingBlockStart="300">
+                          <TextField
+                            label="URL"
+                            labelHidden
+                            value={redirectionUrl}
+                            onChange={setRedirectionUrl}
+                            placeholder="https://shopify.com"
+                            helpText="Link where to redirect customers after submitting form."
+                            autoComplete="off"
+                          />
+                        </Box>
+                      ) : null,
+                  },
+                  {
+                    label:
+                      "Redirect customers to WhatsApp to chat with you",
+                    value: "whatsapp",
+                    renderChildren: (isSelected) =>
+                      isSelected ? (
+                        <Box paddingBlockStart="300">
+                          <InlineGrid columns={2} gap="400">
+                            <TextField
+                              label="WhatsApp Message"
+                              value={whatsappMessage}
+                              onChange={setWhatsappMessage}
+                              multiline={4}
+                              autoComplete="off"
+                            />
+                            <TextField
+                              label="Your WhatsApp phone number"
+                              value={whatsappPhone}
+                              onChange={setWhatsappPhone}
+                              placeholder="+571234567890"
+                              helpText="Please include the country code"
+                              autoComplete="off"
+                            />
+                          </InlineGrid>
+                        </Box>
+                      ) : null,
+                  },
+                  {
+                    label: "No redirection (Show thank you message only)",
+                    value: "no-redirection",
+                    renderChildren: (isSelected) =>
+                      isSelected ? (
+                        <Box paddingBlockStart="300">
+                          <BlockStack gap="300">
+                            <Text as="p" variant="bodyMd" tone="subdued">
+                              Message to show after submiting the form
+                            </Text>
+                            <RichTextEditor />
+                          </BlockStack>
+                        </Box>
+                      ) : null,
+                  },
+                ]}
+                selected={[redirection]}
+                onChange={(values) =>
+                  setRedirection(values[0] as RedirectionMode)
+                }
+              />
+              {redirection !== "shopify-thank-you" && <VariablesSection />}
             </BlockStack>
           </Box>
         </Card>

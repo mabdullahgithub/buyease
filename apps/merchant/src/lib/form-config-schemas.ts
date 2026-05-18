@@ -94,6 +94,16 @@ export const formDesignConfigSchema = z.object({
   isVisible: z.boolean().default(true),
   countriesEnabled: z.boolean().default(false),
   countries: z.array(countryCode).max(250).default([]),
+  googleAutocomplete: z.boolean().optional(),
+  googleAcCountries: z.array(z.string().length(2)).max(5).optional(),
+  googleAcLanguage: z.string().max(10).nullable().optional(),
+  googleAcPlaceType: z.enum(["address", "geocode"]).optional(),
+  googleAcFillCity: z.boolean().optional(),
+  googleAcFillPostalCode: z.boolean().optional(),
+  googleAcFillProvince: z.boolean().optional(),
+  googleAcFillCountry: z.boolean().optional(),
+  googleAcMapPicker: z.boolean().optional(),
+  googleAcAutoLocate: z.boolean().optional(),
 });
 
 export type FormDesignConfigInput = z.infer<typeof formDesignConfigSchema>;

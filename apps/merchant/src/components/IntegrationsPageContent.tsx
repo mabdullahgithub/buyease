@@ -63,7 +63,7 @@ type IntegrationItem = {
   imageHeight: number;
 };
 
-type ActiveView = "list" | "sms-whatsapp" | "google-sheets";
+type ActiveView = "list" | "sms-whatsapp" | "google-sheets" | "google-autocomplete";
 
 const INTEGRATIONS: IntegrationItem[] = [
   {
@@ -2504,6 +2504,488 @@ function SmsWhatsAppPage({ onBack }: { onBack: () => void }): ReactElement {
 }
 
 
+// ─── Google Address Autocomplete Page ─────────────────────────────────────────
+
+const COUNTRY_OPTIONS = [
+  { label: "United Arab Emirates", value: "AE" },
+  { label: "Saudi Arabia", value: "SA" },
+  { label: "Kuwait", value: "KW" },
+  { label: "Bahrain", value: "BH" },
+  { label: "Oman", value: "OM" },
+  { label: "Qatar", value: "QA" },
+  { label: "Egypt", value: "EG" },
+  { label: "Jordan", value: "JO" },
+  { label: "Lebanon", value: "LB" },
+  { label: "Iraq", value: "IQ" },
+  { label: "Morocco", value: "MA" },
+  { label: "Tunisia", value: "TN" },
+  { label: "India", value: "IN" },
+  { label: "Pakistan", value: "PK" },
+  { label: "Turkey", value: "TR" },
+  { label: "United States", value: "US" },
+  { label: "United Kingdom", value: "GB" },
+  { label: "Canada", value: "CA" },
+  { label: "Australia", value: "AU" },
+  { label: "Germany", value: "DE" },
+  { label: "France", value: "FR" },
+  { label: "Brazil", value: "BR" },
+  { label: "Mexico", value: "MX" },
+  { label: "Nigeria", value: "NG" },
+  { label: "South Africa", value: "ZA" },
+];
+
+const LANGUAGE_OPTIONS = [
+  { label: "Auto-detect", value: "" },
+  { label: "Arabic", value: "ar" },
+  { label: "English", value: "en" },
+  { label: "French", value: "fr" },
+  { label: "German", value: "de" },
+  { label: "Hindi", value: "hi" },
+  { label: "Spanish", value: "es" },
+  { label: "Turkish", value: "tr" },
+  { label: "Urdu", value: "ur" },
+  { label: "Portuguese", value: "pt" },
+];
+
+type GoogleAcSettings = {
+  googleAutocomplete: boolean;
+  googleAcCountries: string[];
+  googleAcLanguage: string | null;
+  googleAcPlaceType: "address" | "geocode";
+  googleAcFillCity: boolean;
+  googleAcFillPostalCode: boolean;
+  googleAcFillProvince: boolean;
+  googleAcFillCountry: boolean;
+  googleAcMapPicker: boolean;
+  googleAcAutoLocate: boolean;
+  balance: number;
+};
+
+function GoogleAutocompletePage({ onBack }: { onBack: () => void }): ReactElement {
+  const shopify = useShopifyBridge();
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [hasChanges, setHasChanges] = useState(false);
+  const [balance, setBalance] = useState(0);
+  const [topUpAmount, setTopUpAmount] = useState("5.00");
+
+  const [googleAutocomplete, setGoogleAutocomplete] = useState(false);
+  const [googleAcCountries, setGoogleAcCountries] = useState<string[]>([]);
+  const [googleAcLanguage, setGoogleAcLanguage] = useState("");
+  const [googleAcPlaceType, setGoogleAcPlaceType] = useState<"address" | "geocode">("address");
+  const [googleAcFillCity, setGoogleAcFillCity] = useState(true);
+  const [googleAcFillPostalCode, setGoogleAcFillPostalCode] = useState(true);
+  const [googleAcFillProvince, setGoogleAcFillProvince] = useState(true);
+  const [googleAcFillCountry, setGoogleAcFillCountry] = useState(true);
+  const [googleAcMapPicker, setGoogleAcMapPicker] = useState(false);
+  const [googleAcAutoLocate, setGoogleAcAutoLocate] = useState(false);
+
+  const initialRef = useRef<GoogleAcSettings | null>(null);
+
+  const loadSettings = useCallback(async () => {
+    setIsLoading(true);
+    setLoadError(false);
+    try {
+      const token = await shopify.idToken();
+      const res = await fetch("/api/google-autocomplete/settings", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("Failed to load");
+      const data: GoogleAcSettings = await res.json();
+
+      initialRef.current = data;
+      setBalance(data.balance);
+      setGoogleAutocomplete(data.googleAutocomplete);
+      setGoogleAcCountries(data.googleAcCountries);
+      setGoogleAcLanguage(data.googleAcLanguage ?? "");
+      setGoogleAcPlaceType(data.googleAcPlaceType);
+      setGoogleAcFillCity(data.googleAcFillCity);
+      setGoogleAcFillPostalCode(data.googleAcFillPostalCode);
+      setGoogleAcFillProvince(data.googleAcFillProvince);
+      setGoogleAcFillCountry(data.googleAcFillCountry);
+      setGoogleAcMapPicker(data.googleAcMapPicker);
+      setGoogleAcAutoLocate(data.googleAcAutoLocate);
+      setHasChanges(false);
+    } catch {
+      setLoadError(true);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [shopify]);
+
+  useEffect(() => { loadSettings(); }, [loadSettings]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("billing_sync") !== "1") return;
+    void loadSettings().finally(() => {
+      const url = new URL(window.location.href);
+      url.searchParams.delete("billing_sync");
+      window.history.replaceState({}, "", url.toString());
+    });
+  }, [loadSettings]);
+
+  const markDirty = () => setHasChanges(true);
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      const token = await shopify.idToken();
+      const res = await fetch("/api/google-autocomplete/settings", {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          googleAutocomplete,
+          googleAcCountries,
+          googleAcLanguage: googleAcLanguage || null,
+          googleAcPlaceType,
+          googleAcFillCity,
+          googleAcFillPostalCode,
+          googleAcFillProvince,
+          googleAcFillCountry,
+          googleAcMapPicker,
+          googleAcAutoLocate,
+        }),
+      });
+      if (!res.ok) throw new Error("Failed to save");
+      const data: GoogleAcSettings = await res.json();
+      initialRef.current = data;
+      setBalance(data.balance);
+      setHasChanges(false);
+      shopify.toast.show("Settings saved");
+    } catch {
+      shopify.toast.show("Failed to save settings. Please try again.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDiscard = () => {
+    if (!initialRef.current) return;
+    const d = initialRef.current;
+    setGoogleAutocomplete(d.googleAutocomplete);
+    setGoogleAcCountries(d.googleAcCountries);
+    setGoogleAcLanguage(d.googleAcLanguage ?? "");
+    setGoogleAcPlaceType(d.googleAcPlaceType);
+    setGoogleAcFillCity(d.googleAcFillCity);
+    setGoogleAcFillPostalCode(d.googleAcFillPostalCode);
+    setGoogleAcFillProvince(d.googleAcFillProvince);
+    setGoogleAcFillCountry(d.googleAcFillCountry);
+    setGoogleAcMapPicker(d.googleAcMapPicker);
+    setGoogleAcAutoLocate(d.googleAcAutoLocate);
+    setHasChanges(false);
+  };
+
+  const handleTopUp = async () => {
+    const amount = parseFloat(topUpAmount);
+    if (isNaN(amount) || amount <= 0) {
+      shopify.toast.show("Enter a valid top-up amount");
+      return;
+    }
+    try {
+      const token = await shopify.idToken();
+      const res = await fetch("/api/billing/top-up", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          amount,
+          host: new URLSearchParams(window.location.search).get("host"),
+        }),
+      });
+      const data = await res.json();
+      if (data.reauth) {
+        shopify.toast.show("Session expired. Please refresh the page.");
+        return;
+      }
+      if (data.confirmationUrl) {
+        window.top!.location.href = data.confirmationUrl;
+      } else {
+        shopify.toast.show(data.error || "Failed to initiate top-up");
+      }
+    } catch {
+      shopify.toast.show("Failed to initiate top-up");
+    }
+  };
+
+  const handleCountryToggle = (code: string) => {
+    markDirty();
+    setGoogleAcCountries((prev) => {
+      if (prev.includes(code)) return prev.filter((c) => c !== code);
+      if (prev.length >= 5) return prev;
+      return [...prev, code];
+    });
+  };
+
+  const numericAmount = parseFloat(topUpAmount);
+  const buttonLabel =
+    !isNaN(numericAmount) && numericAmount > 0
+      ? `Top up $${numericAmount.toFixed(2)}`
+      : "Top up";
+
+  return (
+    <Page
+      backAction={{ content: "Integrations", onAction: onBack }}
+      title="Google Address Autocomplete"
+      subtitle="Improve address accuracy and boost conversions on your COD form"
+    >
+      {hasChanges && (
+        <SaveBar id="google-ac-save-bar" open={hasChanges}>
+          <button variant="primary" onClick={handleSave} disabled={isSaving} />
+          <button onClick={handleDiscard} disabled={isSaving} />
+        </SaveBar>
+      )}
+      <div style={{ width: "65.5rem", maxWidth: "100%" }}>
+        {isLoading ? (
+          <BlockStack gap="400">
+            <Card><BlockStack gap="400"><SkeletonBodyText lines={4} /></BlockStack></Card>
+            <Card><BlockStack gap="400"><SkeletonBodyText lines={6} /></BlockStack></Card>
+          </BlockStack>
+        ) : loadError ? (
+          <Banner tone="critical" title="Failed to load settings">
+            <p>Could not load Google Autocomplete settings.</p>
+            <Box paddingBlockStart="200">
+              <Button onClick={loadSettings}>Retry</Button>
+            </Box>
+          </Banner>
+        ) : (
+          <BlockStack gap="400">
+            <Banner tone="info" title="Balance usage">
+              <p>
+                Each autocomplete selection costs $0.050 and each map pin / auto-locate
+                costs $0.010. Charges are deducted from your shared balance.
+              </p>
+            </Banner>
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: "var(--p-space-300)",
+                alignItems: "start",
+              }}
+            >
+              {/* Left column — Balance */}
+              <Card>
+                <BlockStack gap="300" inlineAlign="center">
+                  <BlockStack gap="100" inlineAlign="center">
+                    <Text as="h2" variant="headingLg" fontWeight="bold" alignment="center">
+                      Remaining balance
+                    </Text>
+                    <Text as="p" variant="heading3xl" alignment="center" fontWeight="bold">
+                      ${balance.toFixed(3)}
+                    </Text>
+                  </BlockStack>
+                  <Box paddingBlockStart="100" paddingBlockEnd="100" width="100%">
+                    <Divider />
+                  </Box>
+                  <BlockStack gap="200" inlineAlign="center">
+                    <Text as="p" variant="headingSm" fontWeight="semibold" alignment="center">
+                      Top up your balance
+                    </Text>
+                    <div style={{ width: "180px" }}>
+                      <TextField
+                        label="Top-up amount"
+                        labelHidden
+                        value={topUpAmount}
+                        prefix={<Icon source={CashDollarFilledIcon} />}
+                        type="number"
+                        min={0}
+                        step={0.01}
+                        autoComplete="off"
+                        onChange={(value) => setTopUpAmount(value)}
+                      />
+                    </div>
+                    <Button
+                      variant="primary"
+                      onClick={handleTopUp}
+                      disabled={isNaN(numericAmount) || numericAmount <= 0}
+                    >
+                      {buttonLabel}
+                    </Button>
+                  </BlockStack>
+                </BlockStack>
+              </Card>
+
+              {/* Right column — Settings */}
+              <Card>
+                <BlockStack gap="400">
+                  <InlineStack align="space-between" blockAlign="center">
+                    <Text as="h2" variant="headingMd" fontWeight="semibold">
+                      Settings
+                    </Text>
+                    {googleAutocomplete && (
+                      <span
+                        style={{
+                          padding: "2px 8px",
+                          borderRadius: "10px",
+                          backgroundColor: "var(--p-color-bg-fill-success)",
+                          color: "var(--p-color-text-on-fill)",
+                          fontSize: "12px",
+                          fontWeight: 600,
+                        }}
+                      >
+                        Active
+                      </span>
+                    )}
+                  </InlineStack>
+
+                  {/* General */}
+                  <BlockStack gap="200">
+                    <Text as="p" variant="headingSm" tone="subdued">
+                      GENERAL
+                    </Text>
+                    <Checkbox
+                      label="Enable Google Autocomplete"
+                      checked={googleAutocomplete}
+                      onChange={(val) => { setGoogleAutocomplete(val); markDirty(); }}
+                    />
+                  </BlockStack>
+
+                  {googleAutocomplete && (
+                    <>
+                      <Divider />
+
+                      {/* Autocomplete settings */}
+                      <BlockStack gap="300">
+                        <Text as="p" variant="headingSm" tone="subdued">
+                          AUTOCOMPLETE
+                        </Text>
+                        <Select
+                          label="Suggestion type"
+                          options={[
+                            { label: "Full address", value: "address" },
+                            { label: "Geocode (broader)", value: "geocode" },
+                          ]}
+                          value={googleAcPlaceType}
+                          onChange={(val) => { setGoogleAcPlaceType(val as "address" | "geocode"); markDirty(); }}
+                        />
+                        <Select
+                          label="Language"
+                          options={LANGUAGE_OPTIONS}
+                          value={googleAcLanguage}
+                          onChange={(val) => { setGoogleAcLanguage(val); markDirty(); }}
+                        />
+                        <BlockStack gap="100">
+                          <Text as="p" variant="bodyMd">
+                            Restrict to countries (max 5)
+                          </Text>
+                          <InlineStack gap="100" wrap>
+                            {googleAcCountries.map((code) => {
+                              const label = COUNTRY_OPTIONS.find((c) => c.value === code)?.label ?? code;
+                              return (
+                                <span
+                                  key={code}
+                                  style={{
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: "4px",
+                                    padding: "3px 8px",
+                                    borderRadius: "4px",
+                                    backgroundColor: "var(--p-color-bg-surface-secondary)",
+                                    fontSize: "13px",
+                                  }}
+                                >
+                                  {label}
+                                  <button
+                                    type="button"
+                                    onClick={() => handleCountryToggle(code)}
+                                    style={{
+                                      background: "none",
+                                      border: "none",
+                                      cursor: "pointer",
+                                      padding: "0 2px",
+                                      fontSize: "14px",
+                                      color: "var(--p-color-text-subdued)",
+                                    }}
+                                  >
+                                    ×
+                                  </button>
+                                </span>
+                              );
+                            })}
+                          </InlineStack>
+                          <Select
+                            label="Add country"
+                            labelHidden
+                            options={[
+                              { label: "Add a country…", value: "" },
+                              ...COUNTRY_OPTIONS.filter((c) => !googleAcCountries.includes(c.value)),
+                            ]}
+                            value=""
+                            onChange={(val) => { if (val) handleCountryToggle(val); }}
+                            disabled={googleAcCountries.length >= 5}
+                          />
+                        </BlockStack>
+                      </BlockStack>
+
+                      <Divider />
+
+                      {/* Auto-fill fields */}
+                      <BlockStack gap="200">
+                        <Text as="p" variant="headingSm" tone="subdued">
+                          AUTO-FILL FIELDS ON SELECTION
+                        </Text>
+                        <Checkbox
+                          label="City"
+                          checked={googleAcFillCity}
+                          onChange={(val) => { setGoogleAcFillCity(val); markDirty(); }}
+                        />
+                        <Checkbox
+                          label="Postal code"
+                          checked={googleAcFillPostalCode}
+                          onChange={(val) => { setGoogleAcFillPostalCode(val); markDirty(); }}
+                        />
+                        <Checkbox
+                          label="Province / State"
+                          checked={googleAcFillProvince}
+                          onChange={(val) => { setGoogleAcFillProvince(val); markDirty(); }}
+                        />
+                        <Checkbox
+                          label="Country"
+                          checked={googleAcFillCountry}
+                          onChange={(val) => { setGoogleAcFillCountry(val); markDirty(); }}
+                        />
+                      </BlockStack>
+
+                      <Divider />
+
+                      {/* Extra features */}
+                      <BlockStack gap="200">
+                        <Text as="p" variant="headingSm" tone="subdued">
+                          EXTRA FEATURES
+                        </Text>
+                        <Checkbox
+                          label="Map pin picker"
+                          helpText="Allow customers to pick their address from a map"
+                          checked={googleAcMapPicker}
+                          onChange={(val) => { setGoogleAcMapPicker(val); markDirty(); }}
+                        />
+                        <Checkbox
+                          label="Auto-locate customer"
+                          helpText="Automatically detect customer location on form open"
+                          checked={googleAcAutoLocate}
+                          onChange={(val) => { setGoogleAcAutoLocate(val); markDirty(); }}
+                        />
+                      </BlockStack>
+                    </>
+                  )}
+                </BlockStack>
+              </Card>
+            </div>
+          </BlockStack>
+        )}
+      </div>
+    </Page>
+  );
+}
+
 export function IntegrationsPageContent(): ReactElement {
   const [activeView, setActiveView] = useState<ActiveView>("list");
   const [isHydrating, setIsHydrating] = useState(true);
@@ -2514,6 +2996,8 @@ export function IntegrationsPageContent(): ReactElement {
       setActiveView("sms-whatsapp");
     } else if (params.get("view") === "google-sheets" || params.get("tab") === "google-sheets") {
       setActiveView("google-sheets");
+    } else if (params.get("view") === "google-autocomplete") {
+      setActiveView("google-autocomplete");
     }
     setIsHydrating(false);
   }, []);
@@ -2572,6 +3056,10 @@ export function IntegrationsPageContent(): ReactElement {
     return <GoogleSheetsPage onBack={() => handleSetActiveView("list")} />;
   }
 
+  if (activeView === "google-autocomplete") {
+    return <GoogleAutocompletePage onBack={() => handleSetActiveView("list")} />;
+  }
+
   return (
     <Page title="Integrations & Messaging">
       <div style={{ width: "65.5rem", maxWidth: "100%" }}>
@@ -2595,7 +3083,7 @@ export function IntegrationsPageContent(): ReactElement {
                   {item.description}
                 </Text>
                 <div>
-                  {item.id === "sms-whatsapp" || item.id === "google-sheets" ? (
+                  {item.id === "sms-whatsapp" || item.id === "google-sheets" || item.id === "google-autocomplete" ? (
                     <Button
                       icon={item.icon}
                       variant="primary"

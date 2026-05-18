@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ReactElement } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { RichTextEditor } from "@/components/RichTextEditor";
 import type { IconSource } from "@shopify/polaris";
 import {
   Banner,
@@ -29,8 +28,6 @@ import {
   TextField,
 } from "@shopify/polaris";
 import {
-  ChevronDownIcon,
-  ChevronUpIcon,
   ClockIcon,
   CodeIcon,
   CollectionReferenceIcon,
@@ -71,75 +68,9 @@ type DiscountType = "no-discount" | "fixed-amount" | "percentage";
 
 type CodFeeType = "fixed" | "percentage";
 
-type RedirectionMode =
-  | "shopify-thank-you"
-  | "specific-page"
-  | "whatsapp"
-  | "no-redirection";
-
-const VARIABLES_GRID: string[][] = [
-  ["{{customer.name}}", "{{customer.city}}", "{{order.shipping_method}}"],
-  ["{{customer.phone}}", "{{customer.zip}}", "{{order.products}}"],
-  ["{{customer.email}}", "{{order.id}}", "{{order.variants}}"],
-  ["{{customer.address1}}", "{{order.number}}", "{{order.quantity}}"],
-  ["{{customer.address2}}", "{{order.total}}", "{{order.variant_ids}}"],
-  ["{{customer.province}}", "{{order.note}}", "{{order.products_urls}}"],
-];
-
-
-function VariablesSection(): ReactElement {
-  const [open, setOpen] = useState(true);
-
-  return (
-    <BlockStack gap="300">
-      <InlineStack>
-        <Button
-          variant="plain"
-          icon={open ? ChevronUpIcon : ChevronDownIcon}
-          onClick={() => setOpen(!open)}
-        >
-          Variables:
-        </Button>
-      </InlineStack>
-      {open && (
-        <InlineGrid columns={3} gap="200">
-          {VARIABLES_GRID.flat().map((variable) => (
-            <button
-              key={variable}
-              type="button"
-              onClick={() => {
-                void navigator.clipboard.writeText(variable);
-              }}
-              style={{
-                background: "none",
-                border: "none",
-                padding: "2px 0",
-                cursor: "pointer",
-                fontFamily: "monospace",
-                fontSize: "13px",
-                color: "#303030",
-                textAlign: "left",
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-              }}
-            >
-              {variable}
-            </button>
-          ))}
-        </InlineGrid>
-      )}
-    </BlockStack>
-  );
-}
 
 
 function GeneralTabContent(): ReactElement {
-  const [redirection, setRedirection] =
-    useState<RedirectionMode>("shopify-thank-you");
-  const [specificPageUrl, setSpecificPageUrl] = useState("");
-  const [whatsappMessage, setWhatsappMessage] = useState("");
-  const [whatsappPhone, setWhatsappPhone] = useState("");
   const [codFee, setCodFee] = useState(false);
   const [codFeeType, setCodFeeType] = useState<CodFeeType>("fixed");
   const [codFeeAmount, setCodFeeAmount] = useState("0");
@@ -208,103 +139,7 @@ function GeneralTabContent(): ReactElement {
 
   return (
     <BlockStack gap="800">
-      {/* 1. Manage redirection */}
-      <InlineGrid columns={["oneThird", "twoThirds"]} gap="400">
-        <BlockStack gap="200">
-          <Text as="h2" variant="headingMd">
-            Manage redirection
-          </Text>
-          <Text as="p" variant="bodyMd" tone="subdued">
-            Select where you want to redirect customers after placing the order
-          </Text>
-        </BlockStack>
-        <Card padding="0">
-          <Box padding="400">
-            <BlockStack gap="400">
-              <ChoiceList
-                title="Redirection"
-                titleHidden
-                choices={[
-                  {
-                    label:
-                      "Redirect customers to Shopify default Thank you page",
-                    value: "shopify-thank-you",
-                  },
-                  {
-                    label: "Redirect customers to specific page",
-                    value: "specific-page",
-                    renderChildren: (isSelected) =>
-                      isSelected ? (
-                        <Box paddingBlockStart="300">
-                          <TextField
-                            label="URL"
-                            labelHidden
-                            value={specificPageUrl}
-                            onChange={setSpecificPageUrl}
-                            placeholder="https://shopify.com"
-                            helpText="Link where to redirect customers after submitting form."
-                            autoComplete="off"
-                          />
-                        </Box>
-                      ) : null,
-                  },
-                  {
-                    label:
-                      "Redirect customers to WhatsApp to chat with you",
-                    value: "whatsapp",
-                    renderChildren: (isSelected) =>
-                      isSelected ? (
-                        <Box paddingBlockStart="300">
-                          <InlineGrid columns={2} gap="400">
-                            <TextField
-                              label="WhatsApp Message"
-                              value={whatsappMessage}
-                              onChange={setWhatsappMessage}
-                              multiline={4}
-                              autoComplete="off"
-                            />
-                            <TextField
-                              label="Your WhatsApp phone number"
-                              value={whatsappPhone}
-                              onChange={setWhatsappPhone}
-                              placeholder="+571234567890"
-                              helpText="Please include the country code"
-                              autoComplete="off"
-                            />
-                          </InlineGrid>
-                        </Box>
-                      ) : null,
-                  },
-                  {
-                    label: "No redirection (Show thank you message only)",
-                    value: "no-redirection",
-                    renderChildren: (isSelected) =>
-                      isSelected ? (
-                        <Box paddingBlockStart="300">
-                          <BlockStack gap="300">
-                            <Text as="p" variant="bodyMd" tone="subdued">
-                              Message to show after submiting the form
-                            </Text>
-                            <RichTextEditor />
-                          </BlockStack>
-                        </Box>
-                      ) : null,
-                  },
-                ]}
-                selected={[redirection]}
-                onChange={(values) =>
-                  setRedirection(values[0] as RedirectionMode)
-                }
-              />
-              {redirection !== "shopify-thank-you" && <VariablesSection />}
-            </BlockStack>
-          </Box>
-        </Card>
-      </InlineGrid>
-
-      <Divider />
-
-      {/* 2. Cash on Delivery fee */}
+      {/* 1. Cash on Delivery fee */}
       <InlineGrid columns={["oneThird", "twoThirds"]} gap="400">
         <Text as="h2" variant="headingMd">
           Cash on Delivery fee

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ExternalLink, ShieldCheck, Shield, Construction, MessageCircle } from "lucide-react";
+import { ExternalLink, ShieldCheck, Shield, Construction, MessageCircle, MapPin } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -20,6 +20,7 @@ const SETTINGS_TABS: SettingsTab[] = [
   { href: "/settings/security", group: "Configuration", label: "Security", icon: ShieldCheck },
   { href: "/settings/maintenance", group: "Configuration", label: "Maintenance mode", icon: Construction },
   { href: "/settings/whatsapp", group: "Configuration", label: "WhatsApp", icon: MessageCircle },
+  { href: "/settings/google-autocomplete", group: "Configuration", label: "Google Autocomplete", icon: MapPin },
 ];
 
 const GROUPS: Array<SettingsTab["group"]> = [
