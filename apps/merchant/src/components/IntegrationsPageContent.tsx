@@ -1402,8 +1402,8 @@ function SmsWhatsAppPage({ onBack }: { onBack: () => void }): ReactElement {
         { ...INITIAL_SMS_SERVICES[2], isActive: data.shippingConfirmationActive, message: data.shippingConfirmationMessage },
         { ...INITIAL_SMS_SERVICES[3], isActive: data.abandonedCartActive, message: data.abandonedCartMessage },
       ]);
-    } catch (error) {
-      console.error(error);
+    } catch {
+      // Network or parse failure — isLoading clears in finally, UI shows empty state
     } finally {
       setIsLoading(false);
     }
@@ -1538,12 +1538,11 @@ function SmsWhatsAppPage({ onBack }: { onBack: () => void }): ReactElement {
         return;
       }
       if (data.confirmationUrl) {
-        window.top!.location.href = data.confirmationUrl;
+        (window.top ?? window).location.href = data.confirmationUrl;
       } else {
         shopify.toast.show(data.error || "Failed to initiate top-up");
       }
-    } catch (error) {
-      console.error(error);
+    } catch {
       shopify.toast.show("Failed to initiate top-up");
     }
   };
@@ -2705,7 +2704,7 @@ function GoogleAutocompletePage({ onBack }: { onBack: () => void }): ReactElemen
         return;
       }
       if (data.confirmationUrl) {
-        window.top!.location.href = data.confirmationUrl;
+        (window.top ?? window).location.href = data.confirmationUrl;
       } else {
         shopify.toast.show(data.error || "Failed to initiate top-up");
       }

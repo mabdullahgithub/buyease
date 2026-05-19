@@ -11,7 +11,7 @@ export function AppPageFooter(): ReactElement {
     <Box paddingBlockStart="400" paddingBlockEnd="400" width="100%">
       <BlockStack gap="100">
         <Text as="p" variant="bodySm" tone="subdued" alignment="center">
-          &copy; BuyEase 2026 🇵🇰
+          &copy; BuyEase 2026
         </Text>
       </BlockStack>
     </Box>

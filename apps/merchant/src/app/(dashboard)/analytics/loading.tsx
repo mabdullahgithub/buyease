@@ -1,1 +1,1 @@
-export { default } from "@/components/skeletons/DashboardRouteSkeleton";
+export { default } from "@/components/skeletons/AnalyticsPageSkeleton";

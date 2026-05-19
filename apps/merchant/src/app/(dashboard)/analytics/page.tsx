@@ -1,7 +1,7 @@
 import type { ReactElement } from "react";
 
-import { ComingSoonPage } from "@/components/ComingSoonPage";
+import { AnalyticsPageContent } from "@/components/AnalyticsPageContent";
 
 export default function AnalyticsPage(): ReactElement {
-  return <ComingSoonPage title="Analytics" />;
+  return <AnalyticsPageContent />;
 }

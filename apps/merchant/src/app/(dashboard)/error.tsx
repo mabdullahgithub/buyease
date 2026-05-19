@@ -27,7 +27,11 @@ export default function DashboardError({
     <Page>
       <BlockStack gap="400">
         <Banner title="Something went wrong" tone="critical">
-          <p>{error.message || "An unexpected error occurred."}</p>
+          <p>
+            An unexpected error occurred. Please try again, or contact support if
+            the problem persists.
+            {error.digest ? ` (ref: ${error.digest})` : ""}
+          </p>
         </Banner>
         <Button icon={RefreshIcon} onClick={reset}>
           Try again

@@ -5,7 +5,7 @@ import { shopHostnameFromSessionTokenDest } from "@/lib/shop-domain";
 import shopify from "@/lib/shopify";
 import { exchangeSessionToken } from "@/lib/token-exchange";
 
-import { ComingSoonPage } from "@/components/ComingSoonPage";
+import { HomePageContent } from "@/components/HomePageContent";
 
 type HomePageProps = {
   searchParams:
@@ -88,5 +88,5 @@ export default async function HomePage({ searchParams }: HomePageProps): Promise
     await getOrCreateSession(shop, idToken);
   }
 
-  return <ComingSoonPage title="Home" />;
+  return <HomePageContent />;
 }
